@@ -85,186 +85,241 @@ function PreisePageContent() {
         </div>
 
         {/* Plan container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* ── Column 1: Free Tier (5 cols) ────────────────────── */}
-          <div className="lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 md:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-            <div className="space-y-6">
-              <div>
-                <span className="text-[12px] text-on-surface-variant font-bold uppercase tracking-wider bg-surface-container-high px-3 py-1 rounded-full">
-                  {t("freeTier")}
-                </span>
-                <div className="flex items-baseline gap-1 mt-4">
-                  <span className="text-[36px] font-bold text-primary">0 €</span>
-                  <span className="text-on-surface-variant text-[14px]">/ {language === "de" ? "Monat" : "Month"}</span>
-                </div>
-              </div>
+        {profile?.role === "landlord" ? (
+          /* Gorgeous Landlord Info Banner */
+          <div className="bg-surface-container-lowest border-2 border-primary rounded-3xl p-8 md:p-12 shadow-xl relative overflow-hidden bg-gradient-to-br from-white via-primary/5 to-primary/10 max-w-[800px] mx-auto text-center space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            {/* Background decorative gradient glow */}
+            <div className="absolute top-[-20%] left-[-20%] w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-20%] w-[300px] h-[300px] bg-secondary/15 rounded-full blur-[80px] pointer-events-none" />
 
-              <div className="space-y-2">
-                <h3 className="font-bold text-[16px] text-on-surface">
-                  {language === "de" ? "Standard-Suche & Basisdaten" : "Standard Search & Basic Info"}
-                </h3>
-                <p className="text-[14px] text-on-surface-variant">
-                  {language === "de" 
-                    ? "Ideal, wenn du Zeit hast und den Marktplatz unverbindlich kennenlernen möchtest."
-                    : "Ideal if you have time and want to explore the marketplace without commitment."}
-                </p>
-              </div>
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 border border-primary/20 rounded-full text-primary shadow-sm mx-auto">
+              <span className="material-symbols-outlined text-[40px] animate-pulse">workspace_premium</span>
+            </div>
 
-              <ul className="space-y-4 text-[14px] text-on-surface-variant border-t border-outline-variant/50 pt-6">
+            <div className="space-y-4 relative z-10">
+              <h2 className="text-headline-md font-bold text-primary">
+                {language === "de"
+                  ? "Premium-Vorteile aktiv für alle Vermieter"
+                  : "Premium Benefits Active for All Landlords"}
+              </h2>
+              <p className="text-on-surface-variant text-body-md max-w-xl mx-auto leading-relaxed">
+                {language === "de"
+                  ? "Als Vermieter auf Heimstadt erhalten Sie aktuell kostenfreien Zugang zu allen exklusiven Premium-Funktionen. Es ist kein separater Tarif oder Abschluss eines Abonnements notwendig!"
+                  : "As a landlord on Heimstadt, you currently receive free access to all exclusive premium features. No separate plan or subscription signup is required!"}
+              </p>
+            </div>
+
+            {/* Premium features list */}
+            <div className="bg-white/60 backdrop-blur-sm border border-outline-variant/60 rounded-2xl p-6 md:p-8 max-w-lg mx-auto relative z-10 shadow-sm text-left">
+              <h3 className="font-bold text-[16px] text-primary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px]">verified</span>
+                {language === "de" ? "Ihre aktiven Premium-Features:" : "Your Active Premium Features:"}
+              </h3>
+              <ul className="space-y-3.5 text-left text-[15px] text-on-surface-variant">
                 {[
-                  { label: language === "de" ? "Unbegrenzt Immobilien durchsuchen" : "Browse unlimited properties", check: true },
-                  { label: language === "de" ? "Standard-Bewerberliste für Vermieter" : "Standard applicant list for landlords", check: true },
-                  { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords", check: false },
-                  { label: language === "de" ? "Priorisierte Bewerbungen (Premium)" : "Priority applications (Premium)", check: false },
-                  { label: language === "de" ? "Verifiziertes Bewerberportfolio" : "Validated application portfolio", check: false },
-                ].map(({ label, check }, i) => (
-                  <li key={i} className={`flex items-center gap-3 ${!check ? "text-outline-variant line-through" : ""}`}>
-                    <span className={`material-symbols-outlined text-[20px] ${check ? "text-[#137333]" : "text-outline-variant"}`}>
-                      {check ? "check_circle" : "cancel"}
-                    </span>
+                  { label: language === "de" ? "Unbegrenzte Immobilieninserate anlegen" : "Create unlimited property listings" },
+                  { label: language === "de" ? "Zugriff auf verifizierte Bewerberportfolios" : "Access verified applicant portfolios" },
+                  { label: language === "de" ? "Direkte WhatsApp-Benachrichtigungen bei Anfragen" : "Direct WhatsApp notifications on requests" },
+                  { label: language === "de" ? "Direkte Chat-Kommunikation mit Bewerbern" : "Direct chat communication with applicants" }
+                ].map(({ label }, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-primary text-[20px] select-none mt-0.5">check_circle</span>
                     <span>{label}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <button className="w-full border-2 border-primary text-primary py-3.5 rounded-xl font-bold hover:bg-primary/5 active:scale-98 transition-all mt-8 cursor-pointer text-center text-label-md">
-              {language === "de" ? "Kostenlos starten" : "Start Free"}
+            <button
+              onClick={() => router.push("/dashboard/landlord")}
+              className="bg-primary text-on-primary px-8 py-4 rounded-full font-bold text-[16px] hover:opacity-90 active:scale-98 transition-all shadow-lg shadow-primary/20 cursor-pointer relative z-10 inline-flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">space_dashboard</span>
+              {language === "de" ? "Zum Vermieter-Dashboard" : "Go to Landlord Dashboard"}
             </button>
           </div>
-
-          {/* ── Column 2: Premium Tier (7 cols) ─────────────────── */}
-          <div className="lg:col-span-7 bg-surface-container-lowest border-2 border-[#f07d00] rounded-2xl p-6 md:p-8 flex flex-col justify-between shadow-lg relative bg-gradient-to-b from-white to-[#f07d00]/5">
-            <div>
-              {/* Stepper progress */}
-              <div className="w-full mb-8">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[14px] font-bold text-[#f07d00]">{t("stepReview")}</span>
-                  <span className="text-[12px] font-bold text-on-surface-variant/80">45% {language === "de" ? "abgeschlossen" : "completed"}</span>
-                </div>
-                {/* Progress bar line */}
-                <div className="w-full h-3 bg-surface-container-high rounded-full overflow-hidden">
-                  <div className="h-full bg-[#f07d00] rounded-full transition-all duration-500 w-[45%]" />
-                </div>
-              </div>
-
-              {/* Price selector display (reproducing image UI) */}
-              <div className="space-y-4 mb-8">
-                {/* 1 Month Option */}
-                <div 
-                  onClick={() => selectPlan("1month")}
-                  className={`relative border-2 rounded-2xl p-6 cursor-pointer flex items-center justify-between transition-all hover:shadow-md ${
-                    selectedDuration === "1month" 
-                      ? "border-[#f07d00] bg-[#f07d00]/5 shadow shadow-[#f07d00]/10 scale-[1.01]" 
-                      : "border-outline-variant hover:border-on-surface-variant bg-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedDuration === "1month" ? "border-[#f07d00]" : "border-outline"
-                    }`}>
-                      {selectedDuration === "1month" && <div className="w-2.5 h-2.5 rounded-full bg-[#f07d00]" />}
-                    </div>
-                    <span className="text-[18px] font-bold text-on-surface">{t("billing1Month")}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[20px] font-bold text-on-surface">10.99 €</span>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+            {/* ── Column 1: Free Tier (5 cols) ────────────────────── */}
+            <div className="lg:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 md:p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+              <div className="space-y-6">
+                <div>
+                  <span className="text-[12px] text-on-surface-variant font-bold uppercase tracking-wider bg-surface-container-high px-3 py-1 rounded-full">
+                    {t("freeTier")}
+                  </span>
+                  <div className="flex items-baseline gap-1 mt-4">
+                    <span className="text-[36px] font-bold text-primary">0 €</span>
+                    <span className="text-on-surface-variant text-[14px]">/ {language === "de" ? "Monat" : "Month"}</span>
                   </div>
                 </div>
 
-                {/* 3 Months Option (Best Seller) */}
-                <div 
-                  onClick={() => selectPlan("3months")}
-                  className={`relative border-2 rounded-2xl p-6 cursor-pointer flex items-center justify-between transition-all hover:shadow-md ${
-                    selectedDuration === "3months" 
-                      ? "border-[#f07d00] bg-[#f07d00]/5 shadow shadow-[#f07d00]/10 scale-[1.01]" 
-                      : "border-outline-variant hover:border-on-surface-variant bg-white"
-                  }`}
-                >
-                  {/* Badge top-right */}
-                  <div className="absolute top-0 right-6 -translate-y-1/2 bg-[#f07d00] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-sm">
-                    {t("topSellers")}
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedDuration === "3months" ? "border-[#f07d00]" : "border-outline"
-                    }`}>
-                      {selectedDuration === "3months" && <div className="w-2.5 h-2.5 rounded-full bg-[#f07d00]" />}
-                    </div>
-                    <span className="text-[18px] font-bold text-on-surface">{t("billing3Months")}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[20px] font-bold text-on-surface">9.99 €</div>
-                    <div className="text-[12px] text-on-surface-variant font-medium mt-0.5">{t("perMonth")}</div>
-                  </div>
+                <div className="space-y-2">
+                  <h3 className="font-bold text-[16px] text-on-surface">
+                    {language === "de" ? "Standard-Suche & Basisdaten" : "Standard Search & Basic Info"}
+                  </h3>
+                  <p className="text-[14px] text-on-surface-variant">
+                    {language === "de" 
+                      ? "Ideal, wenn du Zeit hast und den Marktplatz unverbindlich kennenlernen möchtest."
+                      : "Ideal if you have time and want to explore the marketplace without commitment."}
+                  </p>
                 </div>
 
-                {/* 12 Months Option */}
-                <div 
-                  onClick={() => selectPlan("12months")}
-                  className={`relative border-2 rounded-2xl p-6 cursor-pointer flex items-center justify-between transition-all hover:shadow-md ${
-                    selectedDuration === "12months" 
-                      ? "border-[#f07d00] bg-[#f07d00]/5 shadow shadow-[#f07d00]/10 scale-[1.01]" 
-                      : "border-outline-variant hover:border-on-surface-variant bg-white"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      selectedDuration === "12months" ? "border-[#f07d00]" : "border-outline"
-                    }`}>
-                      {selectedDuration === "12months" && <div className="w-2.5 h-2.5 rounded-full bg-[#f07d00]" />}
-                    </div>
-                    <span className="text-[18px] font-bold text-on-surface">{t("billing12Months")}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[20px] font-bold text-on-surface">7.99 €</div>
-                    <div className="text-[12px] text-on-surface-variant font-medium mt-0.5">{t("perMonth")}</div>
-                  </div>
-                </div>
-
-                {/* Disclaimer */}
-                <p className="text-[13px] text-on-surface-variant/80 italic mt-2">
-                  {t("pricingDisclaimer")}
-                </p>
-              </div>
-
-              {/* Premium Features List */}
-              <div className="border-t border-outline-variant/60 pt-6 space-y-4">
-                <h4 className="font-bold text-[15px] text-on-surface">
-                  {language === "de" ? "Premium-Vorteile im Überblick:" : "Premium Benefits at a Glance:"}
-                </h4>
-                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[14px] text-on-surface-variant">
+                <ul className="space-y-4 text-[14px] text-on-surface-variant border-t border-outline-variant/50 pt-6">
                   {[
-                    { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords" },
-                    { label: language === "de" ? "Geprüftes Bewerberportfolio" : "Validated applicant portfolio" },
-                    { label: language === "de" ? "Priorisierte Bewerber-Anfragen" : "Priority applicant requests" },
-                    { label: language === "de" ? "Unbegrenzte Chat-Vorgänge" : "Unlimited chat sessions" },
-                    { label: language === "de" ? "Escrow-Treuhandgarantie" : "Secure escrow guarantee" }
-                  ].map(({ label }, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[#f07d00] text-[18px]">verified</span>
+                    { label: language === "de" ? "Unbegrenzt Immobilien durchsuchen" : "Browse unlimited properties", check: true },
+                    { label: language === "de" ? "Standard-Bewerberliste für Vermieter" : "Standard applicant list for landlords", check: true },
+                    { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords", check: false },
+                    { label: language === "de" ? "Priorisierte Bewerbungen (Premium)" : "Priority applications (Premium)", check: false },
+                    { label: language === "de" ? "Verifiziertes Bewerberportfolio" : "Validated application portfolio", check: false },
+                  ].map(({ label, check }, i) => (
+                    <li key={i} className={`flex items-center gap-3 ${!check ? "text-outline-variant line-through" : ""}`}>
+                      <span className={`material-symbols-outlined text-[20px] ${check ? "text-[#137333]" : "text-outline-variant"}`}>
+                        {check ? "check_circle" : "cancel"}
+                      </span>
                       <span>{label}</span>
                     </li>
                   ))}
                 </ul>
               </div>
+
+              <button className="w-full border-2 border-primary text-primary py-3.5 rounded-xl font-bold hover:bg-primary/5 active:scale-98 transition-all mt-8 cursor-pointer text-center text-label-md">
+                {language === "de" ? "Kostenlos starten" : "Start Free"}
+              </button>
             </div>
 
-            {/* Checkout action */}
-            <button
-              onClick={handlePayment}
-              disabled={isSubmitting}
-              className="w-full bg-[#f07d00] text-white py-4 rounded-full font-bold text-[18px] hover:opacity-90 active:scale-98 transition-all mt-8 cursor-pointer shadow-md shadow-[#f07d00]/25 flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-              ) : (
-                t("continueToPayment")
-              )}
-            </button>
+            {/* ── Column 2: Premium Tier (7 cols) ─────────────────── */}
+            <div className="lg:col-span-7 bg-surface-container-lowest border-2 border-[#f07d00] rounded-2xl p-6 md:p-8 flex flex-col justify-between shadow-lg relative bg-gradient-to-b from-white to-[#f07d00]/5">
+              <div>
+                {/* Stepper progress */}
+                <div className="w-full mb-8">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[14px] font-bold text-[#f07d00]">{t("stepReview")}</span>
+                    <span className="text-[12px] font-bold text-on-surface-variant/80">45% {language === "de" ? "abgeschlossen" : "completed"}</span>
+                  </div>
+                  {/* Progress bar line */}
+                  <div className="w-full h-3 bg-surface-container-high rounded-full overflow-hidden">
+                    <div className="h-full bg-[#f07d00] rounded-full transition-all duration-500 w-[45%]" />
+                  </div>
+                </div>
+
+                {/* Price selector display (reproducing image UI) */}
+                <div className="space-y-4 mb-8">
+                  {/* 1 Month Option */}
+                  <div 
+                    onClick={() => selectPlan("1month")}
+                    className={`relative border-2 rounded-2xl p-6 cursor-pointer flex items-center justify-between transition-all hover:shadow-md ${
+                      selectedDuration === "1month" 
+                        ? "border-[#f07d00] bg-[#f07d00]/5 shadow shadow-[#f07d00]/10 scale-[1.01]" 
+                        : "border-outline-variant hover:border-on-surface-variant bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        selectedDuration === "1month" ? "border-[#f07d00]" : "border-outline"
+                      }`}>
+                        {selectedDuration === "1month" && <div className="w-2.5 h-2.5 rounded-full bg-[#f07d00]" />}
+                      </div>
+                      <span className="text-[18px] font-bold text-on-surface">{t("billing1Month")}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[20px] font-bold text-on-surface">10.99 €</span>
+                    </div>
+                  </div>
+
+                  {/* 3 Months Option (Best Seller) */}
+                  <div 
+                    onClick={() => selectPlan("3months")}
+                    className={`relative border-2 rounded-2xl p-6 cursor-pointer flex items-center justify-between transition-all hover:shadow-md ${
+                      selectedDuration === "3months" 
+                        ? "border-[#f07d00] bg-[#f07d00]/5 shadow shadow-[#f07d00]/10 scale-[1.01]" 
+                        : "border-outline-variant hover:border-on-surface-variant bg-white"
+                    }`}
+                  >
+                    {/* Badge top-right */}
+                    <div className="absolute top-0 right-6 -translate-y-1/2 bg-[#f07d00] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-sm">
+                      {t("topSellers")}
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        selectedDuration === "3months" ? "border-[#f07d00]" : "border-outline"
+                      }`}>
+                        {selectedDuration === "3months" && <div className="w-2.5 h-2.5 rounded-full bg-[#f07d00]" />}
+                      </div>
+                      <span className="text-[18px] font-bold text-on-surface">{t("billing3Months")}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[20px] font-bold text-on-surface">9.99 €</div>
+                      <div className="text-[12px] text-on-surface-variant font-medium mt-0.5">{t("perMonth")}</div>
+                    </div>
+                  </div>
+
+                  {/* 12 Months Option */}
+                  <div 
+                    onClick={() => selectPlan("12months")}
+                    className={`relative border-2 rounded-2xl p-6 cursor-pointer flex items-center justify-between transition-all hover:shadow-md ${
+                      selectedDuration === "12months" 
+                        ? "border-[#f07d00] bg-[#f07d00]/5 shadow shadow-[#f07d00]/10 scale-[1.01]" 
+                        : "border-outline-variant hover:border-on-surface-variant bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        selectedDuration === "12months" ? "border-[#f07d00]" : "border-outline"
+                      }`}>
+                        {selectedDuration === "12months" && <div className="w-2.5 h-2.5 rounded-full bg-[#f07d00]" />}
+                      </div>
+                      <span className="text-[18px] font-bold text-on-surface">{t("billing12Months")}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[20px] font-bold text-on-surface">7.99 €</div>
+                      <div className="text-[12px] text-on-surface-variant font-medium mt-0.5">{t("perMonth")}</div>
+                    </div>
+                  </div>
+
+                  {/* Disclaimer */}
+                  <p className="text-[13px] text-on-surface-variant/80 italic mt-2">
+                    {t("pricingDisclaimer")}
+                  </p>
+                </div>
+
+                {/* Premium Features List */}
+                <div className="border-t border-outline-variant/60 pt-6 space-y-4">
+                  <h4 className="font-bold text-[15px] text-on-surface">
+                    {language === "de" ? "Premium-Vorteile im Überblick:" : "Premium Benefits at a Glance:"}
+                  </h4>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[14px] text-on-surface-variant">
+                    {[
+                      { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords" },
+                      { label: language === "de" ? "Geprüftes Bewerberportfolio" : "Validated applicant portfolio" },
+                      { label: language === "de" ? "Priorisierte Bewerber-Anfragen" : "Priority applicant requests" },
+                      { label: language === "de" ? "Unbegrenzte Chat-Vorgänge" : "Unlimited chat sessions" },
+                      { label: language === "de" ? "Escrow-Treuhandgarantie" : "Secure escrow guarantee" }
+                    ].map(({ label }, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#f07d00] text-[18px]">verified</span>
+                        <span>{label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Checkout action */}
+              <button
+                onClick={handlePayment}
+                disabled={isSubmitting}
+                className="w-full bg-[#f07d00] text-white py-4 rounded-full font-bold text-[18px] hover:opacity-90 active:scale-98 transition-all mt-8 cursor-pointer shadow-md shadow-[#f07d00]/25 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <span className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                ) : (
+                  t("continueToPayment")
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </main>
       <Footer />
     </>

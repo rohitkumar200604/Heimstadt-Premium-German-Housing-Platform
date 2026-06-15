@@ -251,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const role = profile?.role ?? null;
-  const isPremium = subscription !== null && subscription.status === "active";
+  const isPremium = (profile?.role === "landlord") || (subscription !== null && subscription.status === "active");
 
   return (
     <AuthContext.Provider

@@ -16,7 +16,7 @@ export const translations = {
     imprint: "Impressum",
     privacy: "Datenschutz",
     terms: "AGB",
-    rightsReserved: "© 2024 Heimstadt Immobilien GmbH. Alle Rechte vorbehalten.",
+    rightsReserved: "© 2026 Heimstadt Immobilien GmbH. Alle Rechte vorbehalten.",
 
     // Homepage
     heroTitle: "Willkommen in deinem neuen Zuhause.",
@@ -243,7 +243,7 @@ export const translations = {
     imprint: "Imprint",
     privacy: "Privacy Policy",
     terms: "Terms of Service",
-    rightsReserved: "© 2024 Heimstadt Immobilien GmbH. All rights reserved.",
+    rightsReserved: "© 2026 Heimstadt Immobilien GmbH. All rights reserved.",
 
     // Homepage
     heroTitle: "Welcome to your new home.",

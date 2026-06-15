@@ -262,7 +262,7 @@ function LandlordDashboardContent() {
   }, [user, profile]);
 
   const toggleWhatsApp = async () => {
-    if (!user || !landlordProfile || landlordProfile.subscription_tier !== "pro") return;
+    if (!user || !landlordProfile || !isProTier) return;
     const nextVal = !landlordProfile.whatsapp_enabled;
     if (!isSupabaseConfigured()) {
       setLandlordProfile({ ...landlordProfile, whatsapp_enabled: nextVal });
@@ -635,71 +635,7 @@ function LandlordDashboardContent() {
               <span>{language === "de" ? "Favoriten" : "Favourites"}</span>
             </button>
 
-            {/* Divider */}
-            <div className="border-t border-outline-variant/60 my-3" />
-            
-            {/* Membership Panel */}
-            <div className="p-3 bg-surface-container-low/40 rounded-xl border border-outline-variant/50 space-y-3">
-              <h4 className="text-[12px] font-bold text-primary flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[#f07d00] text-[18px]">card_membership</span>
-                <span>{language === "de" ? "Mitgliedschaft" : "Membership"}</span>
-              </h4>
-              
-              {!isProTier ? (
-                <div className="space-y-2">
-                  <div className="text-[11px] text-on-surface-variant leading-tight">
-                    {language === "de" ? "Kostenloser Tarif" : "Free Basic Plan"}
-                  </div>
-                  <Link
-                    href="/preise?plan=3months"
-                    className="w-full bg-[#f07d00] text-white py-2 rounded-lg font-bold text-[11px] hover:opacity-90 active:scale-95 transition-all text-center block"
-                  >
-                    {language === "de" ? "Jetzt upgraden" : "Upgrade Now"}
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="text-[12px] font-black text-primary flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[#f07d00] text-[16px]">workspace_premium</span>
-                    <span>Premium ({subscription?.plan === "1month" ? "1M" : subscription?.plan === "3months" ? "3M" : subscription?.plan === "12months" ? "12M" : "Pro"})</span>
-                  </div>
-                  
-                  {subscription ? (
-                    (() => {
-                      const sub = subscription;
-                      const start = new Date(sub.startDate).getTime();
-                      const end = new Date(sub.endDate).getTime();
-                      const total = end - start;
-                      const elapsed = Date.now() - start;
-                      const percentage = Math.max(0, Math.min(100, (elapsed / total) * 100));
-                      const daysRemaining = Math.max(0, Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24)));
-                      
-                      return (
-                        <div className="space-y-1.5 pt-1">
-                          <div className="flex justify-between text-[9px] text-on-surface-variant font-bold">
-                            <span>{language === "de" ? "Gültigkeit" : "Validity"}</span>
-                            <span>{daysRemaining}d left</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-[#f07d00] rounded-full transition-all duration-500" 
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <div className="text-[9px] text-on-surface-variant/80 font-medium italic">
-                            {language === "de" ? "Bis:" : "Exp:"} {new Date(sub.endDate).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
-                          </div>
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    <div className="text-[10px] text-on-surface-variant/80 font-medium italic pt-1">
-                      {language === "de" ? "Lebenslanger Pro-Zugang" : "Lifetime Pro Access"}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+
           </aside>
 
           {/* ── Main Tab Contents ─────────────────────────── */}
@@ -710,7 +646,7 @@ function LandlordDashboardContent() {
               <div className="space-y-6">
                 
                 {/* Stats Columns Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="bg-white border border-outline-variant p-5 rounded-2xl shadow-sm flex items-center gap-4">
                     <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                       <span className="material-symbols-outlined text-primary text-[24px]">real_estate_agent</span>
@@ -738,152 +674,55 @@ function LandlordDashboardContent() {
                       </p>
                     </div>
                   </div>
-
-                  <div className="bg-white border border-outline-variant p-5 rounded-2xl shadow-sm flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <span className="material-symbols-outlined text-primary text-[24px]">card_membership</span>
-                    </div>
-                    <div>
-                      <p className="text-[12px] text-on-surface-variant font-bold uppercase leading-none">
-                        {language === "de" ? "Mitgliedschaft" : "Membership Plan"}
-                      </p>
-                      <p className="text-[18px] font-bold text-primary mt-1 capitalize">
-                        {landlordProfile?.subscription_tier ? `${landlordProfile.subscription_tier} Tier` : "Free Tier"}
-                      </p>
-                    </div>
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  {/* Left Column: Quick requests list - 8 Cols */}
-                  <div className="lg:col-span-8 bg-white border border-outline-variant p-6 rounded-2xl shadow-sm space-y-4">
-                    <h3 className="text-headline-md font-bold text-primary">
-                      {language === "de" ? "Letzte Buchungsanfragen" : "Recent Booking Requests"}
-                    </h3>
-                    
-                    {bookingRequests.length === 0 ? (
-                      <div className="text-center py-8 text-on-surface-variant text-body-md">
-                        {language === "de" 
-                          ? "Sie haben momentan keine ausstehenden Buchungsanfragen." 
-                          : "You do not have any pending booking requests at the moment."}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {bookingRequests.slice(0, 3).map((b) => {
-                          const tenant = (Array.isArray(b.tenant) ? b.tenant[0] : b.tenant) as any;
-                          const score = b.ai_tenant_scores && b.ai_tenant_scores[0];
-                          const tenantIsPremium = tenant?.subscriptions?.some((s: any) => s.status === 'active') || false;
-                          return (
-                            <div key={b.id} className="p-4 border border-outline-variant rounded-xl flex justify-between items-center gap-4 flex-wrap sm:flex-nowrap hover:shadow-sm transition-all bg-surface-container-low">
-                              <div>
-                                <h4 className="text-label-md font-bold text-primary flex items-center gap-1.5">
-                                  {tenant?.full_name || "Mieter"}
-                                  {tenantIsPremium && (
-                                    <span className="material-symbols-outlined text-[#f07d00] text-[18px] select-none" title="Premium Bewerber">
-                                      star
-                                    </span>
-                                  )}
-                                </h4>
-                                <p className="text-[12px] text-on-surface-variant mt-0.5">
-                                  {language === "de" ? "Objekt: " : "Property: "} <strong className="text-primary">{b.properties?.title}</strong>
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-3 ml-auto sm:ml-0">
-                                <Link 
-                                  href={`/buchen/${b.id}`} 
-                                  className="bg-primary text-on-primary px-4 py-1.5 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm"
-                                >
-                                  {language === "de" ? "Prüfen" : "Review"}
-                                </Link>
-                              </div>
+                {/* Quick requests list - Full Width */}
+                <div className="bg-white border border-outline-variant p-6 rounded-2xl shadow-sm space-y-4">
+                  <h3 className="text-headline-md font-bold text-primary">
+                    {language === "de" ? "Letzte Buchungsanfragen" : "Recent Booking Requests"}
+                  </h3>
+                  
+                  {bookingRequests.length === 0 ? (
+                    <div className="text-center py-8 text-on-surface-variant text-body-md">
+                      {language === "de" 
+                        ? "Sie haben momentan keine ausstehenden Buchungsanfragen." 
+                        : "You do not have any pending booking requests at the moment."}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookingRequests.slice(0, 3).map((b) => {
+                        const tenant = (Array.isArray(b.tenant) ? b.tenant[0] : b.tenant) as any;
+                        const score = b.ai_tenant_scores && b.ai_tenant_scores[0];
+                        const tenantIsPremium = tenant?.subscriptions?.some((s: any) => s.status === 'active') || false;
+                        return (
+                          <div key={b.id} className="p-4 border border-outline-variant rounded-xl flex justify-between items-center gap-4 flex-wrap sm:flex-nowrap hover:shadow-sm transition-all bg-surface-container-low">
+                            <div>
+                              <h4 className="text-label-md font-bold text-primary flex items-center gap-1.5">
+                                {tenant?.full_name || "Mieter"}
+                                {tenantIsPremium && (
+                                  <span className="material-symbols-outlined text-[#f07d00] text-[18px] select-none" title="Premium Bewerber">
+                                    star
+                                  </span>
+                                )}
+                              </h4>
+                              <p className="text-[12px] text-on-surface-variant mt-0.5">
+                                {language === "de" ? "Objekt: " : "Property: "} <strong className="text-primary">{b.properties?.title}</strong>
+                              </p>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Right Column: Subscription settings quick panel - 4 Cols */}
-                  <div className="lg:col-span-4 bg-white border border-outline-variant p-6 rounded-2xl shadow-sm space-y-6">
-                    <h3 className="text-headline-md font-bold text-primary flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[#f07d00]">card_membership</span>
-                      {language === "de" ? "Mitgliedschaft" : "Membership Plan"}
-                    </h3>
-                    
-                    {!isProTier ? (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/60">
-                          <span className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider block">Plan</span>
-                          <span className="text-[18px] font-black text-primary block mt-1">{language === "de" ? "Kostenlose Basis" : "Free Basic"}</span>
-                          <p className="text-[12px] text-on-surface-variant mt-2 leading-relaxed">
-                            {language === "de" 
-                              ? "Upgrade auf Premium, um verifizierte Bewerber-Portfolios einzusehen."
-                              : "Upgrade to Premium to view validated applicant portfolios."}
-                          </p>
-                        </div>
-                        <Link
-                          href="/preise?plan=3months"
-                          className="w-full bg-[#f07d00] text-white py-3 rounded-xl font-bold text-label-md hover:opacity-90 active:scale-98 transition-all shadow-md shadow-[#f07d00]/20 text-center block cursor-pointer"
-                        >
-                          {language === "de" ? "Jetzt upgraden" : "Upgrade Now"}
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-gradient-to-br from-[#f07d00]/5 to-transparent rounded-xl border-2 border-[#f07d00] relative overflow-hidden">
-                          <div className="absolute top-0 right-0 bg-[#f07d00] text-white text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-bl">
-                            Active
+                            <div className="flex items-center gap-3 ml-auto sm:ml-0">
+                              <Link 
+                                href={`/buchen/${b.id}`} 
+                                className="bg-primary text-on-primary px-4 py-1.5 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                              >
+                                {language === "de" ? "Prüfen" : "Review"}
+                              </Link>
+                            </div>
                           </div>
-                          <span className="text-[10px] text-[#f07d00] uppercase font-bold tracking-wider block">Plan</span>
-                          <span className="text-[18px] font-black text-primary flex items-center gap-1.5 mt-1">
-                            <span className="material-symbols-outlined text-[#f07d00] text-[20px]">workspace_premium</span>
-                            Heimstadt Premium
-                          </span>
-                          
-                          {/* Progress/Validity Bar */}
-                          {(() => {
-                            const sub = subscription;
-                            if (!sub) return null;
-                            const start = new Date(sub.startDate).getTime();
-                            const end = new Date(sub.endDate).getTime();
-                            const total = end - start;
-                            const elapsed = Date.now() - start;
-                            const percentage = Math.max(0, Math.min(100, (elapsed / total) * 100));
-                            const daysRemaining = Math.max(0, Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24)));
-                            
-                            return (
-                              <div className="mt-4 space-y-2">
-                                <div className="flex justify-between text-[11px] text-on-surface-variant font-semibold">
-                                  <span>{language === "de" ? "Gültigkeit" : "Validity"}</span>
-                                  <span>{daysRemaining} {language === "de" ? "Tage verbleibend" : "days left"}</span>
-                                </div>
-                                <div className="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-[#f07d00] rounded-full transition-all duration-500" 
-                                    style={{ width: `${percentage}%` }}
-                                  />
-                                </div>
-                                <div className="text-[11px] text-on-surface-variant/80 font-medium italic mt-1 text-right">
-                                  {language === "de" ? "Ablaufdatum:" : "Expires on:"} {new Date(sub.endDate).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                        
-                        <button
-                          onClick={toggleSubscription}
-                          className="w-full border border-outline-variant text-on-surface-variant py-2.5 rounded-xl text-[12px] font-bold hover:bg-surface-container-low active:scale-98 transition-all text-center block cursor-pointer"
-                        >
-                          {language === "de" ? "Abonnement beenden / downgraden" : "Cancel / Downgrade Subscription"}
-                        </button>
-                      </div>
-                    )}
-
-
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-
               </div>
             )}
 
