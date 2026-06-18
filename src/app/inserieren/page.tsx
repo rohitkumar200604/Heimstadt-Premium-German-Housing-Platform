@@ -10,7 +10,7 @@ import Footer from "@/components/layout/Footer";
 export default function InserierenPage() {
   const router = useRouter();
   const { t, language } = useLanguage();
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, signOut, session } = useAuth();
   
   const [landlordId, setLandlordId] = useState<string | null>(null);
   const [step, setStep] = useState(1);
@@ -219,12 +219,15 @@ export default function InserierenPage() {
   // Geocode address when Next button is hit on step 1 (fallback if autocomplete not used)
   const geocodeAddress = async (): Promise<{ lat: number; lng: number } | null> => {
     if (coords) return coords;
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) return null;
     const address = `${step1.strasse}, ${step1.plz} ${step1.stadt}`;
     setGeocoding(true);
     try {
-      const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`);
+      const token = session?.access_token || "";
+      const res = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (data.results?.[0]?.geometry?.location) {
         const { lat, lng } = data.results[0].geometry.location;

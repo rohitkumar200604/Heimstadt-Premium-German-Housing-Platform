@@ -11,6 +11,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const { profile, signOut, isPremium } = useAuth();
 
@@ -23,6 +24,7 @@ export default function Navbar() {
   useEffect(() => {
     setMobileOpen(false);
     setDropdownOpen(false);
+    setLangDropdownOpen(false);
   }, [pathname]);
 
   // Click outside to close desktop dropdown menu
@@ -37,6 +39,19 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [dropdownOpen]);
+
+  // Click outside to close desktop language dropdown
+  useEffect(() => {
+    if (!langDropdownOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".lang-dropdown-container")) {
+        setLangDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [langDropdownOpen]);
 
   const navLink = (href: string, label: string) => {
     const active = pathname === href || pathname.startsWith(href + "/");
@@ -83,30 +98,6 @@ export default function Navbar() {
 
         {/* Right Nav */}
         <div className="hidden md:flex items-center gap-6">
-          {/* Language Switcher */}
-          <div className="flex items-center bg-surface-container-low p-1 rounded-lg border border-outline-variant">
-            <button
-              onClick={() => setLanguage("de")}
-              className={`px-2.5 py-1 text-[12px] font-bold rounded transition-all ${
-                language === "de"
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary"
-              }`}
-            >
-              DE
-            </button>
-            <button
-              onClick={() => setLanguage("en")}
-              className={`px-2.5 py-1 text-[12px] font-bold rounded transition-all ${
-                language === "en"
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary"
-              }`}
-            >
-              EN
-            </button>
-          </div>
-
           {/* Auth Buttons */}
           <div className="flex items-center gap-3">
             {profile ? (
@@ -201,38 +192,65 @@ export default function Navbar() {
               </>
             )}
           </div>
+
+          {/* Universal Language Selector Dropdown (globe/network icon, full language names in menu) */}
+          <div className="relative lang-dropdown-container z-50">
+            <button
+              id="lang-dropdown-btn"
+              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+              className="w-10 h-10 bg-surface-container-low border border-outline-variant rounded-lg hover:bg-surface-container hover:text-primary hover:border-primary transition-all flex items-center justify-center select-none cursor-pointer text-on-surface-variant"
+              aria-label="Select Language"
+            >
+              <span className="material-symbols-outlined text-[20px]">language</span>
+            </button>
+            {langDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-40 bg-white border border-outline-variant rounded-xl shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-100 flex flex-col max-h-60 overflow-y-auto custom-scrollbar">
+                {[
+                  { code: "de", name: "Deutsch" },
+                  { code: "en", name: "English" },
+                  { code: "fr", name: "Français" },
+                  { code: "sv", name: "Svenska" },
+                  { code: "es", name: "Español" },
+                  { code: "it", name: "Italiano" },
+                  { code: "nl", name: "Nederlands" },
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      setLanguage(lang.code as any);
+                      setLangDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-label-sm hover:bg-surface-container-low transition-colors font-semibold cursor-pointer ${
+                      language === lang.code ? "text-primary bg-primary/5 font-bold" : "text-on-surface-variant"
+                    }`}
+                  >
+                    {lang.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Mobile Hamburger */}
         <div className="flex items-center gap-3 md:hidden relative z-50 pointer-events-auto">
-          {/* Mobile Language Switcher */}
-          <div className="flex items-center bg-surface-container-low p-1 rounded-lg border border-outline-variant shadow-sm">
-            <button
-              onClick={() => {
-                console.log("Language changed to DE");
-                setLanguage("de");
-              }}
-              className={`px-3 py-1.5 text-[12px] font-bold rounded-md transition-all cursor-pointer pointer-events-auto active:scale-95 ${
-                language === "de"
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary"
-              }`}
+          {/* Mobile Universal Language Selector */}
+          <div className="relative flex items-center bg-surface-container-low border border-outline-variant rounded-lg shadow-sm px-2.5 py-1.5 h-10 select-none">
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant mr-1">language</span>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as any)}
+              className="bg-transparent text-[12px] font-bold text-on-surface-variant focus:outline-none pr-1 cursor-pointer font-sans"
+              style={{ colorScheme: "light" }}
             >
-              DE
-            </button>
-            <button
-              onClick={() => {
-                console.log("Language changed to EN");
-                setLanguage("en");
-              }}
-              className={`px-3 py-1.5 text-[12px] font-bold rounded-md transition-all cursor-pointer pointer-events-auto active:scale-95 ${
-                language === "en"
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary"
-              }`}
-            >
-              EN
-            </button>
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="sv">Svenska</option>
+              <option value="es">Español</option>
+              <option value="it">Italiano</option>
+              <option value="nl">Nederlands</option>
+            </select>
           </div>
 
           <button

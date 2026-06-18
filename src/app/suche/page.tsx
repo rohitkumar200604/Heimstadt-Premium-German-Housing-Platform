@@ -15,12 +15,14 @@ function Dropdown({
   badge,
   children,
   id,
+  align = "left",
 }: {
   label: string;
   icon: string;
   badge?: number;
   children: React.ReactNode;
   id: string;
+  align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -34,7 +36,7 @@ function Dropdown({
   }, []);
 
   return (
-    <div ref={ref} className="relative flex-shrink-0">
+    <div ref={ref} className="sm:relative flex-shrink-0">
       <button
         id={id}
         onClick={() => setOpen((o) => !o)}
@@ -57,7 +59,9 @@ function Dropdown({
         )}
       </button>
       {open && (
-        <div className="absolute top-full right-0 sm:left-0 sm:right-auto mt-2 z-50 bg-white border border-outline-variant rounded-2xl shadow-2xl w-[92vw] sm:min-w-[320px] sm:w-auto max-h-[80vh] overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className={`absolute top-full left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 mt-2 z-50 bg-white border border-outline-variant rounded-2xl shadow-2xl w-[92vw] sm:min-w-[320px] sm:w-auto max-h-[80vh] overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-150 ${
+          align === "left" ? "sm:left-0" : "sm:right-0"
+        }`}>
           {children}
         </div>
       )}
@@ -164,6 +168,11 @@ function SuchePageContent() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
 
+  const moveInParam = searchParams.get("moveIn") || "";
+  const moveOutParam = searchParams.get("moveOut") || "";
+  const [moveInDate, setMoveInDate] = useState(moveInParam);
+  const [moveOutDate, setMoveOutDate] = useState(moveOutParam);
+
   // Load favorites from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("heimat_favorites");
@@ -185,7 +194,11 @@ function SuchePageContent() {
   };
 
   // Sync searchInput with URL param on mount / param change
-  useEffect(() => { setSearchInput(stadtParam); }, [stadtParam]);
+  useEffect(() => {
+    setSearchInput(stadtParam);
+    setMoveInDate(searchParams.get("moveIn") || "");
+    setMoveOutDate(searchParams.get("moveOut") || "");
+  }, [stadtParam, searchParams]);
 
   // Push URL when city search is submitted
   const applySearch = useCallback(() => {
@@ -193,8 +206,10 @@ function SuchePageContent() {
     if (searchInput.trim()) params.set("stadt", searchInput.trim());
     if (propertyType && propertyType !== "all") params.set("zimmer", propertyType);
     if (priceRange) params.set("preis", priceRange);
+    if (moveInDate) params.set("moveIn", moveInDate);
+    if (moveOutDate) params.set("moveOut", moveOutDate);
     router.push(`/suche?${params.toString()}`);
-  }, [searchInput, propertyType, priceRange, router]);
+  }, [searchInput, propertyType, priceRange, moveInDate, moveOutDate, router]);
 
   const amenityFilters = [
     { id: "furnished", label: language === "de" ? "Möbliert" : "Furnished", icon: "weekend" },
@@ -327,6 +342,9 @@ function SuchePageContent() {
           else f = f.filter(l => l.rooms >= parseFloat(propertyType));
         }
         if (priceRange) f = f.filter(l => l.rent_cold <= parseFloat(priceRange));
+        if (moveInDate) {
+          f = f.filter(l => !l.available_from || new Date(l.available_from) <= new Date(moveInDate));
+        }
         if (activeFilters.includes("furnished")) f = f.filter(l => l.furnished === true);
         if (activeFilters.includes("balcony")) f = f.filter(l => l.amenities.includes("balcony"));
         if (activeFilters.includes("kitchen")) f = f.filter(l => l.amenities.includes("kitchen"));
@@ -367,6 +385,7 @@ function SuchePageContent() {
           else query = query.gte("rooms", parseFloat(propertyType));
         }
         if (priceRange) query = query.lte("rent_cold", parseFloat(priceRange));
+        if (moveInDate) query = query.lte("available_from", moveInDate);
         if (activeFilters.includes("furnished")) query = query.eq("furnished", true);
         if (activeFilters.includes("balcony")) query = query.contains("amenities", ["balcony"]);
         if (activeFilters.includes("kitchen")) query = query.contains("amenities", ["kitchen"]);
@@ -393,7 +412,7 @@ function SuchePageContent() {
     };
 
     fetchListings();
-  }, [stadtParam, propertyType, priceRange, activeFilters, sort, language, hasSearched]);
+  }, [stadtParam, propertyType, priceRange, activeFilters, sort, language, hasSearched, moveInDate, moveOutDate]);
 
   useEffect(() => {
     if (hasSearched) {
@@ -409,7 +428,9 @@ function SuchePageContent() {
     return "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80";
   };
 
-  const currentPriceLabel = priceBands.find(p => p.value === priceRange)?.label || (language === "de" ? "Preis" : "Price");
+  const currentPriceLabel = priceRange
+    ? `< ${priceRange} €`
+    : (language === "de" ? "Preis" : "Price");
   const currentTypeLabel = typeOptions.find(t => t.value === propertyType)?.label || (language === "de" ? "Typ" : "Type");
   const currentDistLabel = distanceOptions.find(d => d.value === distance)?.label || (language === "de" ? "Entfernung" : "Distance");
   const currentSortLabel = sortOptions.find(s => s.value === sort)?.label || (language === "de" ? "Sortierung" : "Sort");
@@ -461,8 +482,8 @@ function SuchePageContent() {
             </button>
           </div>
 
-          {/* Row 2: Filters + Sort — horizontal scroll on mobile */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 -mx-1 px-1 no-scrollbar">
+          {/* Row 2: Filters + Sort — flex-wrap to ensure absolute dropdowns are visible on mobile */}
+          <div className="relative flex flex-wrap items-center gap-2 pb-0.5 -mx-1 px-1 overflow-visible">
 
             {/* ── Unified Filters dropdown ─────────── */}
             {(() => {
@@ -470,13 +491,17 @@ function SuchePageContent() {
                 activeFilters.length +
                 (priceRange ? 1 : 0) +
                 (propertyType !== "all" ? 1 : 0) +
-                (distance !== "any" ? 1 : 0);
+                (distance !== "any" ? 1 : 0) +
+                (moveInDate ? 1 : 0) +
+                (moveOutDate ? 1 : 0);
 
               const clearAll = () => {
                 setActiveFilters([]);
                 setPriceRange("");
                 setPropertyType("all");
                 setDistance("any");
+                setMoveInDate("");
+                setMoveOutDate("");
               };
 
               return (
@@ -505,27 +530,70 @@ function SuchePageContent() {
                     ))}
                   </div>
 
-                  {/* ── Price Range ── */}
+                  {/* ── Price Range Slider ── */}
+                  <div className="border-t border-outline-variant mx-4" />
+                  <div className="px-4 pt-3 pb-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                        {language === "de" ? "Maximale Warmmiete" : "Max. Rent (warm)"}
+                      </p>
+                      <span className="text-label-sm font-bold text-primary">
+                        {priceRange ? `${priceRange} €` : (language === "de" ? "Jeder Preis" : "Any price")}
+                      </span>
+                    </div>
+                    <div className="px-1 py-3">
+                      <input
+                        type="range"
+                        min="200"
+                        max="5000"
+                        step="50"
+                        value={priceRange || "5000"}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPriceRange(val === "5000" ? "" : val);
+                        }}
+                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                        style={{ background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) 100%)` }}
+                      />
+                      <div className="flex justify-between text-[10px] text-on-surface-variant/70 mt-1 font-semibold">
+                        <span>200 €</span>
+                        <span>1.500 €</span>
+                        <span>3.000 €</span>
+                        <span>5.000 €+</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Rental Period (Dates) ── */}
                   <div className="border-t border-outline-variant mx-4" />
                   <div className="px-4 pt-3 pb-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                      {language === "de" ? "Maximale Warmmiete" : "Max. Rent (warm)"}
+                      {language === "de" ? "Mietzeitraum" : "Rental Period"}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-1 px-3 pb-2">
-                    {priceBands.map(({ value, label }) => (
-                      <button
-                        key={value}
-                        onClick={() => setPriceRange(value)}
-                        className={`px-3 py-2 rounded-lg text-label-sm text-left transition-all border cursor-pointer ${
-                          priceRange === value
-                            ? "bg-primary text-on-primary border-primary font-bold"
-                            : "border-outline-variant text-on-surface hover:bg-surface-container"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                  <div className="px-4 pb-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Einzug" : "Move in"}</span>
+                        <input
+                          type="date"
+                          value={moveInDate}
+                          onChange={(e) => setMoveInDate(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-[13px] font-semibold text-on-surface focus:outline-none"
+                          style={{ colorScheme: "light" }}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Auszug" : "Move out"}</span>
+                        <input
+                          type="date"
+                          value={moveOutDate}
+                          onChange={(e) => setMoveOutDate(e.target.value)}
+                          className="w-full px-2 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-[13px] font-semibold text-on-surface focus:outline-none"
+                          style={{ colorScheme: "light" }}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* ── Property Type ── */}
@@ -600,6 +668,7 @@ function SuchePageContent() {
               id="dd-sort"
               label={language === "de" ? "Sortierung" : "Sort"}
               icon="swap_vert"
+              align="right"
             >
               <div className="px-4 pt-3 pb-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
@@ -623,9 +692,16 @@ function SuchePageContent() {
             </Dropdown>
 
             {/* Active filter quick-clear badge */}
-            {(activeFilters.length + (priceRange ? 1 : 0) + (propertyType !== "all" ? 1 : 0) + (distance !== "any" ? 1 : 0)) > 0 && (
+            {(activeFilters.length + (priceRange ? 1 : 0) + (propertyType !== "all" ? 1 : 0) + (distance !== "any" ? 1 : 0) + (moveInDate ? 1 : 0) + (moveOutDate ? 1 : 0)) > 0 && (
               <button
-                onClick={() => { setActiveFilters([]); setPriceRange(""); setPropertyType("all"); setDistance("any"); }}
+                onClick={() => {
+                  setActiveFilters([]);
+                  setPriceRange("");
+                  setPropertyType("all");
+                  setDistance("any");
+                  setMoveInDate("");
+                  setMoveOutDate("");
+                }}
                 className="flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-bold text-error border border-error/30 bg-error/5 hover:bg-error/10 transition-all cursor-pointer flex-shrink-0 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-[14px]">filter_list_off</span>
@@ -693,7 +769,7 @@ function SuchePageContent() {
           </div>
 
           {/* Active filter pills — horizontally scrollable on mobile */}
-          {(activeBadgeCount > 0 || priceRange || propertyType !== "all" || distance !== "any") && (
+          {(activeBadgeCount > 0 || priceRange || propertyType !== "all" || distance !== "any" || moveInDate || moveOutDate) && (
             <div className="flex gap-2 mb-5 overflow-x-auto pb-1 no-scrollbar">
               {activeFilters.map((f) => {
                 const af = amenityFilters.find(a => a.id === f);
@@ -724,6 +800,20 @@ function SuchePageContent() {
                   <span className="material-symbols-outlined text-[13px]">near_me</span>
                   {currentDistLabel}
                   <button onClick={() => setDistance("any")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
+              {moveInDate && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                  <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                  {language === "de" ? `Einzug: ${moveInDate}` : `Move in: ${moveInDate}`}
+                  <button onClick={() => setMoveInDate("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
+              {moveOutDate && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                  <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                  {language === "de" ? `Auszug: ${moveOutDate}` : `Move out: ${moveOutDate}`}
+                  <button onClick={() => setMoveOutDate("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
             </div>

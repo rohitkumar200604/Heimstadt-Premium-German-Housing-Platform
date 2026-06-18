@@ -115,9 +115,92 @@ export default function HomePage() {
   const { user } = useAuth();
   const [stadt, setStadt] = useState("");
   const [zimmer, setZimmer] = useState("all");
-  const [preis, setPreis] = useState("");
+  const [moveInDate, setMoveInDate] = useState("");
+  const [moveOutDate, setMoveOutDate] = useState("");
   const [selectedPremiumPlan, setSelectedPremiumPlan] = useState<"1month" | "3months" | "12months">("3months");
+  const citySliderRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll logic for city slider (continuous marquee-like) with interaction yield and infinite seamless wrap
+  useEffect(() => {
+    const slider = citySliderRef.current;
+    if (!slider) return;
+
+    let animationFrameId: number;
+    let lastTime = performance.now();
+    const speed = 60; // Continuous scroll speed in pixels per second
+    let isInteracting = false;
+    let timeoutId: any = null;
+    let scrollPos = slider.scrollLeft;
+
+    const pauseAutoScroll = () => {
+      isInteracting = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        isInteracting = false;
+        lastTime = performance.now();
+      }, 1500); // Resume auto scroll after 1.5 seconds of inactivity
+    };
+
+    slider.addEventListener("wheel", pauseAutoScroll, { passive: true });
+    slider.addEventListener("touchstart", pauseAutoScroll, { passive: true });
+    slider.addEventListener("touchmove", pauseAutoScroll, { passive: true });
+    slider.addEventListener("touchend", pauseAutoScroll, { passive: true });
+
+    const leftBtn = slider.parentElement?.querySelector("[aria-label='Scroll left']");
+    const rightBtn = slider.parentElement?.querySelector("[aria-label='Scroll right']");
+    leftBtn?.addEventListener("click", pauseAutoScroll);
+    rightBtn?.addEventListener("click", pauseAutoScroll);
+
+    const animate = (time: number) => {
+      const delta = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const halfWidth = slider.scrollWidth / 2;
+
+      if (!isInteracting) {
+        if (halfWidth > 0) {
+          scrollPos += speed * delta;
+          
+          // Wrap around seamlessly without gaps
+          if (scrollPos >= halfWidth) {
+            scrollPos -= halfWidth;
+          } else if (scrollPos <= 5) {
+            scrollPos += halfWidth;
+          }
+          
+          slider.scrollLeft = Math.round(scrollPos);
+        }
+      } else {
+        // Keep scrollPos synced with manual actions
+        scrollPos = slider.scrollLeft;
+        // Even when interacting, handle wrap around so manual scroll feels infinite and gapless
+        if (halfWidth > 0) {
+          if (slider.scrollLeft >= halfWidth) {
+            slider.scrollLeft -= halfWidth;
+            scrollPos = slider.scrollLeft;
+          } else if (slider.scrollLeft <= 5) {
+            slider.scrollLeft += halfWidth;
+            scrollPos = slider.scrollLeft;
+          }
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      slider.removeEventListener("wheel", pauseAutoScroll);
+      slider.removeEventListener("touchstart", pauseAutoScroll);
+      slider.removeEventListener("touchmove", pauseAutoScroll);
+      slider.removeEventListener("touchend", pauseAutoScroll);
+      leftBtn?.removeEventListener("click", pauseAutoScroll);
+      rightBtn?.removeEventListener("click", pauseAutoScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
 
 
   // Self-healing: Detect Google OAuth hash redirect landing on root domain and route to Auth Callback
@@ -136,7 +219,8 @@ export default function HomePage() {
     const q = new URLSearchParams();
     q.set("stadt", stadt.trim());
     if (zimmer !== "all") q.set("zimmer", zimmer);
-    if (preis) q.set("preis", preis);
+    if (moveInDate) q.set("moveIn", moveInDate);
+    if (moveOutDate) q.set("moveOut", moveOutDate);
     router.push(`/suche?${q.toString()}`);
   };
 
@@ -162,7 +246,7 @@ export default function HomePage() {
             onSubmit={handleSearch}
             className="max-w-4xl mx-auto bg-white/95 backdrop-blur-md p-4 md:p-6 rounded-xl shadow-2xl"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
               <div className="text-left">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {t("searchCityLabel")}
@@ -205,22 +289,29 @@ export default function HomePage() {
 
               <div className="text-left">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
-                  {t("searchPriceLabel")}
+                  {language === "de" ? "Einzug" : "Move in"}
                 </label>
                 <input
-                  value={preis}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || /^[0-9]*$/.test(val)) {
-                      setPreis(val);
-                    }
-                  }}
-                  id="search-price"
-                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px]"
-                  placeholder="€ max"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  type="date"
+                  value={moveInDate}
+                  onChange={(e) => setMoveInDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[15px] font-semibold text-on-surface cursor-pointer h-[50px]"
+                  style={{ colorScheme: "light" }}
+                  id="search-move-in"
+                />
+              </div>
+
+              <div className="text-left">
+                <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
+                  {language === "de" ? "Auszug" : "Move out"}
+                </label>
+                <input
+                  type="date"
+                  value={moveOutDate}
+                  onChange={(e) => setMoveOutDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[15px] font-semibold text-on-surface cursor-pointer h-[50px]"
+                  style={{ colorScheme: "light" }}
+                  id="search-move-out"
                 />
               </div>
 
@@ -228,7 +319,7 @@ export default function HomePage() {
                 type="submit"
                 id="btn-search"
                 disabled={stadt.trim() === ""}
-                className={`h-[50px] rounded-lg text-label-md flex items-center justify-center gap-2 transition-all shadow-lg w-full font-semibold ${
+                className={`h-[50px] rounded-lg text-label-md flex items-center justify-center gap-2 transition-all shadow-lg w-full font-semibold sm:col-span-2 md:col-span-1 ${
                   stadt.trim() === ""
                     ? "bg-outline-variant text-on-surface-variant cursor-not-allowed opacity-50"
                     : "bg-primary text-white hover:opacity-90 active:scale-95 cursor-pointer"
@@ -262,9 +353,12 @@ export default function HomePage() {
         </div>
 
         {/* Carousel Viewport Container */}
-        <div className="relative w-full overflow-hidden">
-          {/* Track */}
-          <div className="flex w-max animate-marquee-cities pause-on-hover py-4">
+        <div className="relative w-full group/slider">
+          {/* Viewport container */}
+          <div
+            ref={citySliderRef}
+            className="flex overflow-x-auto gap-0 py-4 no-scrollbar w-full"
+          >
             {[...CITIES, ...CITIES].map((item, idx) => {
               const cityName = language === "de" ? item.nameDe : item.nameEn;
               return (
@@ -296,6 +390,28 @@ export default function HomePage() {
               );
             })}
           </div>
+
+          {/* Left Arrow Button */}
+          <button
+            onClick={() => {
+              citySliderRef.current?.scrollBy({ left: -320, behavior: "smooth" });
+            }}
+            aria-label="Scroll left"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-0 group-hover/slider:opacity-100 hidden md:flex"
+          >
+            <span className="material-symbols-outlined text-[24px]">chevron_left</span>
+          </button>
+
+          {/* Right Arrow Button */}
+          <button
+            onClick={() => {
+              citySliderRef.current?.scrollBy({ left: 320, behavior: "smooth" });
+            }}
+            aria-label="Scroll right"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-0 group-hover/slider:opacity-100 hidden md:flex"
+          >
+            <span className="material-symbols-outlined text-[24px]">chevron_right</span>
+          </button>
         </div>
       </section>
 
