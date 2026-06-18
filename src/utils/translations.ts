@@ -190,7 +190,7 @@ export const translations = {
     "bookingDetails": "Buchungsdetails",
     "landlordProfile": "Vermieterprofil",
     "moveInDate": "Einzugsdatum",
-    "moveOutDate: ": "Auszugsdatum",
+    "moveOutDate": "Auszugsdatum",
     "totalRent": "Gesamtmiete",
     "payDeposit": "Kaution zahlen",
     "confirmBooking": "Buchung bestätigen",
