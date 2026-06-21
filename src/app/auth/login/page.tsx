@@ -149,7 +149,7 @@ function LoginPageContent() {
   return (
     <>
       <div className="flex-grow flex items-center justify-center py-16 px-5 bg-gradient-to-br from-surface-container-low via-background to-surface-container">
-        <div className="w-full max-w-md bg-white/90 backdrop-blur-md border border-outline-variant p-8 rounded-2xl shadow-xl">
+        <div className="w-full max-w-md bg-white/90 backdrop-blur-md border-2 border-primary p-8 rounded-2xl shadow-xl transition-all">
           <div className="text-center mb-8">
             <h1 className="text-headline-lg text-primary font-bold mb-2">
               {t("loginTitle")}

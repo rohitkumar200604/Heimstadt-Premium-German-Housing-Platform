@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 import GlobalAlert from "@/components/common/GlobalAlert";
 
 export const metadata: Metadata = {
@@ -29,11 +30,13 @@ export default function RootLayout({
       </head>
       <body className="bg-background text-on-surface min-h-screen flex flex-col">
         <LanguageProvider>
-          <AuthProvider>
-            <Navbar />
-            <main className="flex-grow flex flex-col">{children}</main>
-            <GlobalAlert />
-          </AuthProvider>
+          <CurrencyProvider>
+            <AuthProvider>
+              <Navbar />
+              <main className="flex-grow flex flex-col">{children}</main>
+              <GlobalAlert />
+            </AuthProvider>
+          </CurrencyProvider>
         </LanguageProvider>
       </body>
     </html>

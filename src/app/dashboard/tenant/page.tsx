@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
@@ -33,9 +34,10 @@ function TenantDashboardContent() {
   const searchParams = useSearchParams();
   const { user, profile, loading, refreshProfile, isPremium, subscription } = useAuth();
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   
   // Navigation State
-  const [activeTab, setActiveTab] = useState<"profile" | "bookings" | "documents" | "favorites">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "bookings" | "documents" | "favorites" | "saved-filters">("profile");
 
   // Database Data States
   const [docs, setDocs] = useState<any[]>([]);
@@ -46,6 +48,8 @@ function TenantDashboardContent() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [favoriteListings, setFavoriteListings] = useState<any[]>([]);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [savedFilters, setSavedFilters] = useState<any[]>([]);
+  const [savedFiltersLoading, setSavedFiltersLoading] = useState(false);
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   
   // Form State
@@ -85,7 +89,8 @@ function TenantDashboardContent() {
       tabParam === "profile" ||
       tabParam === "bookings" ||
       tabParam === "documents" ||
-      tabParam === "favorites"
+      tabParam === "favorites" ||
+      tabParam === "saved-filters"
     ) {
       setActiveTab(tabParam as any);
     }
@@ -383,11 +388,94 @@ function TenantDashboardContent() {
     }
   };
 
+  const fetchSavedFilters = async (userId: string) => {
+    setSavedFiltersLoading(true);
+    try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from("saved_filters")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (!error && data) {
+          setSavedFilters(data);
+          setSavedFiltersLoading(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase fetch saved_filters failed, using localStorage fallback:", e);
+    }
+
+    const saved = localStorage.getItem(`heimat_saved_filters_${userId}`);
+    if (saved) {
+      try {
+        setSavedFilters(JSON.parse(saved));
+      } catch (e) {}
+    }
+    setSavedFiltersLoading(false);
+  };
+
+  const handleApplySavedFilter = (filter: any) => {
+    const params = new URLSearchParams();
+    const f = filter.filters;
+    if (f.city) params.set("stadt", f.city);
+    if (f.maxPrice) params.set("preis", String(f.maxPrice));
+    if (f.rooms) params.set("zimmer", String(f.rooms));
+    if (f.moveIn) params.set("moveIn", f.moveIn);
+    if (f.moveOut) params.set("moveOut", f.moveOut);
+    
+    const furList: string[] = [];
+    if (f.furnished === true) furList.push("furnished");
+    if (f.furnished === false) furList.push("unfurnished");
+    if (furList.length > 0) params.set("furniture", furList.join(","));
+
+    if (f.roommates && f.roommates !== "regardless") params.set("roommates", f.roommates);
+    if (f.rating && f.rating !== "any") params.set("rating", f.rating);
+    if (f.wgSize && f.wgSize !== "regardless") params.set("wgSize", f.wgSize);
+
+    router.push(`/suche?${params.toString()}`);
+  };
+
+  const handleDeleteSavedFilter = async (filterId: string) => {
+    if (!user) return;
+    try {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase
+          .from("saved_filters")
+          .delete()
+          .eq("id", filterId)
+          .eq("user_id", user.id);
+        if (!error) {
+          setSavedFilters(prev => prev.filter(f => f.id !== filterId));
+          return;
+        }
+      }
+    } catch (e) {
+      console.error("Error deleting saved filter:", e);
+    }
+
+    // Fallback/Mock delete
+    const saved = localStorage.getItem(`heimat_saved_filters_${user.id}`);
+    if (saved) {
+      try {
+        const currentList = JSON.parse(saved) as any[];
+        const updatedList = currentList.filter(f => f.id !== filterId);
+        localStorage.setItem(`heimat_saved_filters_${user.id}`, JSON.stringify(updatedList));
+        setSavedFilters(updatedList);
+      } catch (e) {
+        console.error("Error deleting local filter:", e);
+      }
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "favorites") {
       fetchFavorites();
+    } else if (activeTab === "saved-filters" && user) {
+      fetchSavedFilters(user.id);
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   const cancelPremium = async () => {
     if (!user || !isPremium) return;
@@ -789,6 +877,18 @@ function TenantDashboardContent() {
               <span>{language === "de" ? "Favoriten" : "Favourites"}</span>
             </button>
 
+            <button
+              onClick={() => setActiveTab("saved-filters")}
+              className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-label-md font-bold transition-all ${
+                activeTab === "saved-filters"
+                  ? "bg-primary text-on-primary shadow-md"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px]">bookmarks</span>
+              <span>{language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}</span>
+            </button>
+
             {/* Divider */}
             <div className="border-t border-outline-variant/60 my-3" />
             
@@ -932,7 +1032,7 @@ function TenantDashboardContent() {
                               <div className="grid grid-cols-3 gap-2 mb-4 border-t border-b border-outline-variant/40 py-2.5">
                                 <div className="text-center">
                                   <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Warm" : "Warm Rent"}</span>
-                                  <span className="text-[14px] font-bold text-primary">{totalRent} €</span>
+                                  <span className="text-[14px] font-bold text-primary">{formatPrice(totalRent)}</span>
                                 </div>
                                 <div className="text-center border-l border-r border-outline-variant/30">
                                   <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Fläche" : "Area"}</span>
@@ -1281,7 +1381,7 @@ function TenantDashboardContent() {
                             <span className="material-symbols-outlined text-primary text-[20px]">euro</span>
                             <span className="text-[14px]">
                               <strong>{language === "de" ? "Monatsmiete: " : "Monthly Rent: "}</strong>
-                              € {property?.rent_cold || activeBooking.rent_total}
+                              {formatPrice(Number(property?.rent_cold || activeBooking.rent_total))}
                             </span>
                           </div>
 
@@ -1549,6 +1649,152 @@ function TenantDashboardContent() {
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* 5. Tab: Saved Filters */}
+            {activeTab === "saved-filters" && (
+              <div className="bg-white border border-outline-variant p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
+                <div>
+                  <h2 className="text-headline-md font-bold text-primary flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>bookmarks</span>
+                    {language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}
+                  </h2>
+                  <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
+                    {language === "de"
+                      ? "Verwalten Sie Ihre gespeicherten Suchfilter. Sie können diese jederzeit anwenden, um passende Wohnungen zu finden."
+                      : "Manage your saved search filters. Apply them anytime to find matching properties."}
+                  </p>
+                </div>
+
+                {savedFiltersLoading ? (
+                  <div className="flex justify-center items-center py-16">
+                    <div className="relative w-16 h-16 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-[3px] border-[#002046]/15 border-t-[#002046] animate-spin" />
+                      <div className="absolute w-10 h-10 rounded-full border-[3px] border-[#aec7f7]/20 border-b-[#aec7f7] animate-spin [animation-direction:reverse] [animation-duration:1s]" />
+                      <div className="absolute w-12 h-12 bg-[#002046]/5 rounded-full blur-md animate-pulse" />
+                    </div>
+                  </div>
+                ) : savedFilters.length === 0 ? (
+                  <div className="text-center py-16 text-on-surface-variant border-2 border-dashed border-outline-variant/55 rounded-2xl bg-surface-container-low/30 space-y-4">
+                    <span className="material-symbols-outlined text-[48px] text-outline-variant">bookmarks</span>
+                    <p className="text-body-md">
+                      {language === "de" ? "Keine gespeicherten Suchen vorhanden." : "No saved searches yet."}
+                    </p>
+                    <button
+                      onClick={() => router.push("/suche")}
+                      className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-label-sm font-bold hover:opacity-90 active:scale-95 transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">search</span>
+                      {language === "de" ? "Neue Suche starten" : "Start a new search"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {savedFilters.map((filter) => {
+                      const f = filter.filters;
+                      const hasBadges = f.city || f.maxPrice || f.rooms || f.moveIn || f.moveOut || f.furnished !== null || f.petsAllowed || (f.amenities && f.amenities.length > 0) || (f.wgSize && f.wgSize !== "regardless") || (f.roommates && f.roommates !== "regardless") || (f.rating && f.rating !== "any");
+
+                      return (
+                        <div
+                          key={filter.id}
+                          className="bg-white rounded-xl border border-outline-variant p-5 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="flex justify-between items-start gap-2 mb-3">
+                              <h3 className="text-[16px] font-bold text-primary leading-snug line-clamp-1">
+                                {filter.name}
+                              </h3>
+                              <button
+                                onClick={() => handleDeleteSavedFilter(filter.id)}
+                                className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-md hover:bg-surface-container-low cursor-pointer"
+                                title={language === "de" ? "Löschen" : "Delete"}
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            </div>
+                            
+                            <p className="text-[11px] text-on-surface-variant/75 mb-4">
+                              {language === "de" ? "Erstellt am: " : "Saved on: "}
+                              {new Date(filter.created_at).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                            </p>
+
+                            {hasBadges && (
+                              <div className="flex flex-wrap gap-1.5 mb-5">
+                                {f.city && (
+                                  <span className="text-[11px] font-bold bg-primary/5 text-primary border border-primary/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">location_on</span>
+                                    {f.city}
+                                  </span>
+                                )}
+                                {f.maxPrice && (
+                                  <span className="text-[11px] font-bold bg-[#735c00]/5 text-[#735c00] border border-[#735c00]/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">euro</span>
+                                    Max: {formatPrice(Number(f.maxPrice))}
+                                  </span>
+                                )}
+                                {f.rooms && (
+                                  <span className="text-[11px] font-bold bg-[#1b365d]/5 text-[#1b365d] border border-[#1b365d]/10 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">bed</span>
+                                    {f.rooms === "wg" ? (language === "de" ? "WG-Zimmer" : "WG Room") : `${f.rooms} ${language === "de" ? "Zimmer" : "Rooms"}`}
+                                  </span>
+                                )}
+                                {f.moveIn && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
+                                    📅 {language === "de" ? "Einzug" : "Move in"}: {new Date(f.moveIn).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                                  </span>
+                                )}
+                                {f.moveOut && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
+                                    📅 {language === "de" ? "Auszug" : "Move out"}: {new Date(f.moveOut).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                                  </span>
+                                )}
+                                {f.furnished !== null && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
+                                    🛋️ {f.furnished ? (language === "de" ? "Möbliert" : "Furnished") : (language === "de" ? "Unmöbliert" : "Unfurnished")}
+                                  </span>
+                                )}
+                                {f.petsAllowed && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
+                                    🐾 {language === "de" ? "Haustiere erlaubt" : "Pets allowed"}
+                                  </span>
+                                )}
+                                {f.wgSize && f.wgSize !== "regardless" && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
+                                    👥 WG: {f.wgSize}
+                                  </span>
+                                )}
+                                {f.roommates && f.roommates !== "regardless" && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md font-sans">
+                                    🧑‍🤝‍🧑 {f.roommates}
+                                  </span>
+                                )}
+                                {f.rating && f.rating !== "any" && (
+                                  <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
+                                    ★ Rating: {f.rating === "4_plus" ? "4+" : "3+"}
+                                  </span>
+                                )}
+                                {f.amenities && f.amenities.map((a: string) => (
+                                  <span key={a} className="text-[11px] font-semibold bg-surface-variant/80 text-on-surface-variant/80 border border-outline-variant/30 px-2 py-0.5 rounded-md capitalize">
+                                    {a}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => handleApplySavedFilter(filter)}
+                            className="w-full text-center bg-primary text-on-primary py-2.5 rounded-xl text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">travel_explore</span>
+                            {language === "de" ? "Suche anwenden" : "Apply Search"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </main>

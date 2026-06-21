@@ -104,7 +104,7 @@ body {
 }
 
 button {
-  cursor:pointer;
+  cursor: pointer;
 }
 /* ── Custom text utilities ─────────────────────────── */
 @utility text-label-sm {
@@ -202,11 +202,11 @@ button {
 @theme {
   --animate-marquee-cities: marquee 35s linear infinite;
   --animate-marquee-reviews: marquee 45s linear infinite;
+}
 
-  @keyframes marquee {
-    0% { transform: translate3d(0, 0, 0); }
-    100% { transform: translate3d(-50%, 0, 0); }
-  }
+@keyframes marquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 
 .pause-on-hover:hover {
@@ -220,6 +220,11 @@ button {
 
 @keyframes slideDown {
   from { transform: translateY(-16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 

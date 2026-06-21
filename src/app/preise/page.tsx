@@ -2,12 +2,14 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Footer from "@/components/layout/Footer";
 
 function PreisePageContent() {
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, profile, upgradeUser } = useAuth();
@@ -148,7 +150,7 @@ function PreisePageContent() {
                     {t("freeTier")}
                   </span>
                   <div className="flex items-baseline gap-1 mt-4">
-                    <span className="text-[36px] font-bold text-primary">0 €</span>
+                    <span className="text-[36px] font-bold text-primary">{formatPrice(0)}</span>
                     <span className="text-on-surface-variant text-[14px]">/ {language === "de" ? "Monat" : "Month"}</span>
                   </div>
                 </div>
@@ -222,7 +224,7 @@ function PreisePageContent() {
                       <span className="text-[18px] font-bold text-on-surface">{t("billing1Month")}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[20px] font-bold text-on-surface">10.99 €</span>
+                      <span className="text-[20px] font-bold text-on-surface">{formatPrice(10.99)}</span>
                     </div>
                   </div>
 
@@ -249,7 +251,7 @@ function PreisePageContent() {
                       <span className="text-[18px] font-bold text-on-surface">{t("billing3Months")}</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-[20px] font-bold text-on-surface">9.99 €</div>
+                      <div className="text-[20px] font-bold text-on-surface">{formatPrice(9.99)}</div>
                       <div className="text-[12px] text-on-surface-variant font-medium mt-0.5">{t("perMonth")}</div>
                     </div>
                   </div>
@@ -272,7 +274,7 @@ function PreisePageContent() {
                       <span className="text-[18px] font-bold text-on-surface">{t("billing12Months")}</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-[20px] font-bold text-on-surface">7.99 €</div>
+                      <div className="text-[20px] font-bold text-on-surface">{formatPrice(7.99)}</div>
                       <div className="text-[12px] text-on-surface-variant font-medium mt-0.5">{t("perMonth")}</div>
                     </div>
                   </div>

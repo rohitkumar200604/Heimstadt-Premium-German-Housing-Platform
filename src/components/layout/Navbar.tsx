@@ -4,15 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useAuth } from "@/context/AuthContext";
+import LanguageCurrencyModal from "@/components/layout/LanguageCurrencyModal";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
-  const { language, setLanguage, t } = useLanguage();
+  const [lcModalOpen, setLcModalOpen] = useState(false);
+  const { language, t } = useLanguage();
+  const { currency } = useCurrency();
   const { profile, signOut, isPremium } = useAuth();
 
   useEffect(() => {
@@ -24,34 +27,8 @@ export default function Navbar() {
   useEffect(() => {
     setMobileOpen(false);
     setDropdownOpen(false);
-    setLangDropdownOpen(false);
   }, [pathname]);
 
-  // Click outside to close desktop dropdown menu
-  useEffect(() => {
-    if (!dropdownOpen) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".avatar-dropdown-container")) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [dropdownOpen]);
-
-  // Click outside to close desktop language dropdown
-  useEffect(() => {
-    if (!langDropdownOpen) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".lang-dropdown-container")) {
-        setLangDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [langDropdownOpen]);
 
   const navLink = (href: string, label: string, icon?: string) => {
     const active = pathname === href || pathname.startsWith(href + "/");
@@ -80,6 +57,7 @@ export default function Navbar() {
   };
 
   return (
+    <>
     <header
       id="navbar"
       className={`w-full top-0 sticky bg-surface border-b border-outline-variant z-50 transition-shadow duration-300 ${
@@ -91,13 +69,26 @@ export default function Navbar() {
         <div className="flex items-center gap-4 md:gap-12">
           <Link
             href="/"
-            className="text-[26px] sm:text-[32px] md:text-[40px] font-bold text-primary leading-none tracking-tight hover:opacity-90 transition-opacity whitespace-nowrap"
+            className="hover:opacity-90 transition-opacity whitespace-nowrap flex items-center gap-2.5"
           >
-            {t("logo")}
+            <img
+              src="/logo.jpg"
+              alt="Heimstadt"
+              className="h-9 sm:h-11 md:h-14 w-auto object-contain flex-shrink-0"
+            />
+            <div className="flex flex-col leading-none">
+              <span className="text-[18px] sm:text-[20px] md:text-[22px] font-black text-primary tracking-tight">
+                Heimstadt
+              </span>
+              <span className="hidden sm:block text-[9px] md:text-[10px] text-on-surface-variant font-semibold uppercase tracking-[0.18em] mt-0.5">
+                {language === "de" ? "Exklusive Wohnvermittlung" : "Premium Housing"}
+              </span>
+            </div>
           </Link>
           <div className="hidden md:flex items-center gap-8">
             {navLink("/suche", t("search"), "search")}
             {navLink("/blogs", t("blogs"), "rate_review")}
+            {navLink("/suche?wishlist=true", language === "de" ? "Wunschliste" : "Wishlist", "favorite")}
           </div>
         </div>
 
@@ -163,6 +154,15 @@ export default function Navbar() {
                       <span>{t("favourites")}</span>
                     </Link>
 
+                    <Link
+                      href={`${getDashboardUrl()}?tab=saved-filters`}
+                      onClick={() => setDropdownOpen(false)}
+                      className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">bookmarks</span>
+                      <span>{language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}</span>
+                    </Link>
+
                     <hr className="border-outline-variant/40 my-1" />
 
                     <button
@@ -181,17 +181,9 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/suche?wishlist=true"
-                  id="btn-wishlist"
-                  className="px-5 py-2 rounded-lg text-[14px] font-semibold text-primary hover:bg-surface-container-low transition-all active:scale-95 text-center flex items-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-[18px]">favorite</span>
-                  <span>{language === "de" ? "Wunschliste" : "Wishlist"}</span>
-                </Link>
-                <Link
                   href="/auth/login"
                   id="btn-anmelden"
-                  className="px-5 py-2 rounded-lg text-[14px] font-semibold text-primary hover:bg-surface-container-low transition-all active:scale-95 text-center"
+                  className="px-5 py-2 rounded-lg text-[14px] font-semibold text-primary border-2 border-primary hover:bg-surface-container-low transition-all active:scale-95 text-center"
                 >
                   {t("login")}
                 </Link>
@@ -206,65 +198,31 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Universal Language Selector Dropdown (globe/network icon, full language names in menu) */}
-          <div className="relative lang-dropdown-container z-50">
-            <button
-              id="lang-dropdown-btn"
-              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="w-10 h-10 bg-surface-container-low border border-outline-variant rounded-lg hover:bg-surface-container hover:text-primary hover:border-primary transition-all flex items-center justify-center select-none cursor-pointer text-on-surface-variant"
-              aria-label="Select Language"
-            >
-              <span className="material-symbols-outlined text-[20px]">language</span>
-            </button>
-            {langDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border border-outline-variant rounded-xl shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-100 flex flex-col max-h-60 overflow-y-auto custom-scrollbar">
-                {[
-                  { code: "de", name: "Deutsch" },
-                  { code: "en", name: "English" },
-                  { code: "fr", name: "Français" },
-                  { code: "sv", name: "Svenska" },
-                  { code: "es", name: "Español" },
-                  { code: "it", name: "Italiano" },
-                  { code: "nl", name: "Nederlands" },
-                ].map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      setLanguage(lang.code as any);
-                      setLangDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2.5 text-label-sm hover:bg-surface-container-low transition-colors font-semibold cursor-pointer ${
-                      language === lang.code ? "text-primary bg-primary/5 font-bold" : "text-on-surface-variant"
-                    }`}
-                  >
-                    {lang.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Language & Currency Picker — single globe pill */}
+          <button
+            id="lang-currency-btn"
+            onClick={() => setLcModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 h-9 bg-surface-container-low border border-outline-variant rounded-xl hover:border-primary hover:bg-surface-container hover:text-primary transition-all select-none cursor-pointer text-on-surface-variant text-[12px] font-bold"
+            aria-label="Language and Currency"
+          >
+            <span className="material-symbols-outlined text-[17px]">language</span>
+            <span className="uppercase font-extrabold">{language}</span>
+            <span className="w-px h-4 bg-outline-variant/60" />
+            <span className="font-extrabold">{currency.symbol}</span>
+          </button>
         </div>
 
         {/* Mobile Hamburger */}
         <div className="flex items-center gap-3 md:hidden relative z-50 pointer-events-auto">
-          {/* Mobile Universal Language Selector */}
-          <div className="relative flex items-center bg-surface-container-low border border-outline-variant rounded-lg shadow-sm px-2.5 py-1.5 h-10 select-none">
-            <span className="material-symbols-outlined text-[16px] text-on-surface-variant mr-1">language</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as any)}
-              className="bg-transparent text-[12px] font-bold text-on-surface-variant focus:outline-none pr-1 cursor-pointer font-sans"
-              style={{ colorScheme: "light" }}
-            >
-              <option value="de">Deutsch</option>
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-              <option value="sv">Svenska</option>
-              <option value="es">Español</option>
-              <option value="it">Italiano</option>
-              <option value="nl">Nederlands</option>
-            </select>
-          </div>
+          {/* Globe button opens modal */}
+          <button
+            id="lang-currency-btn-mobile"
+            onClick={() => setLcModalOpen(true)}
+            className="w-9 h-9 bg-surface-container-low border border-outline-variant rounded-xl hover:border-primary hover:bg-surface-container transition-all flex items-center justify-center select-none cursor-pointer text-on-surface-variant hover:text-primary"
+            aria-label="Language and Currency"
+          >
+            <span className="material-symbols-outlined text-[17px]">language</span>
+          </button>
 
           <button
             id="mobile-menu-btn"
@@ -333,6 +291,19 @@ export default function Navbar() {
             <span>{t("blogs")}</span>
           </Link>
 
+          <Link
+            href="/suche?wishlist=true"
+            id="btn-wishlist-mobile"
+            className={`px-4 py-3 rounded-xl text-[14px] font-medium transition-all flex items-center gap-2 ${
+              pathname === "/suche" && typeof window !== "undefined" && window.location.search.includes("wishlist=true")
+                ? "text-primary bg-surface-container-low font-bold"
+                : "text-on-surface-variant hover:bg-surface-container-low"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px]">favorite</span>
+            <span>{language === "de" ? "Wunschliste" : "Wishlist"}</span>
+          </Link>
+
           <div className="pt-3 border-t border-outline-variant/50 flex flex-col gap-3">
             {profile ? (
               <>
@@ -376,6 +347,12 @@ export default function Navbar() {
                 >
                   {t("favourites")}
                 </Link>
+                <Link
+                  href={`${getDashboardUrl()}?tab=saved-filters`}
+                  className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                >
+                  {language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}
+                </Link>
                 <button
                   onClick={signOut}
                   className="w-full py-3 mt-2 rounded-xl text-[14px] font-semibold bg-primary text-on-primary hover:opacity-90 transition-all text-center cursor-pointer font-sans"
@@ -386,15 +363,8 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/suche?wishlist=true"
-                  className="w-full py-3 rounded-xl text-[14px] font-semibold text-primary border border-outline-variant hover:bg-surface-container-low transition-all text-center flex items-center justify-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-[18px]">favorite</span>
-                  <span>{language === "de" ? "Wunschliste" : "Wishlist"}</span>
-                </Link>
-                <Link
                   href="/auth/login"
-                  className="w-full py-3 rounded-xl text-[14px] font-semibold text-primary border border-outline-variant hover:bg-surface-container-low transition-all text-center"
+                  className="w-full py-3 rounded-xl text-[14px] font-semibold text-primary border-2 border-primary hover:bg-surface-container-low transition-all text-center"
                 >
                   {t("login")}
                 </Link>
@@ -410,5 +380,12 @@ export default function Navbar() {
         </div>
       </div>
     </header>
+
+    {/* Language & Currency Modal (portal-like, rendered outside header) */}
+    <LanguageCurrencyModal
+      open={lcModalOpen}
+      onClose={() => setLcModalOpen(false)}
+    />
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, use } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { supabase } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
@@ -12,6 +13,7 @@ import { normalizeCityName } from "@/utils/translations";
 export default function BookingDetailPage({ params }: { params: Promise<{ bookingId: string }> }) {
   const { bookingId } = use(params);
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { user, profile, loading: authLoading, isPremium } = useAuth();
   const router = useRouter();
 
@@ -654,20 +656,20 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
               <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/60 space-y-3">
                 <div className="flex justify-between text-body-sm text-on-surface-variant">
                   <span>{t("coldRent")}</span>
-                  <span className="font-bold">{coldRent.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €</span>
+                  <span className="font-bold">{formatPrice(coldRent)}</span>
                 </div>
                 <div className="flex justify-between text-body-sm text-on-surface-variant">
                   <span>{t("utilities")}</span>
-                  <span className="font-bold">{utilities.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €</span>
+                  <span className="font-bold">{formatPrice(utilities)}</span>
                 </div>
                 <div className="flex justify-between text-body-sm text-on-surface-variant">
                   <span>{t("heatingCosts")}</span>
-                  <span className="font-bold">{heating.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €</span>
+                  <span className="font-bold">{formatPrice(heating)}</span>
                 </div>
                 <div className="h-px bg-outline-variant my-2" />
                 <div className="flex justify-between text-label-lg font-bold text-primary">
                   <span>{t("totalRent")}</span>
-                  <span>{totalRent.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €</span>
+                  <span>{formatPrice(totalRent)}</span>
                 </div>
               </div>
 
@@ -681,7 +683,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                   </span>
                 </div>
                 <span className="text-headline-sm font-black text-primary">
-                  {depositAmount.toLocaleString("de-DE", { minimumFractionDigits: 2 })} €
+                  {formatPrice(depositAmount)}
                 </span>
               </div>
             </div>

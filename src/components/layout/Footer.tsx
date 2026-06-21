@@ -13,9 +13,13 @@ export default function Footer() {
         <div className="flex flex-col gap-4">
           <Link
             href="/"
-            className="text-[24px] font-bold text-primary leading-tight hover:opacity-90 transition-opacity"
+            className="hover:opacity-90 transition-opacity flex items-center"
           >
-            {t("logo")}
+            <img
+              src="/logo.jpg"
+              alt="Heimstadt"
+              className="h-10 md:h-12 w-auto object-contain"
+            />
           </Link>
           <p className="text-on-surface-variant text-[16px] leading-6">
             {t("footerText")}

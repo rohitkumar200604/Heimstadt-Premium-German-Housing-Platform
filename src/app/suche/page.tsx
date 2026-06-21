@@ -1,13 +1,24 @@
 "use client";
-
 import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import { getDisplayPhoto } from "@/utils/get-display-photo";
 import { normalizeCityName } from "@/utils/translations";
+import dynamic from "next/dynamic";
+
+const PropertyMap = dynamic(() => import("./PropertyMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-surface-container-low">
+      <div className="w-8 h-8 rounded-full border-[3px] border-primary/10 border-t-primary animate-spin" />
+    </div>
+  ),
+});
 
 // ── Reusable dropdown wrapper ──────────────────────────────────────────────
 function Dropdown({
@@ -60,7 +71,7 @@ function Dropdown({
         )}
       </button>
       {open && (
-        <div className={`absolute top-full left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 mt-2 z-50 bg-white border border-outline-variant rounded-2xl shadow-2xl w-[92vw] sm:min-w-[320px] sm:w-auto max-h-[80vh] overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-150 ${
+        <div className={`absolute top-full left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 mt-2 z-50 bg-white border border-outline-variant rounded-2xl shadow-2xl w-[92vw] sm:min-w-[320px] sm:w-auto max-h-[calc(100vh-220px)] overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-150 ${
           align === "left" ? "sm:left-0" : "sm:right-0"
         }`}>
           {children}
@@ -119,6 +130,64 @@ const cityMappings: Record<string, string[]> = {
   "konstanz": ["konstanz", "constance"]
 };
 
+const ALL_SUGGESTIONS = [
+  { de: "Berlin", en: "Berlin" },
+  { de: "München", en: "Munich" },
+  { de: "Hamburg", en: "Hamburg" },
+  { de: "Frankfurt", en: "Frankfurt" },
+  { de: "Köln", en: "Cologne" },
+  { de: "Düsseldorf", en: "Düsseldorf" },
+  { de: "Stuttgart", en: "Stuttgart" },
+  { de: "Leipzig", en: "Leipzig" },
+  { de: "Nürnberg", en: "Nuremberg" },
+  { de: "Hannover", en: "Hanover" },
+  { de: "Braunschweig", en: "Brunswick" },
+  { de: "Konstanz", en: "Constance" },
+  { de: "Bremen", en: "Bremen" },
+  { de: "Dresden", en: "Dresden" },
+  { de: "Essen", en: "Essen" },
+  { de: "Dortmund", en: "Dortmund" },
+  { de: "Duisburg", en: "Duisburg" },
+  { de: "Bochum", en: "Bochum" },
+  { de: "Wuppertal", en: "Wuppertal" },
+  { de: "Bielefeld", en: "Bielefeld" },
+  { de: "Bonn", en: "Bonn" },
+  { de: "Münster", en: "Münster" },
+  { de: "Karlsruhe", en: "Karlsruhe" },
+  { de: "Mannheim", en: "Mannheim" },
+  { de: "Augsburg", en: "Augsburg" },
+  { de: "Wiesbaden", en: "Wiesbaden" },
+  { de: "Gelsenkirchen", en: "Gelsenkirchen" },
+  { de: "Mönchengladbach", en: "Mönchengladbach" },
+  { de: "Chemnitz", en: "Chemnitz" },
+  { de: "Aachen", en: "Aachen" },
+  { de: "Halle", en: "Halle" },
+  { de: "Magdeburg", en: "Magdeburg" },
+  { de: "Freiburg", en: "Freiburg" },
+  { de: "Krefeld", en: "Krefeld" },
+  { de: "Lübeck", en: "Lübeck" },
+  { de: "Mainz", en: "Mainz" },
+  { de: "Erfurt", en: "Erfurt" },
+  { de: "Rostock", en: "Rostock" },
+  { de: "Kassel", en: "Kassel" },
+  { de: "Potsdam", en: "Potsdam" },
+  { de: "Saarbrücken", en: "Saarbrücken" },
+  { de: "Hamm", en: "Hamm" },
+  { de: "Ludwigshafen", en: "Ludwigshafen" },
+  { de: "Mülheim", en: "Mülheim" },
+  { de: "Oldenburg", en: "Oldenburg" },
+  { de: "Osnabrück", en: "Osnabrück" },
+  { de: "Leverkusen", en: "Leverkusen" },
+  { de: "Solingen", en: "Solingen" },
+  { de: "Heidelberg", en: "Heidelberg" },
+  { de: "Darmstadt", en: "Darmstadt" },
+  { de: "Alexanderplatz, Berlin", en: "Alexanderplatz, Berlin" },
+  { de: "Englischer Garten, München", en: "Englischer Garten, Munich" },
+  { de: "Speicherstadt, Hamburg", en: "Speicherstadt, Hamburg" },
+  { de: "Glockenbachviertel, München", en: "Glockenbachviertel, Munich" },
+  { de: "Schildergasse, Köln", en: "Schildergasse, Cologne" },
+];
+
 const getSearchCities = (query: string): string[] => {
   const normalized = query.trim().toLowerCase();
   if (cityMappings[normalized]) {
@@ -149,6 +218,8 @@ function SuchePageContent() {
   const { t, language } = useLanguage();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const { formatPrice } = useCurrency();
 
   const stadtParam = searchParams.get("stadt") || "";
   const zimmerParam = searchParams.get("zimmer") || "all";
@@ -157,10 +228,17 @@ function SuchePageContent() {
   const hasSearched = stadtParam.trim() !== "" || searchParams.get("wishlist") === "true";
   const [listings, setListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(!!stadtParam.trim() || searchParams.get("wishlist") === "true");
-  const [view, setView] = useState<"grid" | "list">("grid");
+
+  const [savedFilters, setSavedFilters] = useState<any[]>([]);
+  const [savedFiltersLoading, setSavedFiltersLoading] = useState(false);
+  const [newFilterName, setNewFilterName] = useState("");
+  const [isSavingFilter, setIsSavingFilter] = useState(false);
 
   // ── Filter state ──────────────────────────────────────────────────────
   const [searchInput, setSearchInput] = useState(stadtParam);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
   const [priceRange, setPriceRange] = useState(preisParam || "");
   const [propertyType, setPropertyType] = useState(zimmerParam);
   const [distance, setDistance] = useState("any");
@@ -188,6 +266,19 @@ function SuchePageContent() {
   const wgSizeParam = searchParams.get("wgSize") || "regardless";
   const [wgSize, setWgSize] = useState(wgSizeParam);
 
+  // ── New filter state ─────────────────────────────────────────────────
+  const neighborhoodParam = searchParams.get("neighborhoods") || "";
+  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>(
+    neighborhoodParam ? neighborhoodParam.split(",") : []
+  );
+  const [billsIncluded, setBillsIncluded] = useState(searchParams.get("billsIncluded") === "true");
+  const [noDeposit, setNoDeposit] = useState(searchParams.get("noDeposit") === "true");
+  const bedroomsParam = searchParams.get("bedrooms") || "";
+  const [selectedBedrooms, setSelectedBedrooms] = useState<string[]>(
+    bedroomsParam ? bedroomsParam.split(",") : []
+  );
+  const [neighborhoodSearch, setNeighborhoodSearch] = useState("");
+
   // Load favorites from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("heimat_favorites");
@@ -200,6 +291,226 @@ function SuchePageContent() {
     }
   }, []);
 
+  // Fetch saved filters when user changes
+  useEffect(() => {
+    if (!user) {
+      setSavedFilters([]);
+      return;
+    }
+    const loadSavedFilters = async () => {
+      setSavedFiltersLoading(true);
+      try {
+        if (isSupabaseConfigured()) {
+          const { data, error } = await supabase
+            .from("saved_filters")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
+          if (!error && data) {
+            setSavedFilters(data);
+            setSavedFiltersLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Supabase load saved_filters failed, using localStorage fallback:", e);
+      }
+      
+      const saved = localStorage.getItem(`heimat_saved_filters_${user.id}`);
+      if (saved) {
+        try {
+          setSavedFilters(JSON.parse(saved));
+        } catch (e) {}
+      }
+      setSavedFiltersLoading(false);
+    };
+    loadSavedFilters();
+  }, [user]);
+
+  const handleSaveFilter = async () => {
+    if (!user || !newFilterName.trim()) return;
+    setIsSavingFilter(true);
+
+    const filterObj = {
+      city: searchInput,
+      maxPrice: priceRange ? parseInt(priceRange) : null,
+      rooms: propertyType !== "all" ? propertyType : null,
+      moveIn: moveInDate || null,
+      moveOut: moveOutDate || null,
+      furnished: furnitureFurnished ? true : furnitureUnfurnished ? false : null,
+      petsAllowed: activeFilters.includes("pets_allowed") ? true : null,
+      amenities: activeFilters,
+      wgSize: wgSize !== "regardless" ? wgSize : null,
+      roommates: roommatesGender !== "regardless" ? roommatesGender : null,
+      rating: landlordRating !== "any" ? landlordRating : null
+    };
+
+    const newFilter = {
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+      user_id: user.id,
+      name: newFilterName.trim(),
+      filters: filterObj,
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from("saved_filters")
+          .insert({
+            user_id: user.id,
+            name: newFilterName.trim(),
+            filters: filterObj
+          })
+          .select()
+          .single();
+        if (!error && data) {
+          setSavedFilters(prev => [data, ...prev]);
+          setNewFilterName("");
+          setIsSavingFilter(false);
+          return;
+        } else {
+          console.error("Supabase insert error:", error);
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase insert saved_filters failed, using localStorage fallback:", e);
+    }
+
+    // Local Storage Fallback
+    const saved = localStorage.getItem(`heimat_saved_filters_${user.id}`);
+    let list = [];
+    if (saved) {
+      try {
+        list = JSON.parse(saved);
+      } catch (e) {}
+    }
+    const updated = [newFilter, ...list];
+    localStorage.setItem(`heimat_saved_filters_${user.id}`, JSON.stringify(updated));
+    setSavedFilters(updated);
+    setNewFilterName("");
+    setIsSavingFilter(false);
+  };
+
+  const handleDeleteFilter = async (id: string) => {
+    if (!user) return;
+    try {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase
+          .from("saved_filters")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", user.id);
+        if (!error) {
+          setSavedFilters(prev => prev.filter(f => f.id !== id));
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Supabase delete saved_filters failed, using localStorage fallback:", e);
+    }
+
+    // Local Storage Fallback
+    const saved = localStorage.getItem(`heimat_saved_filters_${user.id}`);
+    if (saved) {
+      try {
+        const list = JSON.parse(saved) as any[];
+        const updated = list.filter(f => f.id !== id);
+        localStorage.setItem(`heimat_saved_filters_${user.id}`, JSON.stringify(updated));
+        setSavedFilters(updated);
+      } catch (e) {}
+    }
+  };
+
+  const handleApplySavedFilter = (filter: any) => {
+    const f = filter.filters;
+    setSearchInput(f.city || "");
+    setPriceRange(f.maxPrice ? String(f.maxPrice) : "");
+    setPropertyType(f.rooms || "all");
+    setMoveInDate(f.moveIn || "");
+    setMoveOutDate(f.moveOut || "");
+    setFurnitureFurnished(f.furnished === true);
+    setFurnitureUnfurnished(f.furnished === false);
+    setWgSize(f.wgSize || "regardless");
+    setRoommatesGender(f.roommates || "regardless");
+    setLandlordRating(f.rating || "any");
+    setActiveFilters(f.amenities || []);
+
+    // Also push the parameters to URL
+    const params = new URLSearchParams();
+    if (f.city) params.set("stadt", f.city);
+    if (f.rooms) params.set("zimmer", f.rooms);
+    if (f.maxPrice) params.set("preis", String(f.maxPrice));
+    if (f.moveIn) params.set("moveIn", f.moveIn);
+    if (f.moveOut) params.set("moveOut", f.moveOut);
+
+    const furList: string[] = [];
+    if (f.furnished === true) furList.push("furnished");
+    if (f.furnished === false) furList.push("unfurnished");
+    if (furList.length > 0) params.set("furniture", furList.join(","));
+
+    if (f.roommates && f.roommates !== "regardless") params.set("roommates", f.roommates);
+    if (f.rating && f.rating !== "any") params.set("rating", f.rating);
+    if (f.wgSize && f.wgSize !== "regardless") params.set("wgSize", f.wgSize);
+
+    router.push(`/suche?${params.toString()}`);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleInputChange = (val: string) => {
+    setSearchInput(val);
+    if (!val.trim()) {
+      setFilteredCities([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const matches = ALL_SUGGESTIONS.filter(
+      (c) =>
+        c.de.toLowerCase().includes(val.toLowerCase()) ||
+        c.en.toLowerCase().includes(val.toLowerCase())
+    ).map((c) => (language === "de" ? c.de : c.en));
+
+    setFilteredCities(matches);
+    setShowSuggestions(true);
+  };
+
+  const handleSelectSuggestion = (city: string) => {
+    setSearchInput(city);
+    setShowSuggestions(false);
+    
+    // Immediately apply search when suggestion is selected
+    const params = new URLSearchParams();
+    if (city.trim()) params.set("stadt", city.trim());
+    if (propertyType && propertyType !== "all") params.set("zimmer", propertyType);
+    if (priceRange) params.set("preis", priceRange);
+    if (moveInDate) params.set("moveIn", moveInDate);
+    if (moveOutDate) params.set("moveOut", moveOutDate);
+
+    const furList: string[] = [];
+    if (furnitureFurnished) furList.push("furnished");
+    if (furnitureUnfurnished) furList.push("unfurnished");
+    if (furList.length > 0) params.set("furniture", furList.join(","));
+
+    if (roommatesGender && roommatesGender !== "regardless") params.set("roommates", roommatesGender);
+    if (landlordRating && landlordRating !== "any") params.set("rating", landlordRating);
+    if (wgSize && wgSize !== "regardless") params.set("wgSize", wgSize);
+
+    const wishlistParam = searchParams.get("wishlist");
+    if (wishlistParam) params.set("wishlist", wishlistParam);
+
+    router.push(`/suche?${params.toString()}`);
+  };
+
   useEffect(() => {
     const fetchTopPlaces = async () => {
       setTopPlacesLoading(true);
@@ -209,8 +520,7 @@ function SuchePageContent() {
           const { data, error } = await supabase
             .from("properties")
             .select(`*, property_photos(cdn_url,is_primary)`)
-            .eq("status", "active")
-            .limit(10);
+            .eq("status", "active");
           if (!error && data) {
             dbPlaces = data;
           }
@@ -296,12 +606,6 @@ function SuchePageContent() {
         ];
 
         const combined = [...dbPlaces, ...fallbackListings];
-        combined.sort((a, b) => {
-          const rA = a.landlord_rating || 4.0;
-          const rB = b.landlord_rating || 4.0;
-          return rB - rA;
-        });
-
         const unique = combined.filter((v, i, self) => self.findIndex(t => t.id === v.id) === i);
         setTopPlaces(unique);
       } catch (err) {
@@ -396,14 +700,53 @@ function SuchePageContent() {
   ];
 
   const typeOptions = [
-    { value: "all", label: language === "de" ? "Alle Typen" : "All Types" },
-    { value: "1", label: language === "de" ? "1 Zimmer" : "1 Room"},
-    { value: "2", label: language === "de" ? "2 Zimmer" : "2 Room"},
-    { value: "3", label: language === "de" ? "3 Zimmer" : "3 Room"},
-    { value: "4", label: language === "de" ? "4+ Zimmer" : "4+ Room" },
-    { value: "house", label: language === "de" ? "Haus" : "House" },
-    { value: "shared", label: language === "de" ? "WG" : "Shared Apartment" },
+    { value: "all", label: language === "de" ? "Alle Typen" : "All Types", icon: "home" },
+    { value: "shared_room", label: language === "de" ? "Gemeinschaftszimmer" : "Shared room", icon: "group" },
+    { value: "private_room", label: language === "de" ? "Privatzimmer" : "Private room", icon: "person" },
+    { value: "studio", label: "Studio", icon: "apartment" },
+    { value: "apartment", label: language === "de" ? "Wohnung" : "Apartment", icon: "domain" },
+    { value: "student_residence", label: language === "de" ? "Studentenwohnheim" : "Student residence", icon: "school" },
+    { value: "house", label: language === "de" ? "Haus" : "House", icon: "house" },
+    { value: "shared", label: language === "de" ? "WG" : "Shared Apartment", icon: "groups" },
   ];
+
+  const bedroomOptions = [
+    { value: "1", label: language === "de" ? "1 Schlafzimmer" : "1 bedroom" },
+    { value: "2", label: language === "de" ? "2 Schlafzimmer" : "2 bedrooms" },
+    { value: "3", label: language === "de" ? "3 Schlafzimmer" : "3 bedrooms" },
+    { value: "4", label: language === "de" ? "4+ Schlafzimmer" : "4+ bedrooms" },
+  ];
+
+  const BERLIN_NEIGHBORHOODS = [
+    "Mitte", "Friedrichshain", "Bezirk Friedrichshain-Kreuzberg", "Prenzlauer Berg",
+    "Charlottenburg", "Bezirk Charlottenburg-Wilmersdorf", "Bezirk Pankow", "Kreuzberg",
+    "Neukölln", "Bezirk Treptow-Köpenick", "Niederschöneweide", "Bezirk Neukölln",
+    "Schöneberg", "Bezirk Tempelhof-Schöneberg", "Moabit", "Wedding", "Wilmersdorf",
+    "Bezirk Lichtenberg", "Bezirk Steglitz-Zehlendorf", "Oberschöneweide",
+    "Gesundbrunnen", "Bezirk Reinickendorf", "Bezirk Spandau", "Pankow",
+    "Steglitz", "Adlershof", "Britz", "Westend", "Reinickendorf",
+    "Schmargendorf", "Spandau", "Tiergarten", "Bezirk Marzahn-Hellersdorf",
+    "Friedenau", "Altglienicke", "Dahlem", "Johannisthal", "Kaulsdorf",
+    "Neu-Hohenschönhausen", "Alt-Hohenschönhausen", "Buckow", "Charlottenburg-Nord",
+    "Friedrichsfelde", "Hansaviertel", "Haselhorst", "Kienberg", "Lankwitz",
+    "Lichtenberg", "Lichtenrade", "Wannsee", "Ahrensfelde", "Baumschulenweg",
+    "Bernau", "Birkenstein", "Halensee", "Tempelhof", "Weißensee",
+    "Wilhelmsruh", "Köpenick", "Wilhelmstadt", "Alt-Treptow", "Karlshorst",
+    "Rummelsburg", "Mariendorf", "Niederschönhausen", "Grunewald", "Plänterwald",
+    "Zehlendorf", "Lichterfelde", "Rosenthal", "Schmöckwitz", "Schönefeld",
+  ];
+
+  const toggleNeighborhood = (n: string) => {
+    setSelectedNeighborhoods(prev =>
+      prev.includes(n) ? prev.filter(x => x !== n) : [...prev, n]
+    );
+  };
+
+  const toggleBedroom = (b: string) => {
+    setSelectedBedrooms(prev =>
+      prev.includes(b) ? prev.filter(x => x !== b) : [...prev, b]
+    );
+  };
 
   const distanceOptions = [
     { value: "any", label: language === "de" ? "Jede Entfernung" : "Any distance" },
@@ -434,7 +777,11 @@ function SuchePageContent() {
     (furnitureUnfurnished ? 1 : 0) +
     (roommatesGender !== "regardless" ? 1 : 0) +
     (landlordRating !== "any" ? 1 : 0) +
-    (wgSize !== "regardless" ? 1 : 0);
+    (wgSize !== "regardless" ? 1 : 0) +
+    selectedNeighborhoods.length +
+    (billsIncluded ? 1 : 0) +
+    (noDeposit ? 1 : 0) +
+    selectedBedrooms.length;
 
   const clearAll = () => {
     setActiveFilters([]);
@@ -448,6 +795,11 @@ function SuchePageContent() {
     setRoommatesGender("regardless");
     setLandlordRating("any");
     setWgSize("regardless");
+    setSelectedNeighborhoods([]);
+    setBillsIncluded(false);
+    setNoDeposit(false);
+    setSelectedBedrooms([]);
+    setNeighborhoodSearch("");
   };
 
   // ── Data fetching ─────────────────────────────────────────────────────
@@ -712,7 +1064,7 @@ function SuchePageContent() {
   };
 
   const currentPriceLabel = priceRange
-    ? `< ${priceRange} €`
+    ? `< ${formatPrice(parseFloat(priceRange))}`
     : (language === "de" ? "Preis" : "Price");
   const currentTypeLabel = typeOptions.find(t => t.value === propertyType)?.label || (language === "de" ? "Typ" : "Type");
   const currentDistLabel = distanceOptions.find(d => d.value === distance)?.label || (language === "de" ? "Entfernung" : "Distance");
@@ -725,63 +1077,97 @@ function SuchePageContent() {
       <section className="bg-white border-b border-outline-variant px-4 md:px-8 py-3 z-40 sticky top-[65px] shadow-sm">
         <div className="max-w-[1280px] mx-auto flex flex-col gap-2">
 
-          {/* Row 1: City search — full width on all screens */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0 relative">
+          {/* Row 1: City search & search button */}
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex-1 min-w-0 relative" ref={suggestionsRef}>
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">
                 location_on
               </span>
-              <select
+              <input
+                type="text"
                 id="suche-city-search"
                 value={searchInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setSearchInput(val);
-                  
-                  const params = new URLSearchParams();
-                  if (val.trim()) params.set("stadt", val.trim());
-                  if (propertyType && propertyType !== "all") params.set("zimmer", propertyType);
-                  if (priceRange) params.set("preis", priceRange);
-                  if (moveInDate) params.set("moveIn", moveInDate);
-                  if (moveOutDate) params.set("moveOut", moveOutDate);
-
-                  const furList: string[] = [];
-                  if (furnitureFurnished) furList.push("furnished");
-                  if (furnitureUnfurnished) furList.push("unfurnished");
-                  if (furList.length > 0) params.set("furniture", furList.join(","));
-
-                  if (roommatesGender && roommatesGender !== "regardless") params.set("roommates", roommatesGender);
-                  if (landlordRating && landlordRating !== "any") params.set("rating", landlordRating);
-                  if (wgSize && wgSize !== "regardless") params.set("wgSize", wgSize);
-
-                  const wishlistParam = searchParams.get("wishlist");
-                  if (wishlistParam) params.set("wishlist", wishlistParam);
-
-                  router.push(`/suche?${params.toString()}`);
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => {
+                  if (searchInput.trim() !== "") {
+                    handleInputChange(searchInput);
+                  } else {
+                    const all = ALL_SUGGESTIONS.map((c) => (language === "de" ? c.de : c.en));
+                    setFilteredCities(all);
+                    setShowSuggestions(true);
+                  }
                 }}
-                className="w-full pl-9 pr-9 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
-                style={{ colorScheme: "light" }}
-              >
-                <option value="">{language === "de" ? "Stadt auswählen..." : "Select city..."}</option>
-                <option value="Berlin">Berlin</option>
-                <option value="München">München</option>
-                <option value="Hamburg">Hamburg</option>
-                <option value="Frankfurt">Frankfurt</option>
-                <option value="Köln">Köln</option>
-                <option value="Düsseldorf">Düsseldorf</option>
-                <option value="Stuttgart">Stuttgart</option>
-                <option value="Leipzig">Leipzig</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">
-                unfold_more
-              </span>
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    applySearch();
+                    setShowSuggestions(false);
+                  }
+                }}
+                placeholder={language === "de" ? "Stadt eingeben..." : "Enter city..."}
+                className="w-full pl-9 pr-9 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all h-[42px] font-semibold text-on-surface"
+                autoComplete="off"
+              />
+              
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchInput("");
+                    setFilteredCities(ALL_SUGGESTIONS.map((c) => (language === "de" ? c.de : c.en)));
+                    
+                    const params = new URLSearchParams();
+                    if (propertyType && propertyType !== "all") params.set("zimmer", propertyType);
+                    if (priceRange) params.set("preis", priceRange);
+                    if (moveInDate) params.set("moveIn", moveInDate);
+                    if (moveOutDate) params.set("moveOut", moveOutDate);
+
+                    const furList: string[] = [];
+                    if (furnitureFurnished) furList.push("furnished");
+                    if (furnitureUnfurnished) furList.push("unfurnished");
+                    if (furList.length > 0) params.set("furniture", furList.join(","));
+
+                    if (roommatesGender && roommatesGender !== "regardless") params.set("roommates", roommatesGender);
+                    if (landlordRating && landlordRating !== "any") params.set("rating", landlordRating);
+                    if (wgSize && wgSize !== "regardless") params.set("wgSize", wgSize);
+
+                    const wishlistParam = searchParams.get("wishlist");
+                    if (wishlistParam) params.set("wishlist", wishlistParam);
+
+                    router.push(`/suche?${params.toString()}`);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface cursor-pointer flex items-center justify-center p-1 rounded-full hover:bg-surface-container"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              )}
+
+              {showSuggestions && filteredCities.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-white border border-outline-variant rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150">
+                  <ul className="py-1.5">
+                    {filteredCities.map((city) => (
+                      <li key={city}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectSuggestion(city)}
+                          className="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-primary text-[14px] font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[16px] text-[#f07d00]">location_on</span>
+                          <span>{city}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            {/* Search button — always visible next to input */}
+            
+            {/* Search button */}
             <button
               id="btn-suche-search"
               onClick={applySearch}
               disabled={searchInput.trim() === ""}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-label-sm font-bold transition-all flex-shrink-0 shadow-sm ${
+              className={`flex items-center gap-1.5 px-4 rounded-xl text-label-sm font-bold transition-all h-[42px] shadow-sm flex-shrink-0 ${
                 searchInput.trim() === ""
                   ? "bg-outline-variant text-on-surface-variant cursor-not-allowed opacity-50"
                   : "bg-primary text-on-primary hover:opacity-90 active:scale-95 cursor-pointer"
@@ -861,7 +1247,7 @@ function SuchePageContent() {
                     {language === "de" ? "Maximale Warmmiete" : "Max. Rent (warm)"}
                   </p>
                   <span className="text-label-sm font-bold text-primary">
-                    {priceRange ? `${priceRange} €` : (language === "de" ? "Jeder Preis" : "Any price")}
+                    {priceRange ? formatPrice(parseFloat(priceRange)) : (language === "de" ? "Jeder Preis" : "Any price")}
                   </span>
                 </div>
                 <div className="px-1 py-3">
@@ -879,10 +1265,10 @@ function SuchePageContent() {
                     style={{ background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) 100%)` }}
                   />
                   <div className="flex justify-between text-[10px] text-on-surface-variant/70 mt-1 font-semibold">
-                    <span>200 €</span>
-                    <span>1.500 €</span>
-                    <span>3.000 €</span>
-                    <span>5.000 €+</span>
+                    <span>{formatPrice(200)}</span>
+                    <span>{formatPrice(1500)}</span>
+                    <span>{formatPrice(3000)}</span>
+                    <span>{formatPrice(5000)}+</span>
                   </div>
                 </div>
               </div>
@@ -926,21 +1312,49 @@ function SuchePageContent() {
                   {language === "de" ? "Wohnungstyp" : "Property Type"}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-1 px-3 pb-2">
-                {typeOptions.map(({ value, label }) => (
+              <div className="grid grid-cols-2 gap-1.5 px-3 pb-2">
+                {typeOptions.map(({ value, label, icon }) => (
                   <button
                     key={value}
                     onClick={() => setPropertyType(value)}
-                    className={`px-3 py-2 rounded-lg text-label-sm text-left transition-all border cursor-pointer ${
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-label-sm text-left transition-all border cursor-pointer ${
                       propertyType === value
                         ? "bg-primary text-on-primary border-primary font-bold"
                         : "border-outline-variant text-on-surface hover:bg-surface-container"
                     }`}
                   >
-                    {label}
+                    <span className={`material-symbols-outlined text-[16px] ${propertyType === value ? "text-on-primary" : "text-on-surface-variant"}`}>{icon}</span>
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
+
+              {/* Bedroom sub-options (shown when Apartment is selected) */}
+              {propertyType === "apartment" && (
+                <div className="px-4 pb-3 pt-1">
+                  <p className="text-[10px] font-bold text-on-surface-variant/70 mb-1.5">
+                    {language === "de" ? "Anzahl Schlafzimmer" : "Number of bedrooms"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {bedroomOptions.map(({ value, label }) => {
+                      const isActive = selectedBedrooms.includes(value);
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => toggleBedroom(value)}
+                          className={`px-3 py-2 rounded-lg text-[12px] font-semibold transition-all border cursor-pointer ${
+                            isActive
+                              ? "bg-primary/10 text-primary border-primary"
+                              : "border-outline-variant text-on-surface hover:bg-surface-container"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* ── Shared apartment size ── */}
               <div className="border-t border-outline-variant mx-4" />
@@ -1041,6 +1455,119 @@ function SuchePageContent() {
                 })}
               </div>
 
+              {/* ── Bills & Deposit ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Nebenkosten & Kaution" : "Bills & Deposit"}
+                </p>
+              </div>
+              <div className="pb-2 flex flex-col">
+                <label className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={billsIncluded}
+                    onChange={() => setBillsIncluded(!billsIncluded)}
+                    className="accent-primary w-4 h-4 rounded cursor-pointer"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-on-surface-variant">receipt_long</span>
+                    <span className="text-label-sm text-on-surface font-medium">
+                      {language === "de" ? "Nebenkosten inklusive" : "Bills included"}
+                    </span>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={noDeposit}
+                    onChange={() => setNoDeposit(!noDeposit)}
+                    className="accent-primary w-4 h-4 rounded cursor-pointer"
+                  />
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-on-surface-variant">money_off</span>
+                    <span className="text-label-sm text-on-surface font-medium">
+                      {language === "de" ? "Keine Kaution" : "No deposit"}
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* ── Neighborhoods ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Stadtteile" : "Neighborhoods"}
+                </p>
+                {selectedNeighborhoods.length > 0 && (
+                  <button
+                    onClick={() => setSelectedNeighborhoods([])}
+                    className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+                  >
+                    {language === "de" ? "Alle abwählen" : "Clear all"}
+                  </button>
+                )}
+              </div>
+              <div className="px-4 pb-2">
+                <div className="relative mb-2">
+                  <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-outline text-[16px] pointer-events-none">search</span>
+                  <input
+                    type="text"
+                    value={neighborhoodSearch}
+                    onChange={(e) => setNeighborhoodSearch(e.target.value)}
+                    placeholder={language === "de" ? "Stadtteil suchen..." : "Search neighborhood..."}
+                    className="w-full pl-8 pr-3 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-[12px] font-semibold text-on-surface focus:outline-none focus:border-primary transition-all"
+                  />
+                </div>
+                <div className="max-h-[180px] overflow-y-auto custom-scrollbar space-y-0.5">
+                  {BERLIN_NEIGHBORHOODS
+                    .filter(n => neighborhoodSearch.trim() === "" || n.toLowerCase().includes(neighborhoodSearch.toLowerCase()))
+                    .map((n) => {
+                      const checked = selectedNeighborhoods.includes(n);
+                      return (
+                        <label
+                          key={n}
+                          className={`flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer transition-colors select-none ${
+                            checked ? "bg-primary/5" : "hover:bg-surface-container-low"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleNeighborhood(n)}
+                            className="accent-primary w-3.5 h-3.5 rounded cursor-pointer flex-shrink-0"
+                          />
+                          <span className={`text-[12px] font-medium truncate ${
+                            checked ? "text-primary font-bold" : "text-on-surface"
+                          }`}>
+                            {n}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  {BERLIN_NEIGHBORHOODS.filter(n => neighborhoodSearch.trim() === "" || n.toLowerCase().includes(neighborhoodSearch.toLowerCase())).length === 0 && (
+                    <p className="text-[11px] text-on-surface-variant/60 text-center py-3 italic">
+                      {language === "de" ? "Kein Stadtteil gefunden" : "No neighborhood found"}
+                    </p>
+                  )}
+                </div>
+                {selectedNeighborhoods.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-outline-variant/40">
+                    {selectedNeighborhoods.map((n) => (
+                      <span
+                        key={n}
+                        className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] font-bold border border-primary/20"
+                      >
+                        {n}
+                        <button onClick={() => toggleNeighborhood(n)} className="cursor-pointer hover:opacity-70">
+                          <span className="material-symbols-outlined text-[11px]">close</span>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* ── Distance ── */}
               <div className="border-t border-outline-variant mx-4" />
               <div className="px-4 pt-3 pb-1">
@@ -1109,6 +1636,85 @@ function SuchePageContent() {
               </div>
             </Dropdown>
 
+            {/* ── Saved Searches dropdown ── */}
+            {user && (
+              <Dropdown
+                id="dd-saved-filters"
+                label={language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}
+                icon="bookmarks"
+                align="right"
+              >
+                <div className="p-4 w-[280px] sm:w-[320px] space-y-4">
+                  {/* Save current search form */}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
+                      {language === "de" ? "Aktuelle Suche speichern" : "Save Current Search"}
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder={language === "de" ? "Name der Suche..." : "Search name..."}
+                        value={newFilterName}
+                        onChange={(e) => setNewFilterName(e.target.value)}
+                        className="flex-1 h-9 px-3 bg-surface-container-low border border-outline-variant rounded-lg text-label-sm focus:outline-none focus:border-primary text-[13px] text-on-surface"
+                      />
+                      <button
+                        onClick={handleSaveFilter}
+                        disabled={!newFilterName.trim() || isSavingFilter}
+                        className="h-9 px-3 bg-primary text-on-primary rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      >
+                        {isSavingFilter ? (
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        ) : (
+                          <span className="material-symbols-outlined text-[16px]">save</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* List of saved searches */}
+                  <div className="space-y-2 pt-2 border-t border-outline-variant/60">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
+                      {language === "de" ? "Gespeicherte Vorlagen" : "Saved Templates"}
+                    </p>
+                    {savedFiltersLoading ? (
+                      <div className="flex justify-center py-4">
+                        <span className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
+                      </div>
+                    ) : savedFilters.length === 0 ? (
+                      <p className="text-[12px] text-on-surface-variant/70 italic text-center py-2">
+                        {language === "de" ? "Keine gespeicherten Suchen." : "No saved searches."}
+                      </p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                        {savedFilters.map((filter) => (
+                          <div
+                            key={filter.id}
+                            className="flex items-center justify-between p-2 rounded-lg hover:bg-surface-container-low transition-colors group"
+                          >
+                            <button
+                              onClick={() => handleApplySavedFilter(filter)}
+                              className="flex-1 text-left text-label-sm font-bold text-primary hover:underline truncate mr-2"
+                              title={filter.name}
+                            >
+                              {filter.name}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteFilter(filter.id)}
+                              className="text-on-surface-variant hover:text-error cursor-pointer flex items-center justify-center p-1 rounded-md hover:bg-surface-container"
+                              title={language === "de" ? "Löschen" : "Delete"}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Dropdown>
+            )}
+
             {/* Active filter quick-clear badge */}
             {totalBadge > 0 && (
               <button
@@ -1129,18 +1735,7 @@ function SuchePageContent() {
         {/* Map */}
         <aside className="hidden md:block w-full md:w-[40%] relative bg-surface-dim flex-shrink-0 border-r border-outline-variant">
           <div className="absolute inset-0 w-full h-full">
-            <iframe
-              title="Google Maps"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              loading="lazy"
-              allowFullScreen
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(
-                stadtParam ? `${stadtParam}, Germany` : "Germany"
-              )}&t=&z=${stadtParam ? 12 : 9}&ie=UTF8&iwloc=&output=embed`}
-              className="w-full h-full grayscale-[15%] contrast-[105%] opacity-90 transition-opacity duration-300"
-            />
+            <PropertyMap listings={listings} stadtParam={stadtParam} />
           </div>
         </aside>
 
@@ -1155,31 +1750,15 @@ function SuchePageContent() {
                     ? (stadtParam
                       ? (language === "de" ? `Wohnungen in ${stadtParam}` : `Apartments in ${stadtParam}`)
                       : (language === "de" ? "Gefilterte Wohnungen" : "Filtered Apartments"))
-                    : (language === "de" ? "Herausragende Unterkünfte" : "Top-Rated Accommodations")}
+                    : (language === "de" ? "Alle verfügbaren Unterkünfte" : "All Available Accommodations")}
               </h1>
               <p className="text-[13px] md:text-body-md text-on-surface-variant mt-0.5">
                 {searchParams.get("wishlist") === "true"
                   ? (language === "de" ? `${listings.length} gespeicherte Objekte` : `${listings.length} saved properties`)
                   : hasSearched
                     ? <>{listings.length} {t("resultsFound")}{sort !== "newest" && <span className="ml-2 text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">{currentSortLabel}</span>}</>
-                    : (language === "de" ? "Beliebte Unterkünfte unserer Community mit hervorragenden Bewertungen." : "Popular accommodations in our community with outstanding reviews.")}
+                    : (language === "de" ? "Entdecke alle freien Wohnungen und Zimmer in Deutschland." : "Explore all available apartments and rooms in Germany.")}
               </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                id="view-grid"
-                onClick={() => setView("grid")}
-                className={`p-2 border rounded-lg transition-colors cursor-pointer ${view === "grid" ? "bg-surface-container border-primary" : "border-outline-variant hover:bg-surface-container"}`}
-              >
-                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>grid_view</span>
-              </button>
-              <button
-                id="view-list"
-                onClick={() => setView("list")}
-                className={`p-2 border rounded-lg transition-colors cursor-pointer ${view === "list" ? "bg-surface-container border-primary" : "border-outline-variant hover:bg-surface-container"}`}
-              >
-                <span className="material-symbols-outlined text-[20px]">view_list</span>
-              </button>
             </div>
           </div>
 
@@ -1278,7 +1857,7 @@ function SuchePageContent() {
               </div>
             </div>
           ) : !hasSearched ? (
-            /* ── Top-rated places grouped by city horizontal scroll ── */
+            /* ── All available places grouped by city horizontal scroll ── */
             topPlacesLoading ? (
               <div className="flex justify-center items-center py-24 w-full">
                 <div className="w-10 h-10 rounded-full border-[3px] border-primary/10 border-t-primary animate-spin" />
@@ -1328,8 +1907,8 @@ function SuchePageContent() {
                         </h3>
                         <p className="text-[12px] text-on-surface-variant font-semibold">
                           {language === "de" 
-                            ? `Herausragende Unterkünfte in ${city}` 
-                            : `Outstanding accommodations in ${city}`}
+                            ? `Verfügbare Unterkünfte in ${city}` 
+                            : `Available accommodations in ${city}`}
                         </p>
                       </div>
 
@@ -1415,7 +1994,7 @@ function SuchePageContent() {
                                     {/* Stats */}
                                     <div className="flex items-center divide-x divide-outline-variant/40 mt-auto pt-2">
                                       {[
-                                        { label: t("rentWarm"), value: `${Math.round(parseFloat(l.rent_cold) + parseFloat(l.rent_utilities) + parseFloat(l.rent_heating))} €`, bold: true },
+                                        { label: t("rentWarm"), value: formatPrice(Math.round(parseFloat(l.rent_cold) + parseFloat(l.rent_utilities) + (l.rent_heating ? parseFloat(l.rent_heating) : 0))), bold: true },
                                         { label: t("area"), value: `${l.size_sqm} m²` },
                                         { label: t("rooms"), value: l.rooms },
                                       ].map(({ label, value, bold }, i) => (
@@ -1454,7 +2033,7 @@ function SuchePageContent() {
               {language === "de" ? "Keine Objekte gefunden. Bitte Filter anpassen." : "No listings found. Try adjusting your filters."}
             </div>
           ) : (
-            <div className={`grid gap-4 md:gap-6 ${view === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2" : "grid-cols-1"}`}>
+            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
               {listings.map((l) => (
                 <article
                   key={l.id}
@@ -1508,7 +2087,7 @@ function SuchePageContent() {
                       {/* Stats row */}
                       <div className="flex items-center divide-x divide-outline-variant/40 mb-3">
                         {[
-                          { label: t("rentWarm"), value: `${Math.round(parseFloat(l.rent_cold) + parseFloat(l.rent_utilities) + parseFloat(l.rent_heating))} €`, bold: true },
+                          { label: t("rentWarm"), value: formatPrice(Math.round(parseFloat(l.rent_cold) + parseFloat(l.rent_utilities) + (l.rent_heating ? parseFloat(l.rent_heating) : 0))), bold: true },
                           { label: t("area"), value: `${l.size_sqm} m²` },
                           { label: t("rooms"), value: l.rooms },
                         ].map(({ label, value, bold }, i) => (

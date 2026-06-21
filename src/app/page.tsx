@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 
@@ -216,6 +217,7 @@ const ALL_SUGGESTIONS = [
 export default function HomePage() {
   const router = useRouter();
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { user, profile } = useAuth();
   const [stadt, setStadt] = useState("");
   const [zimmer, setZimmer] = useState("all");
@@ -223,6 +225,7 @@ export default function HomePage() {
   const [moveOutDate, setMoveOutDate] = useState("");
   const [selectedPremiumPlan, setSelectedPremiumPlan] = useState<"1month" | "3months" | "12months">("3months");
   const citySliderRef = useRef<HTMLDivElement>(null);
+  const reviewsSliderRef = useRef<HTMLDivElement>(null);
 
   // Autocomplete states
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -400,7 +403,90 @@ export default function HomePage() {
 
     let animationFrameId: number;
     let lastTime = performance.now();
-    const speed = 60; // Continuous scroll speed in pixels per second
+    const speed = 40; // Continuous scroll speed in pixels per second
+    let isInteracting = false;
+    let timeoutId: any = null;
+    let scrollPos = slider.scrollLeft;
+
+    const pauseAutoScroll = () => {
+      isInteracting = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        isInteracting = false;
+        lastTime = performance.now();
+      }, 1500); // Resume auto scroll after 1.5 seconds of inactivity
+    };
+
+    slider.addEventListener("wheel", pauseAutoScroll, { passive: true });
+    slider.addEventListener("touchstart", pauseAutoScroll, { passive: true });
+    slider.addEventListener("touchmove", pauseAutoScroll, { passive: true });
+    slider.addEventListener("touchend", pauseAutoScroll, { passive: true });
+
+    const leftBtn = slider.parentElement?.querySelector("[aria-label='Scroll left']");
+    const rightBtn = slider.parentElement?.querySelector("[aria-label='Scroll right']");
+    leftBtn?.addEventListener("click", pauseAutoScroll);
+    rightBtn?.addEventListener("click", pauseAutoScroll);
+
+    const animate = () => {
+      const time = performance.now();
+      const delta = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const halfWidth = slider.scrollWidth / 2;
+
+      if (!isInteracting) {
+        if (halfWidth > 0) {
+          scrollPos += speed * delta;
+          
+          // Wrap around seamlessly without gaps
+          if (scrollPos >= halfWidth) {
+            scrollPos -= halfWidth;
+          } else if (scrollPos <= 5) {
+            scrollPos += halfWidth;
+          }
+          
+          slider.scrollLeft = Math.round(scrollPos);
+        }
+      } else {
+        // Keep scrollPos synced with manual actions
+        scrollPos = slider.scrollLeft;
+        // Even when interacting, handle wrap around so manual scroll feels infinite and gapless
+        if (halfWidth > 0) {
+          if (slider.scrollLeft >= halfWidth) {
+            slider.scrollLeft -= halfWidth;
+            scrollPos = slider.scrollLeft;
+          } else if (slider.scrollLeft <= 5) {
+            slider.scrollLeft += halfWidth;
+            scrollPos = slider.scrollLeft;
+          }
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      slider.removeEventListener("wheel", pauseAutoScroll);
+      slider.removeEventListener("touchstart", pauseAutoScroll);
+      slider.removeEventListener("touchmove", pauseAutoScroll);
+      slider.removeEventListener("touchend", pauseAutoScroll);
+      leftBtn?.removeEventListener("click", pauseAutoScroll);
+      rightBtn?.removeEventListener("click", pauseAutoScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
+
+  // Auto-scroll logic for reviews slider (continuous marquee-like) with interaction yield and infinite seamless wrap
+  useEffect(() => {
+    const slider = reviewsSliderRef.current;
+    if (!slider) return;
+
+    let animationFrameId: number;
+    let lastTime = performance.now();
+    const speed = 40; // Continuous scroll speed in pixels per second
     let isInteracting = false;
     let timeoutId: any = null;
     let scrollPos = slider.scrollLeft;
@@ -518,10 +604,10 @@ export default function HomePage() {
           {/* Search Card */}
           <form
             onSubmit={handleSearch}
-            className="max-w-5xl mx-auto bg-white/95 backdrop-blur-md p-4 md:p-6 rounded-xl shadow-2xl"
+            className="max-w-7xl mx-auto bg-white/95 backdrop-blur-md p-4 md:p-6 rounded-xl shadow-2xl"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end">
-              <div className="text-left md:col-span-2 relative" ref={suggestionsRef}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-10 gap-4 items-end">
+              <div className="text-left sm:col-span-2 md:col-span-3 relative" ref={suggestionsRef}>
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {t("searchCityLabel")}
                 </label>
@@ -569,7 +655,7 @@ export default function HomePage() {
                 )}
               </div>
 
-              <div className="text-left md:col-span-1">
+              <div className="text-left sm:col-span-1 md:col-span-2">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {t("searchRoomsLabel")}
                 </label>
@@ -577,7 +663,7 @@ export default function HomePage() {
                   value={zimmer}
                   onChange={(e) => setZimmer(e.target.value)}
                   id="search-rooms"
-                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px]"
+                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px] h-[50px] font-semibold text-on-surface cursor-pointer"
                 >
                   <option value="all">{t("all")}</option>
                   <option value="1">1 Room Apartment</option> 
@@ -590,7 +676,7 @@ export default function HomePage() {
                 </select>
               </div>
 
-              <div className="text-left md:col-span-1">
+              <div className="text-left sm:col-span-1 md:col-span-2">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {language === "de" ? "Einzug" : "Move in"}
                 </label>
@@ -604,7 +690,7 @@ export default function HomePage() {
                 />
               </div>
 
-              <div className="text-left md:col-span-1">
+              <div className="text-left sm:col-span-1 md:col-span-2">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {language === "de" ? "Auszug" : "Move out"}
                 </label>
@@ -622,14 +708,13 @@ export default function HomePage() {
                 type="submit"
                 id="btn-search"
                 disabled={stadt.trim() === ""}
-                className={`h-[50px] rounded-lg text-label-md flex items-center justify-center gap-2 transition-all shadow-lg w-full font-semibold sm:col-span-2 md:col-span-1 ${
+                className={`h-[50px] rounded-lg text-label-md flex items-center justify-center gap-2 transition-all shadow-lg w-full font-semibold sm:col-span-1 md:col-span-1 ${
                   stadt.trim() === ""
                     ? "bg-outline-variant text-on-surface-variant cursor-not-allowed opacity-50"
                     : "bg-primary text-white hover:opacity-90 active:scale-95 cursor-pointer"
                 }`}
               >
                 <span className="material-symbols-outlined text-xl">search</span>
-                {t("searchBtn")}
               </button>
             </div>
           </form>
@@ -700,9 +785,9 @@ export default function HomePage() {
               citySliderRef.current?.scrollBy({ left: -320, behavior: "smooth" });
             }}
             aria-label="Scroll left"
-            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-0 group-hover/slider:opacity-100 hidden md:flex"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 transition-opacity duration-200"
           >
-            <span className="material-symbols-outlined text-[24px]">chevron_left</span>
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_left</span>
           </button>
 
           {/* Right Arrow Button */}
@@ -711,9 +796,9 @@ export default function HomePage() {
               citySliderRef.current?.scrollBy({ left: 320, behavior: "smooth" });
             }}
             aria-label="Scroll right"
-            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-0 group-hover/slider:opacity-100 hidden md:flex"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-100 md:opacity-0 md:group-hover/slider:opacity-100 transition-opacity duration-200"
           >
-            <span className="material-symbols-outlined text-[24px]">chevron_right</span>
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_right</span>
           </button>
         </div>
       </section>
@@ -746,7 +831,7 @@ export default function HomePage() {
                   {language === "de" ? "Kostenlos stöbern und direkt bewerben" : "Browse for free and apply directly"}
                 </p>
                 <div className="flex items-baseline gap-1 mt-6">
-                  <span className="text-[40px] font-bold text-primary">0 €</span>
+                  <span className="text-[40px] font-bold text-primary">{formatPrice(0)}</span>
                   <span className="text-on-surface-variant text-[14px]">/ {language === "de" ? "Monat" : "Month"}</span>
                 </div>
               </div>
@@ -797,9 +882,9 @@ export default function HomePage() {
               {/* Minified Pricing Cards from the reference image */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-outline-variant/40 pt-6">
                 {[
-                  { key: "1month", duration: language === "de" ? "1 Monat*" : "1 month*", price: "10.99 €", sub: "" },
-                  { key: "3months", duration: language === "de" ? "3 Monate" : "3 months", price: "9.99 €", sub: language === "de" ? "/ Monat" : "/per mo", featured: true },
-                  { key: "12months", duration: language === "de" ? "12 Monate" : "12 months", price: "7.99 €", sub: language === "de" ? "/ Monat" : "/per mo" },
+                  { key: "1month", duration: language === "de" ? "1 Monat*" : "1 month*", price: formatPrice(10.99), sub: "" },
+                  { key: "3months", duration: language === "de" ? "3 Monate" : "3 months", price: formatPrice(9.99), sub: language === "de" ? "/ Monat" : "/per mo", featured: true },
+                  { key: "12months", duration: language === "de" ? "12 Monate" : "12 months", price: formatPrice(7.99), sub: language === "de" ? "/ Monat" : "/per mo" },
                 ].map(({ key, duration, price, sub, featured }, i) => (
                   <div
                     key={key}
@@ -864,46 +949,73 @@ export default function HomePage() {
         </h2>
 
         {/* Carousel Viewport Container */}
-        <div className="relative w-full overflow-hidden">
-          {/* Track */}
-          <div className="flex w-max animate-marquee-reviews pause-on-hover py-4">
+        <div className="relative w-full group/slider-reviews">
+          {/* Viewport container */}
+          <div
+            ref={reviewsSliderRef}
+            className="flex overflow-x-auto gap-0 py-4 no-scrollbar w-full"
+          >
             {[...getTestimonials(language, t), ...getTestimonials(language, t)].map(({ quote, name, role, initials }, idx) => (
               <div
                 key={`${name}-${idx}`}
-                className="w-[320px] md:w-[400px] flex-shrink-0 px-3 flex"
+                className="w-[290px] sm:w-[325px] md:w-[400px] flex-shrink-0 px-3 flex animate-[fadeIn_0.5s_ease-out]"
               >
                 <div
-                  className="bg-white p-8 rounded-xl shadow-md border border-outline-variant hover:shadow-xl transition-all duration-300 w-full flex flex-col justify-between"
+                  className="bg-white p-6 md:p-8 rounded-xl shadow-md border border-outline-variant hover:shadow-xl transition-all duration-300 w-full flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex gap-0.5 mb-4">
                       {stars.map((_, i) => (
                         <span
                           key={i}
-                          className="material-symbols-outlined text-secondary-fixed-dim text-[22px]"
+                          className="material-symbols-outlined text-secondary-fixed-dim text-[20px] md:text-[22px]"
                           style={{ fontVariationSettings: "'FILL' 1" }}
                         >
                           star
                         </span>
                       ))}
                     </div>
-                    <p className="text-body-md text-on-surface italic mb-8">
+                    <p className="text-body-md text-on-surface italic mb-8 text-[14px] md:text-[16px] leading-relaxed font-sans">
                       &ldquo;{quote}&rdquo;
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary text-[14px] flex-shrink-0">
+                  <div className="flex items-center gap-4 font-sans">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-primary text-[12px] md:text-[14px] flex-shrink-0">
                       {initials}
                     </div>
                     <div>
-                      <p className="text-label-md text-primary font-bold">{name}</p>
-                      <p className="text-on-surface-variant text-[12px]">{role}</p>
+                      <p className="text-label-md text-primary font-bold text-[13px] md:text-[14px]">{name}</p>
+                      <p className="text-on-surface-variant text-[11px] md:text-[12px]">{role}</p>
                     </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Left Arrow Button */}
+          <button
+            type="button"
+            onClick={() => {
+              reviewsSliderRef.current?.scrollBy({ left: -320, behavior: "smooth" });
+            }}
+            aria-label="Scroll left"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-100 md:opacity-0 md:group-hover/slider-reviews:opacity-100 transition-opacity duration-200"
+          >
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_left</span>
+          </button>
+
+          {/* Right Arrow Button */}
+          <button
+            type="button"
+            onClick={() => {
+              reviewsSliderRef.current?.scrollBy({ left: 320, behavior: "smooth" });
+            }}
+            aria-label="Scroll right"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-100 md:opacity-0 md:group-hover/slider-reviews:opacity-100 transition-opacity duration-200"
+          >
+            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_right</span>
+          </button>
         </div>
       </section>
 

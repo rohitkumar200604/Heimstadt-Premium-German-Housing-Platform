@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
@@ -33,6 +34,7 @@ function LandlordDashboardContent() {
   const searchParams = useSearchParams();
   const { user, profile, loading, refreshProfile, isPremium, subscription } = useAuth();
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   
   // Navigation State
   const [activeTab, setActiveTab] = useState<"overview" | "profile" | "bookings" | "properties" | "favorites">("overview");
@@ -893,7 +895,7 @@ function LandlordDashboardContent() {
                               {language === "de" ? "Wohnung: " : "Property: "} <strong className="text-primary">{propertyDetails?.title || "Property"}</strong>
                             </p>
                             <p className="text-[12px] text-on-surface-variant font-medium mt-1">
-                              {language === "de" ? "Einkommen: " : "Monthly Income: "} {tenantDetails?.monthly_income ? `${tenantDetails.monthly_income} €` : "N/A"}
+                              {language === "de" ? "Einkommen: " : "Monthly Income: "} {tenantDetails?.monthly_income ? formatPrice(Number(tenantDetails.monthly_income)) : "N/A"}
                             </p>
                           </div>
 
@@ -963,7 +965,7 @@ function LandlordDashboardContent() {
                         <div className="flex justify-between items-center border-t border-outline-variant/60 pt-4 mt-auto">
                           <div>
                             <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider leading-none">Kaltmiete</p>
-                            <p className="text-body-md font-extrabold text-primary mt-1">€ {p.rent_cold}</p>
+                            <p className="text-body-md font-extrabold text-primary mt-1">{formatPrice(Number(p.rent_cold))}</p>
                           </div>
                           <Link
                             href={`/objekt/${p.id}`}
@@ -1051,7 +1053,7 @@ function LandlordDashboardContent() {
                               <div className="grid grid-cols-3 gap-2 mb-4 border-t border-b border-outline-variant/40 py-2.5">
                                 <div className="text-center">
                                   <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Warm" : "Warm Rent"}</span>
-                                  <span className="text-[14px] font-bold text-primary">{totalRent || 870} €</span>
+                                  <span className="text-[14px] font-bold text-primary">{formatPrice(totalRent || 870)}</span>
                                 </div>
                                 <div className="text-center border-l border-r border-outline-variant/30">
                                   <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Fläche" : "Area"}</span>

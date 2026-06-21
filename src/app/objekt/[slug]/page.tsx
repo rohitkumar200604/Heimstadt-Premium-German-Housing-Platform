@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { useCurrency } from "@/context/CurrencyContext";
 import { supabase } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import { getDisplayPhoto } from "@/utils/get-display-photo";
@@ -146,6 +147,7 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
   const router = useRouter();
   const { user, profile, isPremium } = useAuth();
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   
   const [property, setProperty] = useState<any>(null);
   const [loadingProperty, setLoadingProperty] = useState(true);
@@ -591,11 +593,11 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
   const amenitiesList = property.amenities || [];
 
   const costRows = [
-    { label: t("coldRent"), value: `${parseFloat(property.rent_cold).toLocaleString("de-DE", { minimumFractionDigits: 2 })} €`, bold: false, highlight: false },
-    { label: t("utilities"), value: `${parseFloat(property.rent_utilities || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })} €`, bold: false, highlight: false },
-    { label: t("heatingCosts"), value: `${parseFloat(property.rent_heating || 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })} €`, bold: false, highlight: false },
-    { label: t("warmRent"), value: `${(parseFloat(property.rent_cold) + parseFloat(property.rent_utilities || 0) + parseFloat(property.rent_heating || 0)).toLocaleString("de-DE", { minimumFractionDigits: 2 })} €`, bold: true, highlight: true },
-    { label: t("deposit"), value: `${(parseFloat(property.rent_cold) * parseFloat(property.deposit_months || 3)).toLocaleString("de-DE", { minimumFractionDigits: 2 })} € (${property.deposit_months || 3} ${language === "de" ? "Kaltmieten" : "Months Rent"})`, bold: false, highlight: false, small: true },
+    { label: t("coldRent"), value: formatPrice(parseFloat(property.rent_cold)), bold: false, highlight: false },
+    { label: t("utilities"), value: formatPrice(parseFloat(property.rent_utilities || 0)), bold: false, highlight: false },
+    { label: t("heatingCosts"), value: formatPrice(parseFloat(property.rent_heating || 0)), bold: false, highlight: false },
+    { label: t("warmRent"), value: formatPrice(parseFloat(property.rent_cold) + parseFloat(property.rent_utilities || 0) + parseFloat(property.rent_heating || 0)), bold: true, highlight: true },
+    { label: t("deposit"), value: `${formatPrice(parseFloat(property.rent_cold) * parseFloat(property.deposit_months || 3))} (${property.deposit_months || 3} ${language === "de" ? "Kaltmieten" : "Months Rent"})`, bold: false, highlight: false, small: true },
   ];
 
   return (
