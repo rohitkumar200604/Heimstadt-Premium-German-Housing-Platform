@@ -7,10 +7,12 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/utils/supabase/client";
 
-interface Message {
-  sender: "user" | "bot";
-  text: string;
-  timestamp: string;
+interface ChatMessage {
+  id: string;
+  sender_id: string | null;
+  recipient_id: string;
+  body: string;
+  sent_at: string;
 }
 
 export default function PropertyChatPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -21,9 +23,11 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
 
   const [property, setProperty] = useState<any>(null);
   const [loadingProperty, setLoadingProperty] = useState(true);
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(true);
+  const [supportId, setSupportId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -113,66 +117,86 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
     fetchPropertyDetails();
   }, [slug, language]);
 
-  // Load chat history from localStorage
+  // Resolve a staff (admin/employee) profile to act as the support recipient.
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedChat = localStorage.getItem(`heimat_chat_${slug}`);
-      if (savedChat) {
-        try {
-          setChatMessages(JSON.parse(savedChat));
-        } catch (e) {
-          console.error("Failed to parse cached chat history:", e);
-        }
-      } else {
-        // Initial welcome message
-        const welcome: Message = {
-          sender: "bot",
-          text: language === "de"
-            ? "Hallo! Ich bin dein Heimstadt-Assistent. Hast du Fragen zu dieser Wohnung oder zum Ablauf der Buchung? Ich helfe dir gerne!"
-            : "Hi! I'm your Heimstadt assistant. Do you have any questions about this property or the booking process? I'm happy to help!",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        setChatMessages([welcome]);
-        localStorage.setItem(`heimat_chat_${slug}`, JSON.stringify([welcome]));
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .in("role", ["admin", "employee"])
+        .order("role")
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setSupportId(data?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Fetch this tenant's message history with support, then keep it live.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    async function fetchMessages() {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, sender_id, recipient_id, body, sent_at")
+        .or(`sender_id.eq.${user!.id},recipient_id.eq.${user!.id}`)
+        .order("sent_at", { ascending: true });
+      if (!cancelled) {
+        if (!error && data) setChatMessages(data as ChatMessage[]);
+        setLoadingMessages(false);
       }
     }
-  }, [slug, language]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || chatLoading) return;
+    fetchMessages();
 
-    const userMsgText = chatInput.trim();
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const channel = supabase
+      .channel(`messages-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `recipient_id=eq.${user.id}` },
+        (payload) => {
+          setChatMessages((prev) =>
+            prev.some((m) => m.id === payload.new.id) ? prev : [...prev, payload.new as ChatMessage]
+          );
+        }
+      )
+      .subscribe();
 
-    const userMessage: Message = {
-      sender: "user",
-      text: userMsgText,
-      timestamp: time
+    // Safety-net poll in case realtime isn't enabled for this table yet.
+    const pollId = setInterval(fetchMessages, 15000);
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+      clearInterval(pollId);
     };
+  }, [user]);
 
-    const updatedMessages = [...chatMessages, userMessage];
-    setChatMessages(updatedMessages);
-    localStorage.setItem(`heimat_chat_${slug}`, JSON.stringify(updatedMessages));
-    setChatInput("");
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = chatInput.trim();
+    if (!text || chatLoading || !user || !supportId) return;
+
     setChatLoading(true);
+    setChatInput("");
 
-    // Simulate 1 second typing delay and auto-response
-    setTimeout(() => {
-      const responseTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const botMessage: Message = {
-        sender: "bot",
-        text: language === "de"
-          ? "Vielen Dank für deine Nachricht. Ein Mitglied unseres Teams wird deine Anfrage prüfen und dir in Kürze hier antworten."
-          : "Thank you for your message. A member of our team will review your inquiry and reply to you here shortly.",
-        timestamp: responseTime
-      };
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({ sender_id: user.id, recipient_id: supportId, body: text, channel: "chat_with_us" })
+      .select("id, sender_id, recipient_id, body, sent_at")
+      .single();
 
-      const finalMessages = [...updatedMessages, botMessage];
-      setChatMessages(finalMessages);
-      localStorage.setItem(`heimat_chat_${slug}`, JSON.stringify(finalMessages));
-      setChatLoading(false);
-    }, 1000);
+    if (!error && data) {
+      setChatMessages((prev) => [...prev, data as ChatMessage]);
+    } else {
+      console.error("Failed to send support message:", error);
+      setChatInput(text);
+    }
+    setChatLoading(false);
   };
 
   // Render Loader if Auth or Property Details are Loading
@@ -266,38 +290,49 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
 
         {/* Chat History View */}
         <div className="flex-grow p-6 overflow-y-auto space-y-4 bg-surface-container-lowest max-h-[calc(100%-140px)] flex flex-col justify-start custom-scrollbar">
-          {chatMessages.map((m, idx) => {
-            const isBot = m.sender === "bot";
+          {!loadingMessages && chatMessages.length === 0 && (
+            <div className="self-center text-center max-w-sm py-8">
+              <p className="text-body-md text-on-surface-variant">
+                {language === "de"
+                  ? "Schreib uns eine Nachricht — unser Team antwortet dir direkt hier."
+                  : "Send us a message — our team will reply to you right here."}
+              </p>
+            </div>
+          )}
+
+          {chatMessages.map((m) => {
+            const isStaff = m.sender_id !== user?.id;
+            const time = new Date(m.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
             return (
               <div
-                key={idx}
-                className={`flex flex-col max-w-[80%] md:max-w-[70%] ${isBot ? "self-start items-start animate-in slide-in-from-left-2 duration-300" : "self-end items-end animate-in slide-in-from-right-2 duration-300"}`}
+                key={m.id}
+                className={`flex flex-col max-w-[80%] md:max-w-[70%] ${isStaff ? "self-start items-start animate-in slide-in-from-left-2 duration-300" : "self-end items-end animate-in slide-in-from-right-2 duration-300"}`}
               >
                 <div
                   className={`p-4 rounded-2xl text-[14px] leading-relaxed shadow-sm ${
-                    isBot
+                    isStaff
                       ? "bg-surface-container-high text-on-surface rounded-tl-sm"
                       : "bg-primary text-on-primary rounded-tr-sm"
                   }`}
                 >
-                  {m.text}
+                  {m.body}
                 </div>
                 <span className="text-[10px] text-on-surface-variant/60 font-semibold mt-1 px-1">
-                  {m.timestamp}
+                  {time}
                 </span>
               </div>
             );
           })}
 
           {chatLoading && (
-            <div className="self-start flex flex-col items-start max-w-[80%] animate-pulse">
-              <div className="bg-surface-container-high p-4 rounded-2xl rounded-tl-sm flex items-center gap-1.5 h-[44px]">
-                <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full animate-bounce delay-75" />
-                <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full animate-bounce delay-150" />
-                <span className="w-2 h-2 bg-on-surface-variant/40 rounded-full animate-bounce delay-300" />
+            <div className="self-end flex flex-col items-end max-w-[80%] animate-pulse">
+              <div className="bg-primary/60 p-4 rounded-2xl rounded-tr-sm flex items-center gap-1.5 h-[44px]">
+                <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce delay-75" />
+                <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce delay-150" />
+                <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce delay-300" />
               </div>
               <span className="text-[10px] text-on-surface-variant/60 font-semibold mt-1 px-1">
-                {language === "de" ? "Heimstadt schreibt..." : "Heimstadt typing..."}
+                {language === "de" ? "Senden..." : "Sending..."}
               </span>
             </div>
           )}
