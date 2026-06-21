@@ -7,6 +7,7 @@ import { supabase } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { normalizeCityName } from "@/utils/translations";
 
 export default function BookingDetailPage({ params }: { params: Promise<{ bookingId: string }> }) {
   const { bookingId } = use(params);
@@ -381,7 +382,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                 {property?.title || "Apartment"}
               </h1>
               <p className="text-body-sm text-on-surface-variant mt-1">
-                ID: #{booking?.id} &bull; {property?.street}, {property?.zip} {property?.city}
+                ID: #{booking?.id} &bull; {property?.street}, {property?.zip} {normalizeCityName(property?.city, language)}
               </p>
             </div>
 

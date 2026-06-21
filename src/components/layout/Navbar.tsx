@@ -53,18 +53,23 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [langDropdownOpen]);
 
-  const navLink = (href: string, label: string) => {
+  const navLink = (href: string, label: string, icon?: string) => {
     const active = pathname === href || pathname.startsWith(href + "/");
     return (
       <Link
         href={href}
-        className={`font-sans text-[14px] font-medium leading-5 transition-colors duration-200 pb-1 ${
+        className={`font-sans text-[14px] font-medium leading-5 transition-colors duration-200 pb-1 flex items-center gap-1.5 ${
           active
             ? "text-primary font-bold border-b-2 border-primary"
             : "text-on-surface-variant hover:text-primary"
         }`}
       >
-        {label}
+        {icon && (
+          <span className="material-symbols-outlined text-[18px]">
+            {icon}
+          </span>
+        )}
+        <span>{label}</span>
       </Link>
     );
   };
@@ -91,8 +96,8 @@ export default function Navbar() {
             {t("logo")}
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            {navLink("/suche", t("search"))}
-            {navLink("/inserieren", t("rent"))}
+            {navLink("/suche", t("search"), "search")}
+            {navLink("/blogs", t("blogs"), "rate_review")}
           </div>
         </div>
 
@@ -175,6 +180,14 @@ export default function Navbar() {
               </div>
             ) : (
               <>
+                <Link
+                  href="/suche?wishlist=true"
+                  id="btn-wishlist"
+                  className="px-5 py-2 rounded-lg text-[14px] font-semibold text-primary hover:bg-surface-container-low transition-all active:scale-95 text-center flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-[18px]">favorite</span>
+                  <span>{language === "de" ? "Wunschliste" : "Wishlist"}</span>
+                </Link>
                 <Link
                   href="/auth/login"
                   id="btn-anmelden"
@@ -298,24 +311,28 @@ export default function Navbar() {
         <div className="px-5 space-y-3 flex flex-col">
           <Link
             href="/suche"
-            className={`block px-4 py-3 rounded-xl text-[14px] font-medium transition-all ${
+            className={`px-4 py-3 rounded-xl text-[14px] font-medium transition-all flex items-center gap-2 ${
               pathname === "/suche"
                 ? "text-primary bg-surface-container-low font-bold"
                 : "text-on-surface-variant hover:bg-surface-container-low"
             }`}
           >
-            {t("search")}
+            <span className="material-symbols-outlined text-[20px]">search</span>
+            <span>{t("search")}</span>
           </Link>
+
           <Link
-            href="/inserieren"
-            className={`block px-4 py-3 rounded-xl text-[14px] font-medium transition-all ${
-              pathname === "/inserieren"
+            href="/blogs"
+            className={`px-4 py-3 rounded-xl text-[14px] font-medium transition-all flex items-center gap-2 ${
+              pathname === "/blogs"
                 ? "text-primary bg-surface-container-low font-bold"
                 : "text-on-surface-variant hover:bg-surface-container-low"
             }`}
           >
-            {t("rent")}
+            <span className="material-symbols-outlined text-[20px]">rate_review</span>
+            <span>{t("blogs")}</span>
           </Link>
+
           <div className="pt-3 border-t border-outline-variant/50 flex flex-col gap-3">
             {profile ? (
               <>
@@ -368,6 +385,13 @@ export default function Navbar() {
               </>
             ) : (
               <>
+                <Link
+                  href="/suche?wishlist=true"
+                  className="w-full py-3 rounded-xl text-[14px] font-semibold text-primary border border-outline-variant hover:bg-surface-container-low transition-all text-center flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[18px]">favorite</span>
+                  <span>{language === "de" ? "Wunschliste" : "Wishlist"}</span>
+                </Link>
                 <Link
                   href="/auth/login"
                   className="w-full py-3 rounded-xl text-[14px] font-semibold text-primary border border-outline-variant hover:bg-surface-container-low transition-all text-center"

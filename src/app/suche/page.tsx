@@ -4,9 +4,10 @@ import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { supabase } from "@/utils/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import { getDisplayPhoto } from "@/utils/get-display-photo";
+import { normalizeCityName } from "@/utils/translations";
 
 // ── Reusable dropdown wrapper ──────────────────────────────────────────────
 function Dropdown({
@@ -153,10 +154,9 @@ function SuchePageContent() {
   const zimmerParam = searchParams.get("zimmer") || "all";
   const preisParam = searchParams.get("preis") || "";
 
-  const hasSearched = stadtParam.trim() !== "";
-
+  const hasSearched = stadtParam.trim() !== "" || searchParams.get("wishlist") === "true";
   const [listings, setListings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(!!stadtParam.trim());
+  const [loading, setLoading] = useState(!!stadtParam.trim() || searchParams.get("wishlist") === "true");
   const [view, setView] = useState<"grid" | "list">("grid");
 
   // ── Filter state ──────────────────────────────────────────────────────
@@ -167,11 +167,26 @@ function SuchePageContent() {
   const [sort, setSort] = useState("newest");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [topPlaces, setTopPlaces] = useState<any[]>([]);
+  const [topPlacesLoading, setTopPlacesLoading] = useState(true);
 
   const moveInParam = searchParams.get("moveIn") || "";
   const moveOutParam = searchParams.get("moveOut") || "";
   const [moveInDate, setMoveInDate] = useState(moveInParam);
   const [moveOutDate, setMoveOutDate] = useState(moveOutParam);
+
+  const furnitureParam = searchParams.get("furniture") || "";
+  const [furnitureFurnished, setFurnitureFurnished] = useState(furnitureParam.split(",").includes("furnished"));
+  const [furnitureUnfurnished, setFurnitureUnfurnished] = useState(furnitureParam.split(",").includes("unfurnished"));
+
+  const roommatesParam = searchParams.get("roommates") || "regardless";
+  const [roommatesGender, setRoommatesGender] = useState(roommatesParam);
+
+  const ratingParam = searchParams.get("rating") || "any";
+  const [landlordRating, setLandlordRating] = useState(ratingParam);
+
+  const wgSizeParam = searchParams.get("wgSize") || "regardless";
+  const [wgSize, setWgSize] = useState(wgSizeParam);
 
   // Load favorites from localStorage
   useEffect(() => {
@@ -184,6 +199,119 @@ function SuchePageContent() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const fetchTopPlaces = async () => {
+      setTopPlacesLoading(true);
+      try {
+        let dbPlaces: any[] = [];
+        if (isSupabaseConfigured()) {
+          const { data, error } = await supabase
+            .from("properties")
+            .select(`*, property_photos(cdn_url,is_primary)`)
+            .eq("status", "active")
+            .limit(10);
+          if (!error && data) {
+            dbPlaces = data;
+          }
+        }
+        
+        const fallbackListings: any[] = [
+          {
+            id: "berlin-studio",
+            title: language === "de" ? "Helles Studio-Apartment nahe Alexanderplatz" : "Bright Studio Apartment near Alexanderplatz",
+            city: "Berlin", street: "Karl-Liebknecht-Str. 12", zip: "10178",
+            rooms: 1, size_sqm: 38, rent_cold: 720, rent_utilities: 80, rent_heating: 70,
+            pets_allowed: true, furnished: false,
+            amenities: ["balcony", "kitchen"],
+            status: "active",
+            landlord_rating: 4.5,
+            is_new_landlord: false,
+            property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+          },
+          {
+            id: "munich-expat",
+            title: language === "de" ? "Premium 3-Zimmer-Wohnung am Englischen Garten" : "Premium 3-Room Apartment at Englischen Garten",
+            city: "München", street: "Königinstraße 44", zip: "80539",
+            rooms: 3, size_sqm: 82, rent_cold: 1650, rent_utilities: 150, rent_heating: 110,
+            pets_allowed: false, furnished: true,
+            amenities: ["kitchen", "parking"],
+            status: "active",
+            landlord_rating: 3.8,
+            is_new_landlord: false,
+            property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80", is_primary: true }]
+          },
+          {
+            id: "hamburg-loft",
+            title: language === "de" ? "Stilvolles Loft in der Speicherstadt" : "Stylish Loft in Speicherstadt",
+            city: "Hamburg", street: "Am Sandtorkai 10", zip: "20457",
+            rooms: 2, size_sqm: 65, rent_cold: 1120, rent_utilities: 110, rent_heating: 90,
+            pets_allowed: true, furnished: true,
+            amenities: ["balcony", "kitchen", "laundry"],
+            status: "active",
+            landlord_rating: 4.8,
+            is_new_landlord: false,
+            property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+          },
+          {
+            id: "berlin-wg",
+            title: language === "de" ? "Gemütliches Zimmer in Studenten-WG" : "Cozy Room in Student Shared Apartment",
+            city: "Berlin", street: "Königin-Luise-Str. 15", zip: "14195",
+            rooms: 1, size_sqm: 20, rent_cold: 450, rent_utilities: 60, rent_heating: 40,
+            pets_allowed: true, furnished: false,
+            amenities: ["kitchen"],
+            status: "active",
+            roommate_gender: "masculine",
+            wg_size: 3,
+            landlord_rating: 4.2,
+            is_new_landlord: false,
+            property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+          },
+          {
+            id: "munich-wg-female",
+            title: language === "de" ? "Zimmer in netter Mädels-WG am Harras" : "Room in nice female shared apartment at Harras",
+            city: "München", street: "Albert-Roßhaupter-Str. 10", zip: "81369",
+            rooms: 1, size_sqm: 18, rent_cold: 520, rent_utilities: 50, rent_heating: 35,
+            pets_allowed: false, furnished: true,
+            amenities: ["kitchen", "laundry"],
+            status: "active",
+            roommate_gender: "female",
+            wg_size: 4,
+            landlord_rating: 4.0,
+            is_new_landlord: false,
+            property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+          },
+          {
+            id: "cologne-studio",
+            title: language === "de" ? "Modernes Studio im Herzen Kölns" : "Modern Studio in Cologne City Centre",
+            city: "Köln", street: "Schildergasse 8", zip: "50667",
+            rooms: 1, size_sqm: 32, rent_cold: 680, rent_utilities: 75, rent_heating: 55,
+            pets_allowed: false, furnished: true,
+            amenities: ["kitchen", "wheelchair"],
+            status: "active",
+            landlord_rating: 4.6,
+            is_new_landlord: true,
+            property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+          }
+        ];
+
+        const combined = [...dbPlaces, ...fallbackListings];
+        combined.sort((a, b) => {
+          const rA = a.landlord_rating || 4.0;
+          const rB = b.landlord_rating || 4.0;
+          return rB - rA;
+        });
+
+        const unique = combined.filter((v, i, self) => self.findIndex(t => t.id === v.id) === i);
+        setTopPlaces(unique);
+      } catch (err) {
+        console.error("Error fetching top places:", err);
+      } finally {
+        setTopPlacesLoading(false);
+      }
+    };
+    fetchTopPlaces();
+  }, [language]);
 
   const toggleFavorite = (id: string) => {
     const next = favorites.includes(id)
@@ -198,6 +326,12 @@ function SuchePageContent() {
     setSearchInput(stadtParam);
     setMoveInDate(searchParams.get("moveIn") || "");
     setMoveOutDate(searchParams.get("moveOut") || "");
+    const furParam = searchParams.get("furniture") || "";
+    setFurnitureFurnished(furParam.split(",").includes("furnished"));
+    setFurnitureUnfurnished(furParam.split(",").includes("unfurnished"));
+    setRoommatesGender(searchParams.get("roommates") || "regardless");
+    setLandlordRating(searchParams.get("rating") || "any");
+    setWgSize(searchParams.get("wgSize") || "regardless");
   }, [stadtParam, searchParams]);
 
   // Push URL when city search is submitted
@@ -208,11 +342,36 @@ function SuchePageContent() {
     if (priceRange) params.set("preis", priceRange);
     if (moveInDate) params.set("moveIn", moveInDate);
     if (moveOutDate) params.set("moveOut", moveOutDate);
+
+    const furList: string[] = [];
+    if (furnitureFurnished) furList.push("furnished");
+    if (furnitureUnfurnished) furList.push("unfurnished");
+    if (furList.length > 0) params.set("furniture", furList.join(","));
+
+    if (roommatesGender && roommatesGender !== "regardless") params.set("roommates", roommatesGender);
+    if (landlordRating && landlordRating !== "any") params.set("rating", landlordRating);
+    if (wgSize && wgSize !== "regardless") params.set("wgSize", wgSize);
+
+    const wishlistParam = searchParams.get("wishlist");
+    if (wishlistParam) params.set("wishlist", wishlistParam);
+
     router.push(`/suche?${params.toString()}`);
-  }, [searchInput, propertyType, priceRange, moveInDate, moveOutDate, router]);
+  }, [
+    searchInput,
+    propertyType,
+    priceRange,
+    moveInDate,
+    moveOutDate,
+    furnitureFurnished,
+    furnitureUnfurnished,
+    roommatesGender,
+    landlordRating,
+    wgSize,
+    router,
+    searchParams,
+  ]);
 
   const amenityFilters = [
-    { id: "furnished", label: language === "de" ? "Möbliert" : "Furnished", icon: "weekend" },
     { id: "balcony", label: language === "de" ? "Balkon" : "Balcony", icon: "balcony" },
     { id: "kitchen", label: language === "de" ? "Einbauküche" : "Fitted Kitchen", icon: "countertops" },
     { id: "laundry", label: language === "de" ? "Waschraum" : "Laundry", icon: "local_laundry_service" },
@@ -264,7 +423,32 @@ function SuchePageContent() {
     { value: "relevance", label: language === "de" ? "Relevanz" : "Best match" },
   ];
 
-  const activeBadgeCount = activeFilters.length;
+  const totalBadge =
+    activeFilters.length +
+    (priceRange ? 1 : 0) +
+    (propertyType !== "all" ? 1 : 0) +
+    (distance !== "any" ? 1 : 0) +
+    (moveInDate ? 1 : 0) +
+    (moveOutDate ? 1 : 0) +
+    (furnitureFurnished ? 1 : 0) +
+    (furnitureUnfurnished ? 1 : 0) +
+    (roommatesGender !== "regardless" ? 1 : 0) +
+    (landlordRating !== "any" ? 1 : 0) +
+    (wgSize !== "regardless" ? 1 : 0);
+
+  const clearAll = () => {
+    setActiveFilters([]);
+    setPriceRange("");
+    setPropertyType("all");
+    setDistance("any");
+    setMoveInDate("");
+    setMoveOutDate("");
+    setFurnitureFurnished(false);
+    setFurnitureUnfurnished(false);
+    setRoommatesGender("regardless");
+    setLandlordRating("any");
+    setWgSize("regardless");
+  };
 
   // ── Data fetching ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -286,6 +470,8 @@ function SuchePageContent() {
           pets_allowed: true, furnished: false,
           amenities: ["balcony", "kitchen"],
           status: "active",
+          landlord_rating: 4.5,
+          is_new_landlord: false,
           property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80", is_primary: true }]
         },
         {
@@ -296,6 +482,8 @@ function SuchePageContent() {
           pets_allowed: false, furnished: true,
           amenities: ["kitchen", "parking"],
           status: "active",
+          landlord_rating: 3.8,
+          is_new_landlord: false,
           property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80", is_primary: true }]
         },
         {
@@ -306,6 +494,8 @@ function SuchePageContent() {
           pets_allowed: true, furnished: true,
           amenities: ["balcony", "kitchen", "laundry"],
           status: "active",
+          landlord_rating: 4.8,
+          is_new_landlord: false,
           property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80", is_primary: true }]
         },
         {
@@ -316,6 +506,38 @@ function SuchePageContent() {
           pets_allowed: true, furnished: false,
           amenities: ["kitchen"],
           status: "active",
+          roommate_gender: "masculine",
+          wg_size: 3,
+          landlord_rating: 4.2,
+          is_new_landlord: false,
+          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+        },
+        {
+          id: "munich-wg-female",
+          title: language === "de" ? "Zimmer in netter Mädels-WG am Harras" : "Room in nice female shared apartment at Harras",
+          city: "München", street: "Albert-Roßhaupter-Str. 10", zip: "81369",
+          rooms: 1, size_sqm: 18, rent_cold: 520, rent_utilities: 50, rent_heating: 35,
+          pets_allowed: false, furnished: true,
+          amenities: ["kitchen", "laundry"],
+          status: "active",
+          roommate_gender: "female",
+          wg_size: 4,
+          landlord_rating: 4.0,
+          is_new_landlord: false,
+          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80", is_primary: true }]
+        },
+        {
+          id: "hamburg-wg-large",
+          title: language === "de" ? "Zimmer in riesiger Altbau-WG (12 Personen)" : "Room in huge historic shared apartment (12 people)",
+          city: "Hamburg", street: "Grindelallee 88", zip: "20146",
+          rooms: 1, size_sqm: 25, rent_cold: 600, rent_utilities: 70, rent_heating: 50,
+          pets_allowed: true, furnished: false,
+          amenities: ["kitchen", "balcony"],
+          status: "active",
+          roommate_gender: "regardless",
+          wg_size: 12,
+          landlord_rating: null,
+          is_new_landlord: true,
           property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80", is_primary: true }]
         },
         {
@@ -326,38 +548,75 @@ function SuchePageContent() {
           pets_allowed: false, furnished: true,
           amenities: ["kitchen", "wheelchair"],
           status: "active",
+          landlord_rating: null,
+          is_new_landlord: true,
           property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80", is_primary: true }]
         },
       ];
 
-      const applyInMemoryFilters = () => {
-        let f = [...mockListings];
+      const applyFiltersAndSort = (items: any[]) => {
+        let f = [...items];
+        if (searchParams.get("wishlist") === "true") {
+          f = f.filter(l => favorites.includes(l.id));
+        }
         if (stadtParam) {
           const targetCities = getSearchCities(stadtParam);
           f = f.filter(l => targetCities.some(tc => l.city.toLowerCase().includes(tc.toLowerCase())));
         }
         if (propertyType !== "all") {
-          if (propertyType === "house") f = f.filter(l => l.id.includes("house") || l.id.includes("haus"));
-          else if (propertyType === "shared") f = f.filter(l => l.id.includes("wg") || l.id.includes("shared"));
+          if (propertyType === "house") f = f.filter(l => l.property_type === "house" || l.id.includes("house") || l.id.includes("haus"));
+          else if (propertyType === "shared") f = f.filter(l => l.property_type === "sharedRoom" || l.id.includes("wg") || l.id.includes("shared"));
           else f = f.filter(l => l.rooms >= parseFloat(propertyType));
         }
         if (priceRange) f = f.filter(l => l.rent_cold <= parseFloat(priceRange));
         if (moveInDate) {
           f = f.filter(l => !l.available_from || new Date(l.available_from) <= new Date(moveInDate));
         }
-        if (activeFilters.includes("furnished")) f = f.filter(l => l.furnished === true);
-        if (activeFilters.includes("balcony")) f = f.filter(l => l.amenities.includes("balcony"));
-        if (activeFilters.includes("kitchen")) f = f.filter(l => l.amenities.includes("kitchen"));
-        if (activeFilters.includes("laundry")) f = f.filter(l => l.amenities.includes("laundry"));
-        if (activeFilters.includes("parking")) f = f.filter(l => l.amenities.includes("parking"));
+        // Furniture
+        if (furnitureFurnished && !furnitureUnfurnished) {
+          f = f.filter(l => l.furnished === true);
+        } else if (furnitureUnfurnished && !furnitureFurnished) {
+          f = f.filter(l => l.furnished === false);
+        }
+        // Roommates Gender
+        if (roommatesGender !== "regardless") {
+          f = f.filter(l => l.roommate_gender === roommatesGender);
+        }
+        // Landlord Rating
+        if (landlordRating === "4_plus") {
+          f = f.filter(l => l.landlord_rating >= 4);
+        } else if (landlordRating === "3_plus") {
+          f = f.filter(l => l.landlord_rating >= 3);
+        } else if (landlordRating === "new") {
+          f = f.filter(l => l.is_new_landlord === true || l.landlord_rating === undefined || l.landlord_rating === null);
+        }
+        // WG Size
+        if (wgSize !== "regardless") {
+          if (wgSize === "gt10") {
+            f = f.filter(l => l.wg_size > 10);
+          } else {
+            f = f.filter(l => l.wg_size === parseInt(wgSize));
+          }
+        }
+
+        if (activeFilters.includes("balcony")) f = f.filter(l => l.amenities?.includes("balcony"));
+        if (activeFilters.includes("kitchen")) f = f.filter(l => l.amenities?.includes("kitchen"));
+        if (activeFilters.includes("laundry")) f = f.filter(l => l.amenities?.includes("laundry"));
+        if (activeFilters.includes("parking")) f = f.filter(l => l.amenities?.includes("parking"));
         if (activeFilters.includes("pets")) f = f.filter(l => l.pets_allowed === true);
-        if (activeFilters.includes("wheelchair")) f = f.filter(l => l.amenities.includes("wheelchair"));
+        if (activeFilters.includes("wheelchair")) f = f.filter(l => l.amenities?.includes("wheelchair"));
+
         // Sorting
         if (sort === "price_asc") f.sort((a, b) => a.rent_cold - b.rent_cold);
         else if (sort === "price_desc") f.sort((a, b) => b.rent_cold - a.rent_cold);
         else if (sort === "size_desc") f.sort((a, b) => b.size_sqm - a.size_sqm);
         else if (sort === "rooms_asc") f.sort((a, b) => a.rooms - b.rooms);
-        setListings(f);
+
+        return f;
+      };
+
+      const applyInMemoryFilters = () => {
+        setListings(applyFiltersAndSort(mockListings));
       };
 
       try {
@@ -386,13 +645,20 @@ function SuchePageContent() {
         }
         if (priceRange) query = query.lte("rent_cold", parseFloat(priceRange));
         if (moveInDate) query = query.lte("available_from", moveInDate);
-        if (activeFilters.includes("furnished")) query = query.eq("furnished", true);
         if (activeFilters.includes("balcony")) query = query.contains("amenities", ["balcony"]);
         if (activeFilters.includes("kitchen")) query = query.contains("amenities", ["kitchen"]);
         if (activeFilters.includes("laundry")) query = query.contains("amenities", ["laundry"]);
         if (activeFilters.includes("parking")) query = query.contains("amenities", ["parking"]);
         if (activeFilters.includes("pets")) query = query.eq("pets_allowed", true);
         if (activeFilters.includes("wheelchair")) query = query.eq("wheelchair_accessible", true);
+
+        // Database-level furniture filter
+        if (furnitureFurnished && !furnitureUnfurnished) {
+          query = query.eq("furnished", true);
+        } else if (furnitureUnfurnished && !furnitureFurnished) {
+          query = query.eq("furnished", false);
+        }
+
         if (sort === "newest") query = query.order("created_at", { ascending: false });
         else if (sort === "price_asc") query = query.order("rent_cold", { ascending: true });
         else if (sort === "price_desc") query = query.order("rent_cold", { ascending: false });
@@ -401,7 +667,7 @@ function SuchePageContent() {
 
         const { data, error } = await promiseTimeout(query, 3000) as any;
         if (error) throw error;
-        if (data && data.length > 0) setListings(data);
+        if (data && data.length > 0) setListings(applyFiltersAndSort(data));
         else { console.log("No active DB properties, using mock data."); applyInMemoryFilters(); }
       } catch (err) {
         console.warn("Supabase failed, using mock data:", err);
@@ -412,7 +678,24 @@ function SuchePageContent() {
     };
 
     fetchListings();
-  }, [stadtParam, propertyType, priceRange, activeFilters, sort, language, hasSearched, moveInDate, moveOutDate]);
+  }, [
+    stadtParam,
+    propertyType,
+    priceRange,
+    activeFilters,
+    sort,
+    language,
+    hasSearched,
+    moveInDate,
+    moveOutDate,
+    furnitureFurnished,
+    furnitureUnfurnished,
+    roommatesGender,
+    landlordRating,
+    wgSize,
+    favorites,
+    searchParams,
+  ]);
 
   useEffect(() => {
     if (hasSearched) {
@@ -446,25 +729,52 @@ function SuchePageContent() {
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0 relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px] pointer-events-none">
-                search
+                location_on
               </span>
-              <input
+              <select
                 id="suche-city-search"
-                type="text"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && applySearch()}
-                placeholder={language === "de" ? "Stadt oder Adresse suchen…" : "Search city or address…"}
-                className="w-full pl-9 pr-9 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              />
-              {searchInput && (
-                <button
-                  onClick={() => { setSearchInput(""); router.push("/suche"); }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
-              )}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSearchInput(val);
+                  
+                  const params = new URLSearchParams();
+                  if (val.trim()) params.set("stadt", val.trim());
+                  if (propertyType && propertyType !== "all") params.set("zimmer", propertyType);
+                  if (priceRange) params.set("preis", priceRange);
+                  if (moveInDate) params.set("moveIn", moveInDate);
+                  if (moveOutDate) params.set("moveOut", moveOutDate);
+
+                  const furList: string[] = [];
+                  if (furnitureFurnished) furList.push("furnished");
+                  if (furnitureUnfurnished) furList.push("unfurnished");
+                  if (furList.length > 0) params.set("furniture", furList.join(","));
+
+                  if (roommatesGender && roommatesGender !== "regardless") params.set("roommates", roommatesGender);
+                  if (landlordRating && landlordRating !== "any") params.set("rating", landlordRating);
+                  if (wgSize && wgSize !== "regardless") params.set("wgSize", wgSize);
+
+                  const wishlistParam = searchParams.get("wishlist");
+                  if (wishlistParam) params.set("wishlist", wishlistParam);
+
+                  router.push(`/suche?${params.toString()}`);
+                }}
+                className="w-full pl-9 pr-9 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                style={{ colorScheme: "light" }}
+              >
+                <option value="">{language === "de" ? "Stadt auswählen..." : "Select city..."}</option>
+                <option value="Berlin">Berlin</option>
+                <option value="München">München</option>
+                <option value="Hamburg">Hamburg</option>
+                <option value="Frankfurt">Frankfurt</option>
+                <option value="Köln">Köln</option>
+                <option value="Düsseldorf">Düsseldorf</option>
+                <option value="Stuttgart">Stuttgart</option>
+                <option value="Leipzig">Leipzig</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">
+                unfold_more
+              </span>
             </div>
             {/* Search button — always visible next to input */}
             <button
@@ -486,179 +796,287 @@ function SuchePageContent() {
           <div className="relative flex flex-wrap items-center gap-2 pb-0.5 -mx-1 px-1 overflow-visible">
 
             {/* ── Unified Filters dropdown ─────────── */}
-            {(() => {
-              const totalBadge =
-                activeFilters.length +
-                (priceRange ? 1 : 0) +
-                (propertyType !== "all" ? 1 : 0) +
-                (distance !== "any" ? 1 : 0) +
-                (moveInDate ? 1 : 0) +
-                (moveOutDate ? 1 : 0);
+            <Dropdown
+              id="dd-filters"
+              label={language === "de" ? "Filter" : "Filters"}
+              icon="tune"
+              badge={totalBadge || undefined}
+            >
+              {/* ── Amenities ── */}
+              <div className="px-4 pt-4 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Ausstattung & Merkmale" : "Amenities & Features"}
+                </p>
+              </div>
+              <div className="pb-1">
+                {amenityFilters.map(({ id, label, icon }) => (
+                  <FilterCheck
+                    key={id}
+                    id={id}
+                    label={label}
+                    icon={icon}
+                    checked={activeFilters.includes(id)}
+                    onChange={() => toggleFilter(id)}
+                  />
+                ))}
+              </div>
 
-              const clearAll = () => {
-                setActiveFilters([]);
-                setPriceRange("");
-                setPropertyType("all");
-                setDistance("any");
-                setMoveInDate("");
-                setMoveOutDate("");
-              };
+              {/* ── Furniture ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Möblierung" : "Furniture"}
+                </p>
+              </div>
+              <div className="pb-2 flex flex-col">
+                <label className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={furnitureFurnished}
+                    onChange={() => setFurnitureFurnished(!furnitureFurnished)}
+                    className="accent-primary w-4 h-4 rounded cursor-pointer"
+                  />
+                  <span className="text-label-sm text-on-surface font-medium">
+                    {language === "de" ? "Möbliert" : "Furnished"}
+                  </span>
+                </label>
+                <label className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={furnitureUnfurnished}
+                    onChange={() => setFurnitureUnfurnished(!furnitureUnfurnished)}
+                    className="accent-primary w-4 h-4 rounded cursor-pointer"
+                  />
+                  <span className="text-label-sm text-on-surface font-medium">
+                    {language === "de" ? "Unmöbliert" : "Unfurnished"}
+                  </span>
+                </label>
+              </div>
 
-              return (
-                <Dropdown
-                  id="dd-filters"
-                  label={language === "de" ? "Filter" : "Filters"}
-                  icon="tune"
-                  badge={totalBadge || undefined}
+              {/* ── Price Range Slider ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-2">
+                <div className="flex justify-between items-center mb-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                    {language === "de" ? "Maximale Warmmiete" : "Max. Rent (warm)"}
+                  </p>
+                  <span className="text-label-sm font-bold text-primary">
+                    {priceRange ? `${priceRange} €` : (language === "de" ? "Jeder Preis" : "Any price")}
+                  </span>
+                </div>
+                <div className="px-1 py-3">
+                  <input
+                    type="range"
+                    min="200"
+                    max="5000"
+                    step="50"
+                    value={priceRange || "5000"}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPriceRange(val === "5000" ? "" : val);
+                    }}
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                    style={{ background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) 100%)` }}
+                  />
+                  <div className="flex justify-between text-[10px] text-on-surface-variant/70 mt-1 font-semibold">
+                    <span>200 €</span>
+                    <span>1.500 €</span>
+                    <span>3.000 €</span>
+                    <span>5.000 €+</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Rental Period (Dates) ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Mietzeitraum" : "Rental Period"}
+                </p>
+              </div>
+              <div className="px-4 pb-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Einzug" : "Move in"}</span>
+                    <input
+                      type="date"
+                      value={moveInDate}
+                      onChange={(e) => setMoveInDate(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-[13px] font-semibold text-on-surface focus:outline-none"
+                      style={{ colorScheme: "light" }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Auszug" : "Move out"}</span>
+                    <input
+                      type="date"
+                      value={moveOutDate}
+                      onChange={(e) => setMoveOutDate(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-[13px] font-semibold text-on-surface focus:outline-none"
+                      style={{ colorScheme: "light" }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Property Type ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Wohnungstyp" : "Property Type"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-1 px-3 pb-2">
+                {typeOptions.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setPropertyType(value)}
+                    className={`px-3 py-2 rounded-lg text-label-sm text-left transition-all border cursor-pointer ${
+                      propertyType === value
+                        ? "bg-primary text-on-primary border-primary font-bold"
+                        : "border-outline-variant text-on-surface hover:bg-surface-container"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Shared apartment size ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "WG-Größe" : "Shared apartment size"}
+                </p>
+              </div>
+              <div className="px-4 pb-3 pt-1">
+                <div className="relative">
+                  <select
+                    value={wgSize}
+                    onChange={(e) => setWgSize(e.target.value)}
+                    className="w-full pl-3 pr-10 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
+                  >
+                    {[
+                      { value: "regardless", label: "regardless" },
+                      { value: "2", label: "2-person shared apartment" },
+                      { value: "3", label: "3-person shared apartment" },
+                      { value: "4", label: "4-person shared apartment" },
+                      { value: "5", label: "5-person shared apartment" },
+                      { value: "6", label: "6-person shared apartment" },
+                      { value: "7", label: "7-person shared apartment" },
+                      { value: "8", label: "8er shared apartment" },
+                      { value: "9", label: "9er WG" },
+                      { value: "10", label: "10s shared apartment" },
+                      { value: "gt10", label: ">10s shared apartment" }
+                    ].map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+                    unfold_more
+                  </span>
+                </div>
+              </div>
+
+              {/* ── Looking for roommates ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Mitbewohner gesucht" : "Looking for roommates"}
+                </p>
+              </div>
+              <div className="pb-3 flex flex-col gap-2.5 px-4 pt-1">
+                {[
+                  { value: "regardless", label: language === "de" ? "egal" : "regardless" },
+                  { value: "masculine", label: language === "de" ? "männlich" : "masculine" },
+                  { value: "female", label: language === "de" ? "weiblich" : "female" }
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-3 cursor-pointer select-none">
+                    <input
+                      type="radio"
+                      name="roommatesGender"
+                      value={opt.value}
+                      checked={roommatesGender === opt.value}
+                      onChange={() => setRoommatesGender(opt.value)}
+                      className="accent-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-label-sm text-on-surface font-medium">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* ── Landlord rating ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Vermieter-Bewertung" : "Landlord rating"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 px-4 pb-3 pt-1">
+                {[
+                  { value: "any", label: language === "de" ? "Beliebige Bewertung" : "Any rating", icon: "*" },
+                  { value: "4_plus", label: language === "de" ? "4 oder höher" : "4 or higher", icon: "★" },
+                  { value: "3_plus", label: language === "de" ? "3 oder höher" : "3 or higher", icon: "☆" },
+                  { value: "new", label: language === "de" ? "Neue Vermieter" : "New landlords", icon: "👋" }
+                ].map((opt) => {
+                  const isActive = landlordRating === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setLandlordRating(opt.value)}
+                      className={`flex items-center justify-start gap-2 px-3 py-2.5 rounded-xl border font-semibold text-label-sm transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-surface-container-high border-primary text-primary"
+                          : "bg-white border-outline-variant text-on-surface hover:bg-surface-container"
+                      }`}
+                    >
+                      <span className={`text-[15px] ${opt.icon === "★" || opt.icon === "☆" ? "text-[#735c00]" : ""}`}>
+                        {opt.icon}
+                      </span>
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ── Distance ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Entfernung vom Zentrum" : "Distance from Centre"}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-1 px-3 pb-3">
+                {distanceOptions.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setDistance(value)}
+                    className={`px-3 py-2 rounded-lg text-label-sm text-left transition-all border cursor-pointer ${
+                      distance === value
+                        ? "bg-primary text-on-primary border-primary font-bold"
+                        : "border-outline-variant text-on-surface hover:bg-surface-container"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Footer: reset ── */}
+              <div className="border-t border-outline-variant px-6 py-4 flex justify-between items-center bg-surface-container-lowest">
+                <button
+                  onClick={clearAll}
+                  className="text-label-sm font-bold text-on-surface hover:text-primary underline cursor-pointer"
                 >
-                  {/* ── Amenities ── */}
-                  <div className="px-4 pt-4 pb-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                      {language === "de" ? "Ausstattung & Merkmale" : "Amenities & Features"}
-                    </p>
-                  </div>
-                  <div className="pb-1">
-                    {amenityFilters.map(({ id, label, icon }) => (
-                      <FilterCheck
-                        key={id}
-                        id={id}
-                        label={label}
-                        icon={icon}
-                        checked={activeFilters.includes(id)}
-                        onChange={() => toggleFilter(id)}
-                      />
-                    ))}
-                  </div>
-
-                  {/* ── Price Range Slider ── */}
-                  <div className="border-t border-outline-variant mx-4" />
-                  <div className="px-4 pt-3 pb-2">
-                    <div className="flex justify-between items-center mb-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                        {language === "de" ? "Maximale Warmmiete" : "Max. Rent (warm)"}
-                      </p>
-                      <span className="text-label-sm font-bold text-primary">
-                        {priceRange ? `${priceRange} €` : (language === "de" ? "Jeder Preis" : "Any price")}
-                      </span>
-                    </div>
-                    <div className="px-1 py-3">
-                      <input
-                        type="range"
-                        min="200"
-                        max="5000"
-                        step="50"
-                        value={priceRange || "5000"}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setPriceRange(val === "5000" ? "" : val);
-                        }}
-                        className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
-                        style={{ background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) ${((parseFloat(priceRange || "5000") - 200) / 4800) * 100}%, var(--color-outline-variant) 100%)` }}
-                      />
-                      <div className="flex justify-between text-[10px] text-on-surface-variant/70 mt-1 font-semibold">
-                        <span>200 €</span>
-                        <span>1.500 €</span>
-                        <span>3.000 €</span>
-                        <span>5.000 €+</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── Rental Period (Dates) ── */}
-                  <div className="border-t border-outline-variant mx-4" />
-                  <div className="px-4 pt-3 pb-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                      {language === "de" ? "Mietzeitraum" : "Rental Period"}
-                    </p>
-                  </div>
-                  <div className="px-4 pb-3 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Einzug" : "Move in"}</span>
-                        <input
-                          type="date"
-                          value={moveInDate}
-                          onChange={(e) => setMoveInDate(e.target.value)}
-                          className="w-full px-2 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-[13px] font-semibold text-on-surface focus:outline-none"
-                          style={{ colorScheme: "light" }}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Auszug" : "Move out"}</span>
-                        <input
-                          type="date"
-                          value={moveOutDate}
-                          onChange={(e) => setMoveOutDate(e.target.value)}
-                          className="w-full px-2 py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-[13px] font-semibold text-on-surface focus:outline-none"
-                          style={{ colorScheme: "light" }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── Property Type ── */}
-                  <div className="border-t border-outline-variant mx-4" />
-                  <div className="px-4 pt-3 pb-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                      {language === "de" ? "Wohnungstyp" : "Property Type"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 px-3 pb-2">
-                    {typeOptions.map(({ value, label }) => (
-                      <button
-                        key={value}
-                        onClick={() => setPropertyType(value)}
-                        className={`px-3 py-2 rounded-lg text-label-sm text-left transition-all border cursor-pointer ${
-                          propertyType === value
-                            ? "bg-primary text-on-primary border-primary font-bold"
-                            : "border-outline-variant text-on-surface hover:bg-surface-container"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* ── Distance ── */}
-                  <div className="border-t border-outline-variant mx-4" />
-                  <div className="px-4 pt-3 pb-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                      {language === "de" ? "Entfernung vom Zentrum" : "Distance from Centre"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 px-3 pb-3">
-                    {distanceOptions.map(({ value, label }) => (
-                      <button
-                        key={value}
-                        onClick={() => setDistance(value)}
-                        className={`px-3 py-2 rounded-lg text-label-sm text-left transition-all border cursor-pointer ${
-                          distance === value
-                            ? "bg-primary text-on-primary border-primary font-bold"
-                            : "border-outline-variant text-on-surface hover:bg-surface-container"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* ── Footer: clear all ── */}
-                  {totalBadge > 0 && (
-                    <div className="border-t border-outline-variant px-4 py-3 flex justify-between items-center">
-                      <span className="text-[12px] text-on-surface-variant">
-                        {totalBadge} {language === "de" ? "aktiv" : "active"}
-                      </span>
-                      <button
-                        onClick={clearAll}
-                        className="text-[12px] font-bold text-primary hover:underline cursor-pointer"
-                      >
-                        {language === "de" ? "Alle zurücksetzen" : "Clear all"}
-                      </button>
-                    </div>
-                  )}
-                </Dropdown>
-              );
-            })()}
+                  Reset
+                </button>
+                <span className="text-[12px] text-on-surface-variant font-medium">
+                  {totalBadge} {language === "de" ? "aktiv" : "active"}
+                </span>
+              </div>
+            </Dropdown>
 
             {/* Divider */}
             <div className="h-7 w-px bg-outline-variant flex-shrink-0" />
@@ -692,16 +1110,9 @@ function SuchePageContent() {
             </Dropdown>
 
             {/* Active filter quick-clear badge */}
-            {(activeFilters.length + (priceRange ? 1 : 0) + (propertyType !== "all" ? 1 : 0) + (distance !== "any" ? 1 : 0) + (moveInDate ? 1 : 0) + (moveOutDate ? 1 : 0)) > 0 && (
+            {totalBadge > 0 && (
               <button
-                onClick={() => {
-                  setActiveFilters([]);
-                  setPriceRange("");
-                  setPropertyType("all");
-                  setDistance("any");
-                  setMoveInDate("");
-                  setMoveOutDate("");
-                }}
+                onClick={clearAll}
                 className="flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-bold text-error border border-error/30 bg-error/5 hover:bg-error/10 transition-all cursor-pointer flex-shrink-0 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-[14px]">filter_list_off</span>
@@ -738,16 +1149,20 @@ function SuchePageContent() {
           <div className="flex justify-between items-center mb-5 md:mb-8 flex-wrap gap-3">
             <div className="min-w-0">
               <h1 className="text-[20px] md:text-headline-lg text-primary font-bold leading-snug truncate">
-                {hasSearched
-                  ? (stadtParam
-                    ? (language === "de" ? `Wohnungen in ${stadtParam}` : `Apartments in ${stadtParam}`)
-                    : (language === "de" ? "Gefilterte Wohnungen" : "Filtered Apartments"))
-                  : (language === "de" ? "Wo möchtest du wohnen?" : "Where do you want to live?")}
+                {searchParams.get("wishlist") === "true"
+                  ? (language === "de" ? "Meine Wunschliste" : "My Wishlist")
+                  : hasSearched
+                    ? (stadtParam
+                      ? (language === "de" ? `Wohnungen in ${stadtParam}` : `Apartments in ${stadtParam}`)
+                      : (language === "de" ? "Gefilterte Wohnungen" : "Filtered Apartments"))
+                    : (language === "de" ? "Herausragende Unterkünfte" : "Top-Rated Accommodations")}
               </h1>
               <p className="text-[13px] md:text-body-md text-on-surface-variant mt-0.5">
-                {hasSearched
-                  ? <>{listings.length} {t("resultsFound")}{sort !== "newest" && <span className="ml-2 text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">{currentSortLabel}</span>}</>
-                  : (language === "de" ? "Gib eine Stadt ein, um Inserate freizuschalten." : "Enter a city to unlock listings.")}
+                {searchParams.get("wishlist") === "true"
+                  ? (language === "de" ? `${listings.length} gespeicherte Objekte` : `${listings.length} saved properties`)
+                  : hasSearched
+                    ? <>{listings.length} {t("resultsFound")}{sort !== "newest" && <span className="ml-2 text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">{currentSortLabel}</span>}</>
+                    : (language === "de" ? "Beliebte Unterkünfte unserer Community mit hervorragenden Bewertungen." : "Popular accommodations in our community with outstanding reviews.")}
               </p>
             </div>
             <div className="flex gap-2">
@@ -769,48 +1184,83 @@ function SuchePageContent() {
           </div>
 
           {/* Active filter pills — horizontally scrollable on mobile */}
-          {(activeBadgeCount > 0 || priceRange || propertyType !== "all" || distance !== "any" || moveInDate || moveOutDate) && (
+          {totalBadge > 0 && (
             <div className="flex gap-2 mb-5 overflow-x-auto pb-1 no-scrollbar">
               {activeFilters.map((f) => {
                 const af = amenityFilters.find(a => a.id === f);
                 return af ? (
-                  <span key={f} className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                  <span key={f} className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                     <span className="material-symbols-outlined text-[13px]">{af.icon}</span>
                     {af.label}
                     <button onClick={() => toggleFilter(f)} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                   </span>
                 ) : null;
               })}
+              {furnitureFurnished && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
+                  <span className="material-symbols-outlined text-[13px]">weekend</span>
+                  {language === "de" ? "Möbliert" : "Furnished"}
+                  <button onClick={() => setFurnitureFurnished(false)} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
+              {furnitureUnfurnished && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
+                  <span className="material-symbols-outlined text-[13px]">check_box_outline_blank</span>
+                  {language === "de" ? "Unmöbliert" : "Unfurnished"}
+                  <button onClick={() => setFurnitureUnfurnished(false)} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
               {priceRange && (
-                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">euro</span>
                   {currentPriceLabel}
                   <button onClick={() => setPriceRange("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
               {propertyType !== "all" && (
-                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">apartment</span>
                   {currentTypeLabel}
                   <button onClick={() => setPropertyType("all")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
+              {wgSize !== "regardless" && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
+                  <span className="material-symbols-outlined text-[13px]">group</span>
+                  {wgSize === "gt10" ? ">10s shared apartment" : `${wgSize}-person shared apartment`}
+                  <button onClick={() => setWgSize("regardless")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
+              {roommatesGender !== "regardless" && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
+                  <span className="material-symbols-outlined text-[13px]">diversity_3</span>
+                  {language === "de" ? `Mitbewohner: ${roommatesGender === "masculine" ? "männlich" : "weiblich"}` : `Roommates: ${roommatesGender}`}
+                  <button onClick={() => setRoommatesGender("regardless")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
+              {landlordRating !== "any" && (
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
+                  <span className="material-symbols-outlined text-[13px]">star</span>
+                  {landlordRating === "4_plus" ? (language === "de" ? "Bewertung: 4+" : "Rating: 4+") : landlordRating === "3_plus" ? (language === "de" ? "Bewertung: 3+" : "Rating: 3+") : (language === "de" ? "Neue Vermieter" : "New landlords")}
+                  <button onClick={() => setLandlordRating("any")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
+                </span>
+              )}
               {distance !== "any" && (
-                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">near_me</span>
                   {currentDistLabel}
                   <button onClick={() => setDistance("any")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
               {moveInDate && (
-                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">calendar_today</span>
                   {language === "de" ? `Einzug: ${moveInDate}` : `Move in: ${moveInDate}`}
                   <button onClick={() => setMoveInDate("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
               {moveOutDate && (
-                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20">
+                <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">calendar_today</span>
                   {language === "de" ? `Auszug: ${moveOutDate}` : `Move out: ${moveOutDate}`}
                   <button onClick={() => setMoveOutDate("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
@@ -828,29 +1278,177 @@ function SuchePageContent() {
               </div>
             </div>
           ) : !hasSearched ? (
-            /* ── Empty state: no input given yet ── */
-            <div className="flex flex-col items-center justify-center py-20 w-full text-center gap-6">
-              <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-2 animate-bounce">
-                <span className="material-symbols-outlined text-primary text-[42px]" style={{ fontVariationSettings: "'FILL' 1" }}>search</span>
+            /* ── Top-rated places grouped by city horizontal scroll ── */
+            topPlacesLoading ? (
+              <div className="flex justify-center items-center py-24 w-full">
+                <div className="w-10 h-10 rounded-full border-[3px] border-primary/10 border-t-primary animate-spin" />
               </div>
-              <div>
-                <h2 className="text-headline-md font-bold text-primary mb-2">
-                  {language === "de" ? "Wo möchtest du wohnen?" : "Where do you want to live?"}
-                </h2>
-                <p className="text-body-md text-on-surface-variant max-w-sm mx-auto leading-relaxed">
-                  {language === "de"
-                    ? "Gib eine Stadt in das Suchfeld ein, um passende Inserate freizuschalten."
-                    : "Enter a city in the search bar above to unlock matching listings."}
-                </p>
+            ) : (
+              <div className="space-y-12">
+                {Object.entries(
+                  topPlaces.reduce<Record<string, any[]>>((acc, property) => {
+                    const normalizedCity = (() => {
+                      const city = property.city || "";
+                      const normalized = city.trim().toLowerCase();
+                      const cityGroups: Record<string, { de: string; en: string }> = {
+                        "münchen": { de: "München", en: "Munich" },
+                        "munich": { de: "München", en: "Munich" },
+                        "köln": { de: "Köln", en: "Cologne" },
+                        "cologne": { de: "Köln", en: "Cologne" },
+                        "nürnberg": { de: "Nürnberg", en: "Nuremberg" },
+                        "nuremberg": { de: "Nürnberg", en: "Nuremberg" },
+                        "hannover": { de: "Hannover", en: "Hanover" },
+                        "hanover": { de: "Hannover", en: "Hanover" },
+                        "düsseldorf": { de: "Düsseldorf", en: "Düsseldorf" },
+                        "dusseldorf": { de: "Düsseldorf", en: "Düsseldorf" },
+                        "braunschweig": { de: "Braunschweig", en: "Brunswick" },
+                        "brunswick": { de: "Braunschweig", en: "Brunswick" },
+                        "konstanz": { de: "Konstanz", en: "Constance" },
+                        "constance": { de: "Konstanz", en: "Constance" },
+                      };
+                      if (cityGroups[normalized]) {
+                        return language === "de" ? cityGroups[normalized].de : cityGroups[normalized].en;
+                      }
+                      return city.charAt(0).toUpperCase() + city.slice(1);
+                    })();
+
+                    if (!acc[normalizedCity]) acc[normalizedCity] = [];
+                    acc[normalizedCity].push(property);
+                    return acc;
+                  }, {})
+                ).map(([city, properties]) => {
+                  const cityKey = city.toLowerCase().replace(/\s+/g, "-");
+                  return (
+                    <div key={city} className="w-full">
+                      {/* Place/City Heading */}
+                      <div className="mb-4">
+                        <h3 className="text-[18px] md:text-[22px] text-primary font-black flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[#f07d00]">location_on</span>
+                          {city}
+                        </h3>
+                        <p className="text-[12px] text-on-surface-variant font-semibold">
+                          {language === "de" 
+                            ? `Herausragende Unterkünfte in ${city}` 
+                            : `Outstanding accommodations in ${city}`}
+                        </p>
+                      </div>
+
+                      {/* Row Scroll with Arrows */}
+                      <div className="relative group/slider-city w-full">
+                        {/* Left Arrow Button */}
+                        <button
+                          onClick={() => {
+                            const el = document.getElementById(`scroll-row-${cityKey}`);
+                            if (el) el.scrollBy({ left: -320, behavior: "smooth" });
+                          }}
+                          aria-label="Scroll left"
+                          className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-0 group-hover/slider-city:opacity-100 hidden md:flex"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                        </button>
+
+                        {/* Horizontal Scroll track */}
+                        <div
+                          id={`scroll-row-${cityKey}`}
+                          className="flex overflow-x-auto gap-5 py-4 px-1 no-scrollbar w-full scroll-smooth"
+                        >
+                          {properties.map((l) => (
+                            <div
+                              key={l.id}
+                              className="w-[285px] md:w-[320px] flex-shrink-0"
+                            >
+                              <article className="group bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden hover:shadow-xl hover:border-primary/20 transition-all duration-300 h-full flex flex-col justify-between">
+                                <Link href={`/objekt/${l.id}`}>
+                                  {/* Image */}
+                                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-container flex items-center justify-center">
+                                    <img
+                                      src={getPrimaryPhoto(l)}
+                                      alt={l.title}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                      loading="lazy"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                                    
+                                    {/* Rating Badge */}
+                                    {l.landlord_rating && (
+                                      <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-xl shadow-md border border-outline-variant/30 flex items-center gap-1.5 font-bold text-primary text-[12px]">
+                                        <span className="material-symbols-outlined text-[15px] text-[#f07d00] fill-1" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                                        {l.landlord_rating.toFixed(1)}
+                                      </span>
+                                    )}
+
+                                    {/* Wishlist Button */}
+                                    <button
+                                      id={`fav-top-${l.id}`}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        toggleFavorite(l.id);
+                                      }}
+                                      className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm p-1.5 rounded-full hover:bg-white transition-colors cursor-pointer group/fav"
+                                    >
+                                      <span
+                                        className={`material-symbols-outlined text-[18px] transition-colors ${
+                                          favorites.includes(l.id)
+                                            ? "text-red-500"
+                                            : "text-on-surface-variant group-hover/fav:text-red-400"
+                                        }`}
+                                        style={{ fontVariationSettings: favorites.includes(l.id) ? "'FILL' 1" : "'FILL' 0" }}
+                                      >
+                                        favorite
+                                      </span>
+                                    </button>
+                                  </div>
+
+                                  {/* Card Content */}
+                                  <div className="p-4 flex flex-col justify-between flex-grow">
+                                    <div>
+                                      <h4 className="text-[15px] md:text-headline-md text-primary leading-tight font-bold mb-0.5 line-clamp-1 group-hover:text-[#f07d00] transition-colors">
+                                        {l.title}
+                                      </h4>
+                                      {/* Subtitle / Place Name */}
+                                      <p className="text-[12px] md:text-body-md text-on-surface-variant mb-3 line-clamp-1 flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[13px] text-secondary">location_on</span>
+                                        <span>{l.street}, {normalizeCityName(l.city, language)}</span>
+                                      </p>
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="flex items-center divide-x divide-outline-variant/40 mt-auto pt-2">
+                                      {[
+                                        { label: t("rentWarm"), value: `${Math.round(parseFloat(l.rent_cold) + parseFloat(l.rent_utilities) + parseFloat(l.rent_heating))} €`, bold: true },
+                                        { label: t("area"), value: `${l.size_sqm} m²` },
+                                        { label: t("rooms"), value: l.rooms },
+                                      ].map(({ label, value, bold }, i) => (
+                                        <div key={label} className={`flex flex-col ${i === 0 ? "pr-3" : "px-3"}`}>
+                                          <span className="text-[9px] font-semibold text-on-surface-variant uppercase tracking-wide">{label}</span>
+                                          <span className={`text-[13px] md:text-[15px] leading-5 ${bold ? "text-primary font-bold" : "text-on-surface font-semibold"}`}>{value}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </Link>
+                              </article>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Right Arrow Button */}
+                        <button
+                          onClick={() => {
+                            const el = document.getElementById(`scroll-row-${cityKey}`);
+                            if (el) el.scrollBy({ left: 320, behavior: "smooth" });
+                          }}
+                          aria-label="Scroll right"
+                          className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/95 backdrop-blur-md text-primary rounded-full shadow-lg border border-outline-variant hover:bg-primary hover:text-white transition-all active:scale-90 flex items-center justify-center cursor-pointer select-none opacity-0 group-hover/slider-city:opacity-100 hidden md:flex"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <button
-                onClick={() => document.getElementById("suche-city-search")?.focus()}
-                className="flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-bold text-label-md hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-md"
-              >
-                <span className="material-symbols-outlined text-[20px]">edit</span>
-                {language === "de" ? "Stadt eingeben" : "Enter a city"}
-              </button>
-            </div>
+            )
           ) : listings.length === 0 ? (
             <div className="text-center py-24 text-on-surface-variant text-body-md w-full border-2 border-dashed border-outline-variant/40 rounded-2xl bg-white">
               {language === "de" ? "Keine Objekte gefunden. Bitte Filter anpassen." : "No listings found. Try adjusting your filters."}
@@ -905,7 +1503,7 @@ function SuchePageContent() {
                       <h3 className="text-[15px] md:text-headline-md text-primary leading-tight font-bold mb-0.5 line-clamp-1">{l.title}</h3>
                       <p className="text-[12px] md:text-body-md text-on-surface-variant mb-3 line-clamp-1 flex items-center gap-1">
                         <span className="material-symbols-outlined text-[13px]">location_on</span>
-                        {l.street}, {l.zip} {l.city}
+                        {l.street}, {l.zip} {normalizeCityName(l.city, language)}
                       </p>
                       {/* Stats row */}
                       <div className="flex items-center divide-x divide-outline-variant/40 mb-3">

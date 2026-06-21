@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 
 const CITIES = [
   {
@@ -109,16 +110,288 @@ const getTestimonials = (language: string, t: any) => [
   },
 ];
 
+const getMockBlogs = (lang: string) => [
+  {
+    id: "mock-1",
+    author_id: "mock-user-1",
+    author_name: "Maximilian K.",
+    author_avatar: null,
+    title: lang === "de" ? "Traumhafte Zeit in Berlin-Mitte" : "Dream Stay in Berlin-Mitte",
+    content: lang === "de" 
+      ? "Die Wohnung war fantastisch gelegen, super hell und modern eingerichtet. Perfekt für Studierende und Expats! Die U-Bahn ist direkt vor der Tür." 
+      : "The apartment was in a fantastic location, super bright and modernly furnished. Perfect for students and expats! The subway is right outside the door.",
+    rating: 5,
+    place_name: "Berlin Cozy Flat",
+    image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80",
+    created_at: "2026-05-15T12:00:00.000Z"
+  },
+  {
+    id: "mock-2",
+    author_id: "mock-user-2",
+    author_name: "Sabine H.",
+    author_avatar: null,
+    title: lang === "de" ? "Wunderschönes Loft in München" : "Beautiful Loft in Munich",
+    content: lang === "de"
+      ? "Der Vermieter war sehr freundlich und der 3D-Rundgang hat exakt der Realität entsprochen. Die Lage im Glockenbachviertel is unschlagbar!"
+      : "The landlord was very friendly and the 3D tour matched reality perfectly. The location in the Glockenbachviertel is unbeatable!",
+    rating: 5,
+    place_name: "Munich Modern Loft",
+    image_url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80",
+    created_at: "2026-06-01T14:30:00.000Z"
+  },
+  {
+    id: "mock-3",
+    author_id: null,
+    author_name: "Thomas L.",
+    author_avatar: null,
+    title: lang === "de" ? "Perfekte Anbindung in Frankfurt" : "Perfect Transit in Frankfurt",
+    content: lang === "de"
+      ? "Sehr sauberes Zimmer, die Anbindung an die Innenstadt war hervorragend. Etwas laut wegen der Straße, aber das moderne Bad gleicht das aus."
+      : "Very clean room, transit to the city center was excellent. A bit loud due to the street, but the modern bathroom makes up for it.",
+    rating: 4,
+    place_name: "Frankfurt Transit Apartment",
+    image_url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80",
+    created_at: "2026-06-10T09:15:00.000Z"
+  }
+];
+
+const ALL_SUGGESTIONS = [
+  { de: "Berlin", en: "Berlin" },
+  { de: "München", en: "Munich" },
+  { de: "Hamburg", en: "Hamburg" },
+  { de: "Frankfurt", en: "Frankfurt" },
+  { de: "Köln", en: "Cologne" },
+  { de: "Düsseldorf", en: "Düsseldorf" },
+  { de: "Stuttgart", en: "Stuttgart" },
+  { de: "Leipzig", en: "Leipzig" },
+  { de: "Nürnberg", en: "Nuremberg" },
+  { de: "Hannover", en: "Hanover" },
+  { de: "Braunschweig", en: "Brunswick" },
+  { de: "Konstanz", en: "Constance" },
+  { de: "Bremen", en: "Bremen" },
+  { de: "Dresden", en: "Dresden" },
+  { de: "Essen", en: "Essen" },
+  { de: "Dortmund", en: "Dortmund" },
+  { de: "Duisburg", en: "Duisburg" },
+  { de: "Bochum", en: "Bochum" },
+  { de: "Wuppertal", en: "Wuppertal" },
+  { de: "Bielefeld", en: "Bielefeld" },
+  { de: "Bonn", en: "Bonn" },
+  { de: "Münster", en: "Münster" },
+  { de: "Karlsruhe", en: "Karlsruhe" },
+  { de: "Mannheim", en: "Mannheim" },
+  { de: "Augsburg", en: "Augsburg" },
+  { de: "Wiesbaden", en: "Wiesbaden" },
+  { de: "Gelsenkirchen", en: "Gelsenkirchen" },
+  { de: "Mönchengladbach", en: "Mönchengladbach" },
+  { de: "Chemnitz", en: "Chemnitz" },
+  { de: "Aachen", en: "Aachen" },
+  { de: "Halle", en: "Halle" },
+  { de: "Magdeburg", en: "Magdeburg" },
+  { de: "Freiburg", en: "Freiburg" },
+  { de: "Krefeld", en: "Krefeld" },
+  { de: "Lübeck", en: "Lübeck" },
+  { de: "Mainz", en: "Mainz" },
+  { de: "Erfurt", en: "Erfurt" },
+  { de: "Rostock", en: "Rostock" },
+  { de: "Kassel", en: "Kassel" },
+  { de: "Potsdam", en: "Potsdam" },
+  { de: "Saarbrücken", en: "Saarbrücken" },
+  { de: "Hamm", en: "Hamm" },
+  { de: "Ludwigshafen", en: "Ludwigshafen" },
+  { de: "Mülheim", en: "Mülheim" },
+  { de: "Oldenburg", en: "Oldenburg" },
+  { de: "Osnabrück", en: "Osnabrück" },
+  { de: "Leverkusen", en: "Leverkusen" },
+  { de: "Solingen", en: "Solingen" },
+  { de: "Heidelberg", en: "Heidelberg" },
+  { de: "Darmstadt", en: "Darmstadt" },
+  { de: "Alexanderplatz, Berlin", en: "Alexanderplatz, Berlin" },
+  { de: "Englischer Garten, München", en: "Englischer Garten, Munich" },
+  { de: "Speicherstadt, Hamburg", en: "Speicherstadt, Hamburg" },
+  { de: "Glockenbachviertel, München", en: "Glockenbachviertel, Munich" },
+  { de: "Schildergasse, Köln", en: "Schildergasse, Cologne" },
+];
+
 export default function HomePage() {
   const router = useRouter();
   const { t, language } = useLanguage();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [stadt, setStadt] = useState("");
   const [zimmer, setZimmer] = useState("all");
   const [moveInDate, setMoveInDate] = useState("");
   const [moveOutDate, setMoveOutDate] = useState("");
   const [selectedPremiumPlan, setSelectedPremiumPlan] = useState<"1month" | "3months" | "12months">("3months");
   const citySliderRef = useRef<HTMLDivElement>(null);
+
+  // Autocomplete states
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleInputChange = (val: string) => {
+    setStadt(val);
+    if (!val.trim()) {
+      setFilteredCities([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const matches = ALL_SUGGESTIONS.filter(
+      (c) =>
+        c.de.toLowerCase().includes(val.toLowerCase()) ||
+        c.en.toLowerCase().includes(val.toLowerCase())
+    ).map((c) => (language === "de" ? c.de : c.en));
+
+    setFilteredCities(matches);
+    setShowSuggestions(true);
+  };
+
+  const handleSelectSuggestion = (city: string) => {
+    setStadt(city);
+    setShowSuggestions(false);
+  };
+
+  // Blog states
+  const [blogs, setBlogs] = useState<any[]>([]);
+  const [blogsLoading, setBlogsLoading] = useState(true);
+  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);
+  const [blogTitle, setBlogTitle] = useState("");
+  const [blogContent, setBlogContent] = useState("");
+  const [blogPlaceName, setBlogPlaceName] = useState("");
+  const [blogRating, setBlogRating] = useState(5);
+  const [blogAuthorName, setBlogAuthorName] = useState("");
+  const [selectedBlogImage, setSelectedBlogImage] = useState("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80");
+  const [customBlogImageUrl, setCustomBlogImageUrl] = useState("");
+  const [blogSubmitting, setBlogSubmitting] = useState(false);
+
+  const fetchLatestBlogs = async () => {
+    setBlogsLoading(true);
+    try {
+      let dbBlogs: any[] = [];
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from("blogs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(3);
+        if (!error && data) {
+          dbBlogs = data;
+        }
+      }
+      const mockList = getMockBlogs(language);
+      const combined = [...dbBlogs, ...mockList];
+      setBlogs(combined.slice(0, 3));
+    } catch (err) {
+      console.error("Error fetching homepage blogs:", err);
+      setBlogs(getMockBlogs(language).slice(0, 3));
+    } finally {
+      setBlogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLatestBlogs();
+  }, [language]);
+
+  // Pre-fill author name if user profile details load
+  useEffect(() => {
+    if (profile?.full_name) {
+      setBlogAuthorName(profile.full_name);
+    } else if (user?.email) {
+      setBlogAuthorName(user.email.split("@")[0]);
+    }
+  }, [profile, user]);
+
+  const resetBlogForm = () => {
+    setBlogTitle("");
+    setBlogContent("");
+    setBlogPlaceName("");
+    setBlogRating(5);
+    if (!profile?.full_name && !user?.email) {
+      setBlogAuthorName("");
+    }
+    setSelectedBlogImage("https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80");
+    setCustomBlogImageUrl("");
+  };
+
+  const handleBlogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blogTitle.trim() || !blogContent.trim() || !blogPlaceName.trim() || !blogAuthorName.trim()) {
+      window.alert(
+        language === "de"
+          ? "Bitte füllen Sie alle erforderlichen Felder aus."
+          : "Please fill in all required fields."
+      );
+      return;
+    }
+
+    setBlogSubmitting(true);
+    const finalImage = customBlogImageUrl.trim() || selectedBlogImage;
+
+    const newPost = {
+      title: blogTitle.trim(),
+      content: blogContent.trim(),
+      rating: blogRating,
+      place_name: blogPlaceName.trim(),
+      author_name: blogAuthorName.trim(),
+      author_id: user?.id || null,
+      author_avatar: profile?.avatar_url || null,
+      image_url: finalImage || null,
+    };
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.from("blogs").insert(newPost);
+        if (error) throw error;
+        
+        window.alert(
+          language === "de"
+            ? "Erfolgreich! Dein Erfahrungsbericht wurde hochgeladen."
+            : "Success! Your experience has been published."
+        );
+        fetchLatestBlogs();
+        setIsBlogModalOpen(false);
+        resetBlogForm();
+      } else {
+        console.warn("Supabase not configured. Mocking homepage blog submission.");
+        setBlogs((prev) => [
+          {
+            ...newPost,
+            id: Math.random().toString(),
+            created_at: new Date().toISOString(),
+          },
+          ...prev,
+        ].slice(0, 3));
+        window.alert(
+          language === "de"
+            ? "Erfolgreich eingereicht! (Lokal simuliert - kein Supabase konfiguriert)"
+            : "Successfully submitted! (Locally simulated - no Supabase configured)"
+        );
+        setIsBlogModalOpen(false);
+        resetBlogForm();
+      }
+    } catch (err: any) {
+      console.error("Error submitting homepage blog:", err);
+      window.alert(
+        language === "de"
+          ? `Fehler beim Veröffentlichen: ${err.message}`
+          : `Error publishing experience: ${err.message}`
+      );
+    } finally {
+      setBlogSubmitting(false);
+    }
+  };
 
   // Auto-scroll logic for city slider (continuous marquee-like) with interaction yield and infinite seamless wrap
   useEffect(() => {
@@ -151,7 +424,8 @@ export default function HomePage() {
     leftBtn?.addEventListener("click", pauseAutoScroll);
     rightBtn?.addEventListener("click", pauseAutoScroll);
 
-    const animate = (time: number) => {
+    const animate = () => {
+      const time = performance.now();
       const delta = (time - lastTime) / 1000;
       lastTime = time;
 
@@ -244,29 +518,58 @@ export default function HomePage() {
           {/* Search Card */}
           <form
             onSubmit={handleSearch}
-            className="max-w-4xl mx-auto bg-white/95 backdrop-blur-md p-4 md:p-6 rounded-xl shadow-2xl"
+            className="max-w-5xl mx-auto bg-white/95 backdrop-blur-md p-4 md:p-6 rounded-xl shadow-2xl"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
-              <div className="text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end">
+              <div className="text-left md:col-span-2 relative" ref={suggestionsRef}>
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {t("searchCityLabel")}
                 </label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl pointer-events-none">
                     location_on
                   </span>
                   <input
-                    value={stadt}
-                    onChange={(e) => setStadt(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px]"
-                    placeholder="Berlin, München..."
                     type="text"
+                    value={stadt}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (stadt.trim() !== "") {
+                        handleInputChange(stadt);
+                      } else {
+                        const all = ALL_SUGGESTIONS.map((c) => (language === "de" ? c.de : c.en));
+                        setFilteredCities(all);
+                        setShowSuggestions(true);
+                      }
+                    }}
                     id="search-city"
+                    placeholder={language === "de" ? "Stadt eingeben..." : "Enter city..."}
+                    className="w-full pl-10 pr-4 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px] font-semibold text-on-surface h-[50px]"
+                    autoComplete="off"
                   />
                 </div>
+
+                {showSuggestions && filteredCities.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-white border border-outline-variant rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-150">
+                    <ul className="py-1.5">
+                      {filteredCities.map((city) => (
+                        <li key={city}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectSuggestion(city)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-primary/5 text-primary text-[14px] font-bold transition-colors flex items-center gap-2 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[16px] text-[#f07d00]">location_on</span>
+                            <span>{city}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
-              <div className="text-left">
+              <div className="text-left md:col-span-1">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {t("searchRoomsLabel")}
                 </label>
@@ -287,7 +590,7 @@ export default function HomePage() {
                 </select>
               </div>
 
-              <div className="text-left">
+              <div className="text-left md:col-span-1">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {language === "de" ? "Einzug" : "Move in"}
                 </label>
@@ -301,7 +604,7 @@ export default function HomePage() {
                 />
               </div>
 
-              <div className="text-left">
+              <div className="text-left md:col-span-1">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {language === "de" ? "Auszug" : "Move out"}
                 </label>
@@ -415,67 +718,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Für Vermieter ─────────────────────────────────── */}
-      <section className="bg-surface-container-low py-24">
-        <div className="max-w-[1280px] mx-auto px-5 md:px-[48px] grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          {/* Image side */}
-          <div className="relative">
-            <div className="absolute -top-4 -left-4 w-24 h-24 bg-secondary-container rounded-full mix-blend-multiply filter blur-2xl opacity-30" />
-            <img
-              src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80"
-              alt="Immobilienmakler übergibt Schlüssel"
-              className="rounded-xl shadow-2xl relative z-10 w-full"
-            />
-            <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-xl shadow-xl z-20 hidden md:block">
-              <p className="text-primary font-bold text-[24px] leading-8">98%</p>
-              <p className="text-on-surface-variant text-[12px] font-semibold">{t("satisfiedLandlords")}</p>
-            </div>
-          </div>
 
-          {/* Text side */}
-          <div>
-            <span className="text-secondary text-label-md tracking-wider uppercase mb-4 block">
-              {t("forLandlords")}
-            </span>
-            <h2 className="text-headline-lg-mobile md:text-headline-lg text-primary mb-6">
-              {t("landlordTitle")}
-            </h2>
-            <p className="text-body-lg text-on-surface-variant mb-10 leading-relaxed">
-              {t("landlordDesc")}
-            </p>
-
-            <div className="space-y-6 mb-10">
-              {[
-                { icon: "verified", title: t("verifiedTenants"), desc: t("verifiedTenantsDesc") },
-                { icon: "speed", title: t("fastMarketing"), desc: t("fastMarketingDesc") },
-              ].map(({ icon, title, desc }) => (
-                <div key={title} className="flex gap-4 items-start">
-                  <div className="bg-primary-fixed p-2 rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <span
-                      className="material-symbols-outlined text-primary text-[24px]"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      {icon}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="text-label-md text-primary font-bold">{title}</h4>
-                    <p className="text-on-surface-variant text-[14px] mt-0.5">{desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <button
-              id="btn-inserieren-hero"
-              onClick={() => router.push(user ? "/inserieren" : "/auth/login?redirect=/inserieren")}
-              className="bg-primary text-on-primary px-8 py-4 rounded-lg text-label-md hover:opacity-90 transition-all shadow-lg active:scale-95 font-semibold cursor-pointer"
-            >
-              {t("listPropertyBtn")}
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* ── Mitgliedschaften ───────────────────────────────── */}
       <section className="py-24 max-w-[1280px] mx-auto px-5 md:px-[48px] w-full border-t border-outline-variant/30">
@@ -664,6 +907,116 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Blog & Experiences ───────────────────────────────── */}
+      <section className="py-24 max-w-[1280px] mx-auto px-5 md:px-[48px] w-full border-t border-outline-variant/30">
+        <div className="flex justify-between items-end mb-12 flex-wrap gap-4">
+          <div>
+            <span className="text-secondary text-label-md tracking-wider uppercase block mb-1">
+              {language === "de" ? "Erfahrungsberichte" : "User Experiences"}
+            </span>
+            <h2 className="text-headline-lg-mobile md:text-headline-lg text-primary">
+              {language === "de" ? "Echte Erlebnisse unserer Community" : "Real Stories From Our Community"}
+            </h2>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setIsBlogModalOpen(true)}
+              className="bg-primary text-white px-5 py-2.5 rounded-full text-label-md font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer"
+            >
+              {t("writeBlogBtn")}
+            </button>
+            <Link
+              href="/blogs"
+              className="border-2 border-primary text-primary px-5 py-2 rounded-full text-label-md font-bold hover:bg-primary/5 active:scale-95 transition-all text-center flex items-center"
+            >
+              {language === "de" ? "Alle Berichte lesen" : "Read All Stories"}
+            </Link>
+          </div>
+        </div>
+
+        {blogsLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 space-y-4">
+            <div className="w-10 h-10 rounded-full border-[3px] border-primary/10 border-t-primary animate-spin" />
+          </div>
+        ) : blogs.length === 0 ? (
+          <div className="bg-white border border-outline-variant rounded-2xl p-12 text-center shadow-sm flex flex-col items-center justify-center space-y-3">
+            <span className="material-symbols-outlined text-[48px] text-outline-variant">rate_review</span>
+            <p className="text-body-md text-on-surface-variant font-medium">
+              {language === "de"
+                ? "Noch keine Berichte vorhanden. Teile als Erster deine Erfahrung!"
+                : "No experiences shared yet. Be the first to share yours!"}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {blogs.map((blog) => (
+              <div
+                key={blog.id}
+                className="bg-white border border-outline-variant rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between p-6"
+              >
+                <div className="space-y-4">
+                  {blog.image_url && (
+                    <div className="aspect-[16/9] w-full rounded-xl overflow-hidden mb-2 relative">
+                      <img src={blog.image_url} alt={blog.place_name} className="w-full h-full object-cover" />
+                      <div className="absolute top-3 left-3 bg-primary/95 text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">location_on</span>
+                        {blog.place_name}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-0.5">
+                      {Array(5)
+                        .fill(0)
+                        .map((_, i) => (
+                          <span
+                            key={i}
+                            className={`material-symbols-outlined text-[16px] ${
+                              i < blog.rating ? "text-secondary-fixed-dim" : "text-outline-variant/30"
+                            }`}
+                            style={i < blog.rating ? { fontVariationSettings: "'FILL' 1" } : {}}
+                          >
+                            star
+                          </span>
+                        ))}
+                    </div>
+                    <span className="text-[10px] text-on-surface-variant/80">
+                      {new Date(blog.created_at).toLocaleDateString(language === "de" ? "de" : "en", {
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <h3 className="text-[18px] font-extrabold text-primary line-clamp-1 leading-snug">{blog.title}</h3>
+                  <p className="text-body-md text-on-surface-variant line-clamp-3 leading-relaxed font-sans">{blog.content}</p>
+                </div>
+
+                <div className="flex items-center gap-3 pt-4 border-t border-outline-variant/30 mt-6">
+                  {blog.author_avatar ? (
+                    <img src={blog.author_avatar} alt={blog.author_name} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-[11px]">
+                      {blog.author_name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .substring(0, 2)}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-label-md text-primary font-bold text-[13px]">{blog.author_name}</p>
+                    <p className="text-[9px] text-on-surface-variant/75 uppercase tracking-wider font-semibold">
+                      {blog.author_id ? (language === "de" ? "Verifiziert" : "Verified") : (language === "de" ? "Gast" : "Guest")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <Footer />
 
       {/* Mobile FAB */}
@@ -675,6 +1028,193 @@ export default function HomePage() {
       >
         <span className="material-symbols-outlined text-[24px]">search</span>
       </button>
+
+      {/* Blog modal overlay */}
+      {isBlogModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-outline-variant overflow-hidden transform animate-[slideDown_0.25s_ease-out] max-h-[90vh] flex flex-col text-left">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-outline-variant/40 bg-surface-container-low flex justify-between items-center">
+              <h3 className="text-headline-sm text-primary font-black">
+                {t("writeBlogBtn")}
+              </h3>
+              <button
+                onClick={() => setIsBlogModalOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form onSubmit={handleBlogSubmit} className="p-6 overflow-y-auto space-y-4 flex-grow custom-scrollbar">
+              {/* Place/House Name */}
+              <div className="space-y-1.5">
+                <label className="block text-label-sm text-on-surface-variant font-bold">
+                  {language === "de" ? "Unterkunft / Ort *" : "Accommodation / Place *"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={blogPlaceName}
+                  onChange={(e) => setBlogPlaceName(e.target.value)}
+                  placeholder={language === "de" ? "z.B. Tiergarten Premium Loft, Berlin" : "e.g., Tiergarten Premium Loft, Berlin"}
+                  className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
+                />
+              </div>
+
+              {/* Title */}
+              <div className="space-y-1.5">
+                <label className="block text-label-sm text-on-surface-variant font-bold">
+                  {language === "de" ? "Titel des Berichts *" : "Title of your experience *"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={blogTitle}
+                  onChange={(e) => setBlogTitle(e.target.value)}
+                  placeholder={language === "de" ? "z.B. Ein unvergesslicher Aufenthalt!" : "e.g., An unforgettable stay!"}
+                  className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
+                />
+              </div>
+
+              {/* Author name */}
+              <div className="space-y-1.5">
+                <label className="block text-label-sm text-on-surface-variant font-bold">
+                  {language === "de" ? "Ihr Name *" : "Your Name *"}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={blogAuthorName}
+                  onChange={(e) => setBlogAuthorName(e.target.value)}
+                  placeholder={language === "de" ? "z.B. Lisa M." : "e.g., Lisa M."}
+                  className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
+                />
+                {!user && (
+                  <p className="text-[10px] text-secondary font-semibold">
+                    {language === "de"
+                      ? "Hinweis: Sie sind als Gast eingeloggt. Melden Sie sich an, um Ihren verifizierten Account zu nutzen."
+                      : "Note: You are posting as a guest. Log in to show your verified user badge."}
+                  </p>
+                )}
+              </div>
+
+              {/* Star Rating Select */}
+              <div className="space-y-1.5">
+                <label className="block text-label-sm text-on-surface-variant font-bold">
+                  {language === "de" ? "Bewertung *" : "Rating *"}
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setBlogRating(star)}
+                      className="hover:scale-115 transition-transform cursor-pointer"
+                    >
+                      <span
+                        className={`material-symbols-outlined text-[32px] ${
+                          star <= blogRating ? "text-secondary-fixed-dim" : "text-outline-variant/40"
+                        }`}
+                        style={star <= blogRating ? { fontVariationSettings: "'FILL' 1" } : {}}
+                      >
+                        star
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content Description */}
+              <div className="space-y-1.5">
+                <label className="block text-label-sm text-on-surface-variant font-bold">
+                  {language === "de" ? "Deine Erfahrung & Gefühle *" : "Your Experience & Feelings *"}
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={blogContent}
+                  onChange={(e) => setBlogContent(e.target.value)}
+                  placeholder={language === "de" ? "Wie hast du dich gefühlt? Wie war die Nachbarschaft, die Ausstattung, die Anbindung?" : "How did you feel? How was the neighborhood, amenities, transit?"}
+                  className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md font-sans"
+                />
+              </div>
+
+              {/* Photo Selector */}
+              <div className="space-y-2">
+                <label className="block text-label-sm text-on-surface-variant font-bold">
+                  {language === "de" ? "Bild auswählen" : "Choose a Cover Photo"}
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: "berlin", url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80" },
+                    { id: "modern", url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80" },
+                    { id: "cozy", url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80" },
+                    { id: "munich", url: "https://images.unsplash.com/photo-1649609765902-254a227dc960?w=800&auto=format&fit=crop&q=80" },
+                  ].map((img) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBlogImage(img.url);
+                        setCustomBlogImageUrl("");
+                      }}
+                      className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                        selectedBlogImage === img.url && !customBlogImageUrl
+                          ? "border-[#f07d00] scale-95 shadow-md"
+                          : "border-transparent opacity-70 hover:opacity-100"
+                      }`}
+                    >
+                      <img src={img.url} alt={img.id} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/20 hover:bg-transparent" />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Image URL Option */}
+                <div className="space-y-1 mt-2">
+                  <span className="text-[11px] text-on-surface-variant/80 font-bold block">
+                    {language === "de" ? "Oder eigene Bild-URL eingeben:" : "Or enter your own image URL:"}
+                  </span>
+                  <input
+                    type="url"
+                    value={customBlogImageUrl}
+                    onChange={(e) => setCustomBlogImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full px-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-[13px]"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsBlogModalOpen(false)}
+                  className="flex-1 border border-outline-variant py-3 rounded-xl font-bold text-label-md text-on-surface-variant hover:bg-surface-container-low active:scale-98 transition-all cursor-pointer text-center"
+                >
+                  {language === "de" ? "Abbrechen" : "Cancel"}
+                </button>
+                <button
+                  type="submit"
+                  disabled={blogSubmitting}
+                  className="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-label-md hover:opacity-90 active:scale-98 transition-all cursor-pointer shadow-md flex items-center justify-center gap-2"
+                >
+                  {blogSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 rounded-full border-[2px] border-white/20 border-t-white animate-spin" />
+                      <span>{language === "de" ? "Wird gesendet..." : "Submitting..."}</span>
+                    </>
+                  ) : (
+                    <span>{language === "de" ? "Veröffentlichen" : "Publish"}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

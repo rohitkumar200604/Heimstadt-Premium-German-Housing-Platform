@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import { getDisplayPhoto } from "@/utils/get-display-photo";
+import { normalizeCityName } from "@/utils/translations";
 
 const GALLERY_FALLBACK = [
   {
@@ -606,7 +607,7 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
           <span className="material-symbols-outlined text-[16px]">chevron_right</span>
           <Link href="/suche" className="hover:text-primary transition-colors">{t("breadcrumbSearch")}</Link>
           <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-          <span className="text-on-surface font-medium">{property.city}</span>
+          <span className="text-on-surface font-medium">{normalizeCityName(property.city, language)}</span>
         </nav>
 
         {/* Gallery — Carousel */}
@@ -811,7 +812,7 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
               </h1>
               <p className="text-on-surface-variant flex items-center gap-1 text-[16px]">
                 <span className="material-symbols-outlined text-[18px]">location_on</span>
-                {property.street}, {property.zip} {property.city}
+                {property.street}, {property.zip} {normalizeCityName(property.city, language)}
               </p>
             </div>
 

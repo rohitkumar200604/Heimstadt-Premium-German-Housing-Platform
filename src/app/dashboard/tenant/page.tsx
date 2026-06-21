@@ -8,6 +8,7 @@ import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { getDisplayPhoto } from "@/utils/get-display-photo";
+import { normalizeCityName } from "@/utils/translations";
 
 function promiseTimeout<T>(promise: any, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -926,7 +927,7 @@ function TenantDashboardContent() {
                           <div className="p-5 flex-grow flex flex-col justify-between">
                             <div>
                               <h3 className="text-[16px] font-bold text-primary leading-snug line-clamp-1 mb-1">{l.title}</h3>
-                              <p className="text-[12px] text-on-surface-variant line-clamp-1 mb-4">📍 {l.street}, {l.zip} {l.city}</p>
+                              <p className="text-[12px] text-on-surface-variant line-clamp-1 mb-4">📍 {l.street}, {l.zip} {normalizeCityName(l.city, language)}</p>
                               
                               <div className="grid grid-cols-3 gap-2 mb-4 border-t border-b border-outline-variant/40 py-2.5">
                                 <div className="text-center">
@@ -1264,7 +1265,7 @@ function TenantDashboardContent() {
                           {property?.title || "Mietobjekt"}
                         </h2>
                         <p className="text-body-md text-on-surface-variant mt-1.5">
-                          {property?.street}, {property?.zip} {property?.city}
+                          {property?.street}, {property?.zip} {normalizeCityName(property?.city, language)}
                         </p>
                         
                         <div className="mt-6 space-y-3.5">

@@ -208,6 +208,10 @@ export const translations = {
     "continueToPayment": "Weiter zur Zahlung",
     "pricingDisclaimer": "*ohne validiertes Bewerberportfolio",
     "stepReview": "Schritt 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "Erfahrungsberichte",
+    "blogSubtitle": "Entdecke echte Erfahrungsberichte über Unterkünfte und Städte in Deutschland.",
+    "writeBlogBtn": "Erfahrung teilen",
   },
   en: {
     "logo": "Heimstadt",
@@ -418,6 +422,10 @@ export const translations = {
     "continueToPayment": "Continue to payment",
     "pricingDisclaimer": "*without a validated application portfolio",
     "stepReview": "Step 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "User Experiences",
+    "blogSubtitle": "Discover genuine reviews and experiences of properties and cities in Germany.",
+    "writeBlogBtn": "Share Experience",
   },
   fr: {
     "logo": "Heimstadt",
@@ -628,6 +636,10 @@ export const translations = {
     "continueToPayment": "Continuer vers le paiement",
     "pricingDisclaimer": "*sans dossier de candidature validé",
     "stepReview": "Étape 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "Expériences utilisateur",
+    "blogSubtitle": "Découvrez de vrais avis et retours d'expérience sur les propriétés et villes en Allemagne.",
+    "writeBlogBtn": "Partager une expérience",
   },
   sv: {
     "logo": "Heimstadt",
@@ -838,6 +850,10 @@ export const translations = {
     "continueToPayment": "Fortsätt till betalning",
     "pricingDisclaimer": "*utan validerad ansökningsportfölj",
     "stepReview": "Steg 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "Användarupplevelser",
+    "blogSubtitle": "Upptäck äkta recensioner och upplevelser av fastigheter och städer i Tyskland.",
+    "writeBlogBtn": "Dela upplevelse",
   },
   es: {
     "logo": "Heimstadt",
@@ -1048,6 +1064,10 @@ export const translations = {
     "continueToPayment": "Continuar al pago",
     "pricingDisclaimer": "*sin carpeta de solicitud validada",
     "stepReview": "Paso 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "Experiencias de usuarios",
+    "blogSubtitle": "Descubre opiniones reales y experiencias sobre alojamientos y ciudades en Alemania.",
+    "writeBlogBtn": "Compartir experiencia",
   },
   it: {
     "logo": "Heimstadt",
@@ -1258,6 +1278,10 @@ export const translations = {
     "continueToPayment": "Continua al pagamento",
     "pricingDisclaimer": "*senza portfolio di candidatura validato",
     "stepReview": "Passaggio 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "Esperienze degli utenti",
+    "blogSubtitle": "Scopri recensioni reali ed esperienze su alloggi e città in Germania.",
+    "writeBlogBtn": "Condividi esperienza",
   },
   nl: {
     "logo": "Heimstadt",
@@ -1468,6 +1492,10 @@ export const translations = {
     "continueToPayment": "Doorgaan naar betaling",
     "pricingDisclaimer": "*zonder gevalideerd sollicitatiedossier",
     "stepReview": "Stap 1/2",
+    "blogs": "Blogs",
+    "blogTitle": "Gebruikerservaringen",
+    "blogSubtitle": "Ontdek echte beoordelingen en ervaringen van woningen en steden in Duitsland.",
+    "writeBlogBtn": "Ervaring delen",
   },
 };
 
@@ -1481,4 +1509,31 @@ export function getTranslation(lang: Language, key: TranslationKey): string {
 export function getTranslationWithFallback(lang: Language, key: string, fallback: string): string {
   const trans = (translations as any)[lang] as Record<string, string>;
   return trans?.[key] || (translations.en as Record<string, string>)[key] || fallback;
+}
+
+export function normalizeCityName(city: string | undefined | null, language: string): string {
+  if (!city) return "";
+  const normalized = city.trim().toLowerCase();
+  const cityGroups: Record<string, { de: string; en: string }> = {
+    "münchen": { de: "München", en: "Munich" },
+    "munich": { de: "München", en: "Munich" },
+    "köln": { de: "Köln", en: "Cologne" },
+    "cologne": { de: "Köln", en: "Cologne" },
+    "nürnberg": { de: "Nürnberg", en: "Nuremberg" },
+    "nuremberg": { de: "Nürnberg", en: "Nuremberg" },
+    "hannover": { de: "Hannover", en: "Hanover" },
+    "hanover": { de: "Hannover", en: "Hanover" },
+    "düsseldorf": { de: "Düsseldorf", en: "Düsseldorf" },
+    "dusseldorf": { de: "Düsseldorf", en: "Düsseldorf" },
+    "braunschweig": { de: "Braunschweig", en: "Brunswick" },
+    "brunswick": { de: "Braunschweig", en: "Brunswick" },
+    "konstanz": { de: "Konstanz", en: "Constance" },
+    "constance": { de: "Konstanz", en: "Constance" },
+  };
+
+  if (cityGroups[normalized]) {
+    return language === "de" ? cityGroups[normalized].de : cityGroups[normalized].en;
+  }
+
+  return city.charAt(0).toUpperCase() + city.slice(1);
 }
