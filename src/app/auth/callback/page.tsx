@@ -23,6 +23,8 @@ export default function AuthCallbackPage() {
           .eq("id", user.id)
           .single();
 
+        const targetRole = (typeof window !== "undefined" ? sessionStorage.getItem("auth_role") : null) || user.user_metadata?.role || "tenant";
+
         // Self-healing: If the profiles row doesn't exist (e.g. created before DB triggers were set up),
         // we dynamically create it here from the frontend so the user is never stuck.
         if (error || !profile) {
@@ -35,7 +37,7 @@ export default function AuthCallbackPage() {
               id: user.id,
               email: user.email,
               full_name: fullName,
-              role: null, // role is null initially so they can choose it on select-role!
+              role: targetRole,
             })
             .select("role")
             .single();
@@ -57,13 +59,53 @@ export default function AuthCallbackPage() {
           }
         }
 
-        if (profile && mounted) {
-          if (!profile.role) {
-            router.push("/auth/select-role");
-          } else {
-            const url = profile.role === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
-            router.push(url);
+        // If profile exists but lacks role, update it!
+        if (profile && !profile.role) {
+          const { data: updatedProfile } = await supabase
+            .from("profiles")
+            .update({ role: targetRole })
+            .eq("id", user.id)
+            .select("role")
+            .single();
+          if (updatedProfile) {
+            profile = updatedProfile;
           }
+        }
+
+        // Check for role mismatch if profile exists and has a role
+        if (profile && profile.role) {
+          const cachedRole = typeof window !== "undefined" ? sessionStorage.getItem("auth_role") : null;
+          if (cachedRole && cachedRole !== profile.role) {
+            console.warn("Role mismatch detected in callback. Signing out...");
+            await supabase.auth.signOut();
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem("login_error", profile.role);
+              sessionStorage.removeItem("auth_role");
+            }
+            router.push("/auth/login");
+            return;
+          }
+        }
+
+        // Ensure role-specific profile is initialized
+        const finalRole = profile?.role || targetRole;
+        if (finalRole === "landlord") {
+          await supabase
+            .from("landlord_profiles")
+            .upsert({ user_id: user.id }, { onConflict: "user_id" });
+        } else {
+          await supabase
+            .from("tenant_profiles")
+            .upsert({ user_id: user.id }, { onConflict: "user_id" });
+        }
+
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("auth_role");
+        }
+
+        if (profile && mounted) {
+          const url = finalRole === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
+          router.push(url);
           return;
         }
       } catch (err) {

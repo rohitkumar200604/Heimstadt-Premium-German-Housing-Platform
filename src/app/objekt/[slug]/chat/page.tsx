@@ -186,7 +186,13 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
 
     const { data, error } = await supabase
       .from("messages")
-      .insert({ sender_id: user.id, recipient_id: supportId, body: text, channel: "chat_with_us" })
+      .insert({
+        sender_id: user.id,
+        recipient_id: supportId,
+        body: text,
+        channel: "chat_with_us",
+        property_id: property?.id
+      })
       .select("id, sender_id, recipient_id, body, sent_at")
       .single();
 

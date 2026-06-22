@@ -20,6 +20,15 @@ function RegisterPageContent() {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
+  useEffect(() => {
+    const roleParam = searchParams.get("role");
+    if (roleParam === "landlord" || roleParam === "tenant") {
+      sessionStorage.setItem("auth_role", roleParam);
+    } else if (!sessionStorage.getItem("auth_role")) {
+      sessionStorage.setItem("auth_role", "tenant");
+    }
+  }, [searchParams]);
+
   // Self-healing: Detect Google OAuth hash redirect landing on register page and route to Auth Callback
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash) {
@@ -59,6 +68,7 @@ function RegisterPageContent() {
 
     try {
       // 1. Sign up the user via Supabase Auth with registration metadata
+      const roleToAssign = sessionStorage.getItem("auth_role") || "tenant";
       const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -66,7 +76,7 @@ function RegisterPageContent() {
           data: {
             full_name: form.name,
             phone: "",
-            role: null, // role is null initially so they can choose it on select-role!
+            role: roleToAssign,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
@@ -150,7 +160,7 @@ function RegisterPageContent() {
     return (
       <>
         <div className="flex-grow flex items-center justify-center py-16 px-5 bg-gradient-to-br from-surface-container-low via-background to-surface-container">
-          <div className="w-full max-w-lg bg-white/90 backdrop-blur-md border border-outline-variant p-10 rounded-2xl shadow-xl text-center">
+          <div className="w-full max-w-lg bg-white/90 backdrop-blur-md border-2 border-primary p-10 rounded-2xl shadow-xl text-center">
             <div className="w-20 h-20 bg-primary/10 border border-primary/20 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
               <span className="material-symbols-outlined text-[48px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
                 mail
@@ -202,7 +212,7 @@ function RegisterPageContent() {
   return (
     <>
       <div className="flex-grow flex items-center justify-center py-16 px-5 bg-gradient-to-br from-surface-container-low via-background to-surface-container">
-        <div className="w-full max-w-lg bg-white/90 backdrop-blur-md border border-outline-variant p-8 rounded-2xl shadow-xl">
+        <div className="w-full max-w-lg bg-white/90 backdrop-blur-md border-2 border-primary p-8 rounded-2xl shadow-xl">
           <div className="text-center mb-8">
             <h1 className="text-headline-lg text-primary font-bold mb-2">
               {t("registerTitle")}

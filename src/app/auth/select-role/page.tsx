@@ -31,9 +31,39 @@ function SelectRolePageContent() {
         const defaultUrl = profile.role === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
         const destination = redirectUrl || defaultUrl;
         router.push(destination);
+      } else if (user) {
+        const cachedRole = (typeof window !== "undefined" ? sessionStorage.getItem("auth_role") : null) as "tenant" | "landlord" | null;
+        if (cachedRole) {
+          const autoAssign = async () => {
+            try {
+              const fullName = user.user_metadata?.full_name || user.user_metadata?.name || "";
+              await supabase
+                .from("profiles")
+                .upsert({
+                  id: user.id,
+                  email: user.email,
+                  full_name: fullName,
+                  role: cachedRole
+                }, { onConflict: "id" });
+              if (cachedRole === "landlord") {
+                await supabase.from("landlord_profiles").upsert({ user_id: user.id }, { onConflict: "user_id" });
+              } else {
+                await supabase.from("tenant_profiles").upsert({ user_id: user.id }, { onConflict: "user_id" });
+              }
+              sessionStorage.removeItem("auth_role");
+              await refreshProfile();
+              const defaultUrl = cachedRole === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
+              const destination = redirectUrl || defaultUrl;
+              router.push(destination);
+            } catch (err) {
+              console.error("Auto assignment on select-role failed:", err);
+            }
+          };
+          autoAssign();
+        }
       }
     }
-  }, [user, profile, loading, router, redirectUrl]);
+  }, [user, profile, loading, router, redirectUrl, refreshProfile]);
 
   const handleRoleSelectionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

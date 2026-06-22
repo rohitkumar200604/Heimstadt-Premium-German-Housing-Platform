@@ -16,7 +16,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     const saved = localStorage.getItem("heimat_lang") as Language;
-    const validLangs: Language[] = ["de", "en", "fr", "sv", "es", "it", "nl"];
+    const validLangs: Language[] = ["de", "en", "fr", "sv", "es", "it", "nl", "pl", "tr", "ru", "zh", "ja", "ko", "ar", "hi", "pt"];
     if (validLangs.includes(saved)) {
       setLanguageState(saved);
     }

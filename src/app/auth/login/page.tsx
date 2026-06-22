@@ -22,19 +22,78 @@ function LoginPageContent() {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   useEffect(() => {
+    const roleParam = searchParams.get("role");
+    if (roleParam === "landlord" || roleParam === "tenant") {
+      sessionStorage.setItem("auth_role", roleParam);
+    } else if (!sessionStorage.getItem("auth_role")) {
+      // Default to tenant for standard login/register
+      sessionStorage.setItem("auth_role", "tenant");
+    }
+
+    // Check for role mismatch error from auth callback
+    const loginErrorRole = sessionStorage.getItem("login_error");
+    if (loginErrorRole) {
+      setErrorMsg(
+        language === "de"
+          ? `Dieses Konto ist als ${loginErrorRole === "tenant" ? "Mieter" : "Vermieter"} registriert. Bitte melden Sie sich über den ${loginErrorRole === "tenant" ? "Mieter-Login" : "Vermieter-Login"} an.`
+          : `This account is registered as a ${loginErrorRole}. Please log in through the ${loginErrorRole === "tenant" ? "tenant login" : "landlord login"}.`
+      );
+      sessionStorage.removeItem("login_error");
+    }
+  }, [searchParams, language]);
+
+  useEffect(() => {
     if (profile) {
       if (!profile.role) {
-        const selectRoleUrl = redirectUrl 
-          ? `/auth/select-role?redirect=${encodeURIComponent(redirectUrl)}`
-          : "/auth/select-role";
-        router.push(selectRoleUrl);
+        const cachedRole = (sessionStorage.getItem("auth_role") || "tenant") as "tenant" | "landlord";
+        const autoAssignRole = async () => {
+          try {
+            await supabase
+              .from("profiles")
+              .update({ role: cachedRole })
+              .eq("id", profile.id);
+            if (cachedRole === "landlord") {
+              await supabase
+                .from("landlord_profiles")
+                .upsert({ user_id: profile.id }, { onConflict: "user_id" });
+            } else {
+              await supabase
+                .from("tenant_profiles")
+                .upsert({ user_id: profile.id }, { onConflict: "user_id" });
+            }
+            sessionStorage.removeItem("auth_role");
+            window.location.reload();
+          } catch (err) {
+            console.error("Auto assigning role failed:", err);
+            // Fallback to select-role
+            const selectRoleUrl = redirectUrl 
+              ? `/auth/select-role?redirect=${encodeURIComponent(redirectUrl)}`
+              : "/auth/select-role";
+            router.push(selectRoleUrl);
+          }
+        };
+        autoAssignRole();
       } else {
+        const cachedRole = sessionStorage.getItem("auth_role");
+        const roleParam = searchParams.get("role");
+        if (roleParam && cachedRole && cachedRole !== profile.role) {
+          const handleMismatch = async () => {
+            await supabase.auth.signOut();
+            setErrorMsg(
+              language === "de"
+                ? `Dieses Konto ist als ${profile.role === "tenant" ? "Mieter" : "Vermieter"} registriert. Bitte melden Sie sich über den ${profile.role === "tenant" ? "Mieter-Login" : "Vermieter-Login"} an.`
+                : `This account is registered as a ${profile.role}. Please log in through the ${profile.role === "tenant" ? "tenant login" : "landlord login"}.`
+            );
+          };
+          handleMismatch();
+          return;
+        }
         const defaultUrl = profile.role === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
         const destination = redirectUrl || defaultUrl;
         router.push(destination);
       }
     }
-  }, [profile, router, redirectUrl]);
+  }, [profile, router, redirectUrl, language, searchParams]);
 
   // Self-healing: Detect Google OAuth hash redirect landing on login page and route to Auth Callback
   useEffect(() => {
@@ -67,11 +126,43 @@ function LoginPageContent() {
 
       if (profileData) {
         if (!profileData.role) {
+          const cachedRole = (sessionStorage.getItem("auth_role") || "tenant") as "tenant" | "landlord";
+          try {
+            await supabase
+              .from("profiles")
+              .update({ role: cachedRole })
+              .eq("id", data.user?.id);
+            if (cachedRole === "landlord") {
+              await supabase
+                .from("landlord_profiles")
+                .upsert({ user_id: data.user?.id }, { onConflict: "user_id" });
+            } else {
+              await supabase
+                .from("tenant_profiles")
+                .upsert({ user_id: data.user?.id }, { onConflict: "user_id" });
+            }
+            sessionStorage.removeItem("auth_role");
+            const defaultUrl = cachedRole === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
+            router.push(redirectUrl || defaultUrl);
+            return;
+          } catch (err) {
+            console.error("Auto assigning role in submit failed:", err);
+          }
           const selectRoleUrl = redirectUrl 
             ? `/auth/select-role?redirect=${encodeURIComponent(redirectUrl)}`
             : "/auth/select-role";
           router.push(selectRoleUrl);
         } else {
+          const cachedRole = sessionStorage.getItem("auth_role");
+          if (cachedRole && cachedRole !== profileData.role) {
+            await supabase.auth.signOut();
+            setErrorMsg(
+              language === "de"
+                ? `Dieses Konto ist als ${profileData.role === "tenant" ? "Mieter" : "Vermieter"} registriert. Bitte melden Sie sich über den ${profileData.role === "tenant" ? "Mieter-Login" : "Vermieter-Login"} an.`
+                : `This account is registered as a ${profileData.role}. Please log in through the ${profileData.role === "tenant" ? "tenant login" : "landlord login"}.`
+            );
+            return;
+          }
           const defaultUrl = profileData.role === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
           const destination = redirectUrl || defaultUrl;
           router.push(destination);

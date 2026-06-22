@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useAuth } from "@/context/AuthContext";
+import { supabase, isSupabaseConfigured } from "@/utils/supabase/client";
 import LanguageCurrencyModal from "@/components/layout/LanguageCurrencyModal";
 
 export default function Navbar() {
@@ -16,7 +17,41 @@ export default function Navbar() {
   const [lcModalOpen, setLcModalOpen] = useState(false);
   const { language, t } = useLanguage();
   const { currency } = useCurrency();
-  const { profile, signOut, isPremium } = useAuth();
+  const { profile, signOut, isPremium, refreshProfile } = useAuth();
+
+  const handleSwitchRole = async (targetRole: "tenant" | "landlord") => {
+    if (!profile) return;
+    try {
+      if (isSupabaseConfigured()) {
+        await supabase
+          .from("profiles")
+          .update({ role: targetRole })
+          .eq("id", profile.id);
+        
+        if (targetRole === "landlord") {
+          await supabase
+            .from("landlord_profiles")
+            .upsert({ user_id: profile.id }, { onConflict: "user_id" });
+        } else {
+          await supabase
+            .from("tenant_profiles")
+            .upsert({ user_id: profile.id }, { onConflict: "user_id" });
+        }
+      }
+      await refreshProfile();
+      window.location.href = targetRole === "landlord" ? "/dashboard/landlord" : "/dashboard/tenant";
+    } catch (err) {
+      console.error("Failed to switch role:", err);
+    }
+  };
+
+  const handleForLandlordsClick = async (e: React.MouseEvent) => {
+    if (!profile) return;
+    if (profile.role === "tenant") {
+      e.preventDefault();
+      await handleSwitchRole("landlord");
+    }
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -88,7 +123,19 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-8">
             {navLink("/suche", t("search"), "search")}
             {navLink("/blogs", t("blogs"), "rate_review")}
-            {navLink("/suche?wishlist=true", language === "de" ? "Wunschliste" : "Wishlist", "favorite")}
+            {navLink("/suche?wishlist=true", t("wishlist"), "favorite")}
+            <Link
+              href={profile ? "/dashboard/landlord" : "/auth/login?role=landlord"}
+              onClick={handleForLandlordsClick}
+              className={`font-sans text-[14px] font-medium leading-5 transition-colors duration-200 pb-1 flex items-center gap-1.5 ${
+                pathname.startsWith("/dashboard/landlord")
+                  ? "text-primary font-bold border-b-2 border-primary"
+                  : "text-on-surface-variant hover:text-primary"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">real_estate_agent</span>
+              <span>{t("forLandlords")}</span>
+            </Link>
           </div>
         </div>
 
@@ -117,7 +164,7 @@ export default function Navbar() {
                         {isPremium && (
                           <span 
                             className="material-symbols-outlined text-[16px] text-[#f07d00] flex-shrink-0" 
-                            title={language === "de" ? "Premium Verifiziert" : "Premium Verified"}
+                            title={t("premiumVerified")}
                             style={{ fontVariationSettings: "'FILL' 1" }}
                           >
                             verified
@@ -136,32 +183,87 @@ export default function Navbar() {
                       <span>{t("myProfile")}</span>
                     </Link>
 
-                    <Link
-                      href={`${getDashboardUrl()}?tab=bookings`}
-                      onClick={() => setDropdownOpen(false)}
-                      className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">calendar_month</span>
-                      <span>{t("myBookings")}</span>
-                    </Link>
+                    {profile.role === "landlord" ? (
+                      <>
+                         <Link
+                          href="/dashboard/landlord?tab=bookings"
+                          onClick={() => setDropdownOpen(false)}
+                          className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                          <span>{t("bookingRequests")}</span>
+                        </Link>
 
-                    <Link
-                      href={`${getDashboardUrl()}?tab=favorites`}
-                      onClick={() => setDropdownOpen(false)}
-                      className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">favorite</span>
-                      <span>{t("favourites")}</span>
-                    </Link>
+                        <Link
+                          href="/dashboard/landlord?tab=properties"
+                          onClick={() => setDropdownOpen(false)}
+                          className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">home_work</span>
+                          <span>{t("myProperties")}</span>
+                        </Link>
 
-                    <Link
-                      href={`${getDashboardUrl()}?tab=saved-filters`}
-                      onClick={() => setDropdownOpen(false)}
-                      className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">bookmarks</span>
-                      <span>{language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}</span>
-                    </Link>
+                        <Link
+                          href="/dashboard/landlord?tab=messages"
+                          onClick={() => setDropdownOpen(false)}
+                          className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">forum</span>
+                          <span>{t("messagesSupport")}</span>
+                        </Link>
+
+                        <button
+                          onClick={async () => {
+                            setDropdownOpen(false);
+                            await handleSwitchRole("tenant");
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2 cursor-pointer font-sans"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
+                          <span>{t("switchToTenant")}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/dashboard/tenant?tab=bookings"
+                          onClick={() => setDropdownOpen(false)}
+                          className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                          <span>{t("myBookings")}</span>
+                        </Link>
+
+                        <Link
+                          href="/dashboard/tenant?tab=favorites"
+                          onClick={() => setDropdownOpen(false)}
+                          className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">favorite</span>
+                          <span>{t("favourites")}</span>
+                        </Link>
+
+                        <Link
+                          href="/dashboard/tenant?tab=saved-filters"
+                          onClick={() => setDropdownOpen(false)}
+                          className="px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">bookmarks</span>
+                          <span>{t("savedSearches")}</span>
+                        </Link>
+
+                        <button
+                          onClick={async () => {
+                            setDropdownOpen(false);
+                            await handleSwitchRole("landlord");
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2 cursor-pointer font-sans"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
+                          <span>{t("switchToLandlord")}</span>
+                        </button>
+                      </>
+                    )}
 
                     <hr className="border-outline-variant/40 my-1" />
 
@@ -301,7 +403,20 @@ export default function Navbar() {
             }`}
           >
             <span className="material-symbols-outlined text-[20px]">favorite</span>
-            <span>{language === "de" ? "Wunschliste" : "Wishlist"}</span>
+            <span>{t("wishlist")}</span>
+          </Link>
+
+          <Link
+            href={profile ? "/dashboard/landlord" : "/auth/login?role=landlord"}
+            onClick={handleForLandlordsClick}
+            className={`px-4 py-3 rounded-xl text-[14px] font-medium transition-all flex items-center gap-2 ${
+              pathname.startsWith("/dashboard/landlord")
+                ? "text-primary bg-surface-container-low font-bold"
+                : "text-on-surface-variant hover:bg-surface-container-low"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[20px]">real_estate_agent</span>
+            <span>{t("forLandlords")}</span>
           </Link>
 
           <div className="pt-3 border-t border-outline-variant/50 flex flex-col gap-3">
@@ -318,7 +433,7 @@ export default function Navbar() {
                       {isPremium && (
                         <span 
                           className="material-symbols-outlined text-[16px] text-[#f07d00] flex-shrink-0" 
-                          title={language === "de" ? "Premium Verifiziert" : "Premium Verified"}
+                          title={t("premiumVerified")}
                           style={{ fontVariationSettings: "'FILL' 1" }}
                         >
                           verified
@@ -329,30 +444,79 @@ export default function Navbar() {
                   </div>
                 </div>
 
-                <Link
-                  href={`${getDashboardUrl()}?tab=profile`}
-                  className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
-                >
-                  {t("myProfile")}
-                </Link>
-                <Link
-                  href={`${getDashboardUrl()}?tab=bookings`}
-                  className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
-                >
-                  {t("myBookings")}
-                </Link>
-                <Link
-                  href={`${getDashboardUrl()}?tab=favorites`}
-                  className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
-                >
-                  {t("favourites")}
-                </Link>
-                <Link
-                  href={`${getDashboardUrl()}?tab=saved-filters`}
-                  className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
-                >
-                  {language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}
-                </Link>
+                {profile.role === "landlord" ? (
+                  <>
+                    <Link
+                      href="/dashboard/landlord?tab=profile"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("myProfile")}
+                    </Link>
+                    <Link
+                      href="/dashboard/landlord?tab=bookings"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("bookingRequests")}
+                    </Link>
+                    <Link
+                      href="/dashboard/landlord?tab=properties"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("myProperties")}
+                    </Link>
+                    <Link
+                      href="/dashboard/landlord?tab=messages"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("messagesSupport")}
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        setMobileOpen(false);
+                        await handleSwitchRole("tenant");
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low cursor-pointer font-sans"
+                    >
+                      {t("switchToTenant")}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/dashboard/tenant?tab=profile"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("myProfile")}
+                    </Link>
+                    <Link
+                      href="/dashboard/tenant?tab=bookings"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("myBookings")}
+                    </Link>
+                    <Link
+                      href="/dashboard/tenant?tab=favorites"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("favourites")}
+                    </Link>
+                    <Link
+                      href="/dashboard/tenant?tab=saved-filters"
+                      className="block px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low"
+                    >
+                      {t("savedSearches")}
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        setMobileOpen(false);
+                        await handleSwitchRole("landlord");
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low cursor-pointer font-sans"
+                    >
+                      {t("switchToLandlord")}
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={signOut}
                   className="w-full py-3 mt-2 rounded-xl text-[14px] font-semibold bg-primary text-on-primary hover:opacity-90 transition-all text-center cursor-pointer font-sans"

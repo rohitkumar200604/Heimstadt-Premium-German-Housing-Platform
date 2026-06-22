@@ -37,11 +37,20 @@ function LandlordDashboardContent() {
   const { formatPrice } = useCurrency();
   
   // Navigation State
-  const [activeTab, setActiveTab] = useState<"overview" | "profile" | "bookings" | "properties" | "favorites">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "profile" | "bookings" | "properties" | "messages">("overview");
 
-  // Favorites States
-  const [favoriteListings, setFavoriteListings] = useState<any[]>([]);
-  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  // Messages & Support States
+  const [messagesTab, setMessagesTab] = useState<"inquiries" | "support">("inquiries");
+  const [selectedSupportProperty, setSelectedSupportProperty] = useState<string>("");
+  const [supportMessages, setSupportMessages] = useState<any[]>([]);
+  const [supportInput, setSupportInput] = useState("");
+  const [sendingSupport, setSendingSupport] = useState(false);
+  const [supportRecipientId, setSupportRecipientId] = useState<string | null>(null);
+
+  // Listing Inquiries States
+  const [inquiryThreads, setInquiryThreads] = useState<any[]>([]);
+  const [selectedInquiryThread, setSelectedInquiryThread] = useState<any>(null);
+  const [loadingMessagesTab, setLoadingMessagesTab] = useState(false);
 
   // Database Data States
   const [landlordProfile, setLandlordProfile] = useState<any>(null);
@@ -80,7 +89,7 @@ function LandlordDashboardContent() {
       tabParam === "profile" ||
       tabParam === "bookings" ||
       tabParam === "properties" ||
-      tabParam === "favorites"
+      tabParam === "messages"
     ) {
       setActiveTab(tabParam as any);
     } else {
@@ -401,130 +410,287 @@ function LandlordDashboardContent() {
     }
   };
 
-  const fetchFavorites = async () => {
-    setLoadingFavorites(true);
-    const saved = localStorage.getItem("heimat_favorites");
-    if (!saved) {
-      setFavoriteListings([]);
-      setLoadingFavorites(false);
-      return;
-    }
-    try {
-      const favIds = JSON.parse(saved) as string[];
-      if (favIds.length === 0) {
-        setFavoriteListings([]);
-        setLoadingFavorites(false);
-        return;
+  // Fetch support recipient (admin/employee) on mount
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      if (isSupabaseConfigured()) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, role")
+          .in("role", ["admin", "employee"])
+          .order("role")
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled) setSupportRecipientId(data?.id ?? null);
+      } else {
+        if (!cancelled) setSupportRecipientId("mock-support-agent-id");
       }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
-      // Check if Supabase is configured
-      const isConfigured =
-        process.env.NEXT_PUBLIC_SUPABASE_URL &&
-        process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://mock-project.supabase.co" &&
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== "mock-anon-key";
-
-      let dbListings: any[] = [];
-      if (isConfigured) {
+  // Fetch support messages
+  const fetchSupportMessages = async (propertyId: string) => {
+    if (!user) return;
+    try {
+      if (isSupabaseConfigured()) {
         const { data, error } = await supabase
-          .from("properties")
-          .select(`*, property_photos(cdn_url,is_primary)`)
-          .in("id", favIds);
+          .from("messages")
+          .select("id, sender_id, recipient_id, body, sent_at")
+          .eq("property_id", propertyId)
+          .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
+          .order("sent_at", { ascending: true });
+        
         if (!error && data) {
-          dbListings = data;
+          setSupportMessages(data);
+        }
+      } else {
+        const mockMsgs = [
+          {
+            id: "mock-sup-1",
+            sender_id: "mock-support-agent-id",
+            recipient_id: user.id,
+            body: language === "de" 
+              ? "Hallo! Wie kann ich Ihnen bei dieser Immobilie helfen?" 
+              : "Hello! How can I help you with this property?",
+            sent_at: new Date(Date.now() - 3600000).toISOString()
+          }
+        ];
+        const stored = localStorage.getItem(`heimat_mock_support_chat_${propertyId}`);
+        if (stored) {
+          setSupportMessages(JSON.parse(stored));
+        } else {
+          setSupportMessages(mockMsgs);
+          localStorage.setItem(`heimat_mock_support_chat_${propertyId}`, JSON.stringify(mockMsgs));
         }
       }
+    } catch (err) {
+      console.error("Error fetching support messages:", err);
+    }
+  };
 
-      // Fallback/Mock listings if we don't have db listings
-      const mockListings: any[] = [
-        {
-          id: "berlin-studio",
-          title: language === "de" ? "Helles Studio-Apartment nahe Alexanderplatz" : "Bright Studio Apartment near Alexanderplatz",
-          city: "Berlin", street: "Karl-Liebknecht-Str. 12", zip: "10178",
-          rooms: 1, size_sqm: 38, rent_cold: 720, rent_utilities: 80, rent_heating: 70,
-          pets_allowed: true, furnished: false,
-          amenities: ["balcony", "kitchen"],
-          status: "active",
-          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80", is_primary: true }]
-        },
-        {
-          id: "munich-expat",
-          title: language === "de" ? "Premium 3-Zimmer-Wohnung am Englischen Garten" : "Premium 3-Room Apartment at Englischen Garten",
-          city: "München", street: "Königinstraße 44", zip: "80539",
-          rooms: 3, size_sqm: 82, rent_cold: 1650, rent_utilities: 150, rent_heating: 110,
-          pets_allowed: false, furnished: true,
-          amenities: ["kitchen", "parking"],
-          status: "active",
-          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80", is_primary: true }]
-        },
-        {
-          id: "hamburg-loft",
-          title: language === "de" ? "Stilvolles Loft in der Speicherstadt" : "Stylish Loft in Speicherstadt",
-          city: "Hamburg", street: "Am Sandtorkai 10", zip: "20457",
-          rooms: 2, size_sqm: 65, rent_cold: 1120, rent_utilities: 110, rent_heating: 90,
-          pets_allowed: true, furnished: true,
-          amenities: ["balcony", "kitchen", "garden"],
-          status: "active",
-          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80", is_primary: true }]
-        },
-        {
-          id: "berlin-wg",
-          title: language === "de" ? "Gemütliches Zimmer in Studenten-WG" : "Cozy Room in Student Shared Apartment",
-          city: "Berlin", street: "Königin-Luise-Str. 15", zip: "14195",
-          rooms: 1, size_sqm: 20, rent_cold: 450, rent_utilities: 60, rent_heating: 40,
-          pets_allowed: true, furnished: false,
-          amenities: ["kitchen"],
-          status: "active",
-          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&w=800&q=80", is_primary: true }]
-        },
-        {
-          id: "cologne-studio",
-          title: language === "de" ? "Modernes Studio im Herzen Kölns" : "Modern Studio in Cologne City Centre",
-          city: "Köln", street: "Schildergasse 8", zip: "50667",
-          rooms: 1, size_sqm: 32, rent_cold: 680, rent_utilities: 75, rent_heating: 55,
-          pets_allowed: false, furnished: true,
-          amenities: ["kitchen", "wheelchair"],
-          status: "active",
-          property_photos: [{ cdn_url: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80", is_primary: true }]
-        },
-      ];
+  // Send support message
+  const handleSendSupportMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = supportInput.trim();
+    if (!text || sendingSupport || !user || !selectedSupportProperty || !supportRecipientId) return;
 
-      // Merge / filter
-      const combined = [...dbListings];
-      favIds.forEach((id) => {
-        if (!combined.some((l) => l.id === id)) {
-          const mockItem = mockListings.find((m) => m.id === id);
-          if (mockItem) combined.push(mockItem);
+    setSendingSupport(true);
+    setSupportInput("");
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase
+          .from("messages")
+          .insert({
+            sender_id: user.id,
+            recipient_id: supportRecipientId,
+            body: text,
+            channel: "landlord_support",
+            property_id: selectedSupportProperty
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setSupportMessages((prev) => [...prev, data]);
+        }
+      } else {
+        const newMsg = {
+          id: `mock-msg-${Date.now()}`,
+          sender_id: user.id,
+          recipient_id: supportRecipientId,
+          body: text,
+          sent_at: new Date().toISOString()
+        };
+        const updated = [...supportMessages, newMsg];
+        setSupportMessages(updated);
+        localStorage.setItem(`heimat_mock_support_chat_${selectedSupportProperty}`, JSON.stringify(updated));
+
+        setTimeout(() => {
+          const replyMsg = {
+            id: `mock-reply-${Date.now()}`,
+            sender_id: supportRecipientId,
+            recipient_id: user.id,
+            body: language === "de"
+              ? "Vielen Dank für Ihre Nachricht. Ein Mitarbeiter wird sich in Kürze darum kümmern."
+              : "Thank you for your message. An employee will look into this shortly.",
+            sent_at: new Date().toISOString()
+          };
+          setSupportMessages((prev) => {
+            const next = [...prev, replyMsg];
+            localStorage.setItem(`heimat_mock_support_chat_${selectedSupportProperty}`, JSON.stringify(next));
+            return next;
+          });
+        }, 1000);
+      }
+    } catch (err) {
+      console.error("Error sending support message:", err);
+      setSupportInput(text);
+    } finally {
+      setSendingSupport(false);
+    }
+  };
+
+  // Fetch tenant inquiries for landlord properties
+  const fetchInquiryMessages = async () => {
+    if (!user || propertiesList.length === 0) return;
+    setLoadingMessagesTab(true);
+    try {
+      const propertyIds = propertiesList.map((p) => p.id);
+      
+      const { data: messagesData, error } = await supabase
+        .from("messages")
+        .select("id, sender_id, recipient_id, body, sent_at, property_id")
+        .in("property_id", propertyIds)
+        .order("sent_at", { ascending: true });
+
+      if (error) throw error;
+
+      const tenantIds = new Set<string>();
+      (messagesData || []).forEach((m) => {
+        if (m.sender_id && m.sender_id !== user.id) tenantIds.add(m.sender_id);
+        if (m.recipient_id && m.recipient_id !== user.id) tenantIds.add(m.recipient_id);
+      });
+
+      let tenantProfiles: Record<string, any> = {};
+      if (tenantIds.size > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, role")
+          .in("id", Array.from(tenantIds));
+        
+        profiles?.forEach((p) => {
+          if (p.role === "tenant" || p.role === "user" || !p.role) {
+            tenantProfiles[p.id] = p;
+          }
+        });
+      }
+
+      const threadsMap: Record<string, { property: any, tenant: any, messages: any[], last_message_time: string }> = {};
+      
+      (messagesData || []).forEach((m) => {
+        const prop = propertiesList.find((p) => p.id === m.property_id);
+        if (!prop) return;
+
+        const tenantId = (m.sender_id && tenantProfiles[m.sender_id]) ? m.sender_id :
+                         (m.recipient_id && tenantProfiles[m.recipient_id]) ? m.recipient_id : null;
+        if (!tenantId) return;
+
+        const threadKey = `${m.property_id}-${tenantId}`;
+        if (!threadsMap[threadKey]) {
+          threadsMap[threadKey] = {
+            property: prop,
+            tenant: tenantProfiles[tenantId],
+            messages: [],
+            last_message_time: m.sent_at
+          };
+        }
+        threadsMap[threadKey].messages.push(m);
+        if (new Date(m.sent_at) > new Date(threadsMap[threadKey].last_message_time)) {
+          threadsMap[threadKey].last_message_time = m.sent_at;
         }
       });
 
-      setFavoriteListings(combined);
-    } catch (e) {
-      console.error("Failed to load favorite details", e);
+      setInquiryThreads(Object.values(threadsMap));
+    } catch (err) {
+      console.error("Error loading inquiries:", err);
     } finally {
-      setLoadingFavorites(false);
+      setLoadingMessagesTab(false);
     }
   };
 
-  const handleRemoveFavorite = (id: string) => {
-    const saved = localStorage.getItem("heimat_favorites");
-    if (saved) {
-      try {
-        const favIds = JSON.parse(saved) as string[];
-        const next = favIds.filter((x) => x !== id);
-        localStorage.setItem("heimat_favorites", JSON.stringify(next));
-        setFavoriteListings((prev) => prev.filter((l) => l.id !== id));
-      } catch (e) {
-        console.error(e);
+  const fetchMockInquiries = () => {
+    const mockTenant = { id: "mock-tenant-id", full_name: "Mock Tenant", email: "tenant@mock.com" };
+    const mockProp = propertiesList[0] || { id: "berlin-studio", title: "Bright Studio Apartment near Alexanderplatz" };
+    const mockMsgs = [
+      {
+        id: "mock-inq-1",
+        sender_id: "mock-tenant-id",
+        recipient_id: "mock-support-agent-id",
+        body: language === "de"
+          ? "Guten Tag, ich interessiere mich sehr für das Helle Studio-Apartment. Sind Haustiere wirklich erlaubt?"
+          : "Hello, I am very interested in the Bright Studio Apartment. Are pets really allowed?",
+        sent_at: new Date(Date.now() - 7200000).toISOString()
+      },
+      {
+        id: "mock-inq-2",
+        sender_id: "mock-support-agent-id",
+        recipient_id: "mock-tenant-id",
+        body: language === "de"
+          ? "Hallo! Ja, kleine Haustiere sind nach Absprache mit dem Vermieter gestattet."
+          : "Hello! Yes, small pets are allowed upon consultation with the landlord.",
+        sent_at: new Date(Date.now() - 3600000).toISOString()
       }
-    }
+    ];
+
+    setInquiryThreads([
+      {
+        property: mockProp,
+        tenant: mockTenant,
+        messages: mockMsgs,
+        last_message_time: mockMsgs[1].sent_at
+      }
+    ]);
   };
 
   useEffect(() => {
-    if (activeTab === "favorites") {
-      fetchFavorites();
+    if (activeTab === "messages") {
+      if (isSupabaseConfigured()) {
+        fetchInquiryMessages();
+      } else {
+        fetchMockInquiries();
+      }
+      if (propertiesList.length > 0) {
+        setSelectedSupportProperty(propertiesList[0].id);
+        fetchSupportMessages(propertiesList[0].id);
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, propertiesList]);
+
+  useEffect(() => {
+    if (selectedSupportProperty) {
+      fetchSupportMessages(selectedSupportProperty);
+    }
+  }, [selectedSupportProperty]);
+
+  const handleDeleteProperty = async (propertyId: string) => {
+    const confirmMsg = language === "de"
+      ? "Sind Sie sicher, dass Sie diese Immobilie löschen möchten? Alle zugehörigen Buchungsanfragen und Fotos werden unwiderruflich gelöscht."
+      : "Are you sure you want to delete this property? All associated bookings and photos will be permanently deleted.";
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { data: bookings } = await supabase
+          .from("bookings")
+          .select("id")
+          .eq("property_id", propertyId);
+
+        const bookingIds = bookings?.map((b) => b.id) || [];
+        if (bookingIds.length > 0) {
+          await supabase.from("ai_tenant_scores").delete().in("booking_id", bookingIds);
+          await supabase.from("bookings").delete().in("id", bookingIds);
+        }
+        await supabase.from("property_photos").delete().eq("property_id", propertyId);
+        const { error } = await supabase.from("properties").delete().eq("id", propertyId);
+        if (error) throw error;
+      } else {
+        const nextProps = propertiesList.filter((p) => p.id !== propertyId);
+        setPropertiesList(nextProps);
+        const nextBookings = bookingRequests.filter((b) => b.properties?.id !== propertyId);
+        setBookingRequests(nextBookings);
+      }
+      await fetchLandlordData();
+      alert(language === "de" ? "Immobilie erfolgreich gelöscht." : "Property successfully deleted.");
+    } catch (err) {
+      console.error("Failed to delete property:", err);
+      alert(language === "de" ? "Fehler beim Löschen der Immobilie." : "Failed to delete property.");
+    }
+  };
 
   if (loading || loadingDashboard) {
     return (
@@ -627,15 +793,15 @@ function LandlordDashboardContent() {
             </button>
 
             <button
-              onClick={() => setActiveTab("favorites")}
+              onClick={() => setActiveTab("messages")}
               className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-left text-label-md font-bold transition-all ${
-                activeTab === "favorites"
+                activeTab === "messages"
                   ? "bg-primary text-on-primary shadow-md"
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-primary"
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]">favorite</span>
-              <span>{language === "de" ? "Favoriten" : "Favourites"}</span>
+              <span className="material-symbols-outlined text-[20px]">forum</span>
+              <span>{language === "de" ? "Nachrichten & Support" : "Messages & Support"}</span>
             </button>
 
 
@@ -967,13 +1133,29 @@ function LandlordDashboardContent() {
                             <p className="text-[10px] text-on-surface-variant uppercase font-bold tracking-wider leading-none">Kaltmiete</p>
                             <p className="text-body-md font-extrabold text-primary mt-1">{formatPrice(Number(p.rent_cold))}</p>
                           </div>
-                          <Link
-                            href={`/objekt/${p.id}`}
-                            className="text-primary text-[12px] font-bold hover:underline flex items-center gap-1"
-                          >
-                            {language === "de" ? "Ansehen" : "View"}
-                            <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-                          </Link>
+                          <div className="flex items-center gap-3">
+                            <Link
+                              href={`/objekt/${p.id}`}
+                              className="text-primary text-[12px] font-bold hover:underline flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                              <span>{language === "de" ? "Ansehen" : "View"}</span>
+                            </Link>
+                            <Link
+                              href={`/inserieren?id=${p.id}`}
+                              className="text-[#005fb8] text-[12px] font-bold hover:underline flex items-center gap-1"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">edit</span>
+                              <span>{language === "de" ? "Bearbeiten" : "Edit"}</span>
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteProperty(p.id)}
+                              className="text-error text-[12px] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete</span>
+                              <span>{language === "de" ? "Löschen" : "Delete"}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -983,101 +1165,243 @@ function LandlordDashboardContent() {
             )}
 
             {/* 5. Tab: Favourites */}
-            {activeTab === "favorites" && (
+            {/* 5. Tab: Messages & Support */}
+            {activeTab === "messages" && (
               <div className="bg-white border border-outline-variant p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
                 <div>
                   <h2 className="text-headline-md font-bold text-primary flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                    {language === "de" ? "Favoriten" : "Favourites"}
+                    <span className="material-symbols-outlined text-[28px] text-primary">forum</span>
+                    {language === "de" ? "Nachrichten & Support" : "Messages & Support"}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
                     {language === "de"
-                      ? "Hier finden Sie alle Ihre gemerkten Unterkünfte. Verwalten Sie Ihre Favoriten und starten Sie direkt Ihre Bewerbungen."
-                      : "Here you can find all your saved properties. Manage your favorites and apply to them directly."}
+                      ? "Verwalten Sie Ihre Kommunikation. Sehen Sie Anfragen zu Ihren Objekten ein oder chatten Sie direkt mit dem Support-Team."
+                      : "Manage your communications. View tenant inquiries on your properties or chat directly with the support team."}
                   </p>
                 </div>
 
-                {loadingFavorites ? (
-                  <div className="flex justify-center items-center py-16">
-                    <div className="relative w-16 h-16 flex items-center justify-center">
-                      <div className="absolute inset-0 rounded-full border-[3px] border-[#002046]/15 border-t-[#002046] animate-spin" />
-                      <div className="absolute w-10 h-10 rounded-full border-[3px] border-[#aec7f7]/20 border-b-[#aec7f7] animate-spin [animation-direction:reverse] [animation-duration:1s]" />
-                      <div className="absolute w-12 h-12 bg-[#002046]/5 rounded-full blur-md animate-pulse" />
-                    </div>
-                  </div>
-                ) : favoriteListings.length === 0 ? (
-                  <div className="text-center py-16 text-on-surface-variant border-2 border-dashed border-outline-variant/55 rounded-2xl bg-surface-container-low/30 space-y-4">
-                    <span className="material-symbols-outlined text-[48px] text-outline-variant">favorite_border</span>
-                    <p className="text-body-md">
-                      {language === "de" ? "Keine Favoriten gespeichert." : "No saved favorites yet."}
-                    </p>
-                    <button
-                      onClick={() => router.push("/suche")}
-                      className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-label-sm font-bold hover:opacity-90 active:scale-95 transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">search</span>
-                      {language === "de" ? "Wohnungen suchen" : "Search Properties"}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {favoriteListings.map((l) => {
-                      const primaryPhoto = getDisplayPhoto(l.property_photos?.find((p: any) => p.is_primary)?.cdn_url || l.property_photos?.[0]?.cdn_url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80");
-                      const totalRent = Math.round(parseFloat(l.rent_cold) + parseFloat(l.rent_utilities || 0) + parseFloat(l.rent_heating || 0));
+                {/* Sub Tab Buttons */}
+                <div className="flex border-b border-outline-variant pb-px gap-6">
+                  <button
+                    onClick={() => {
+                      setMessagesTab("inquiries");
+                      setSelectedInquiryThread(null);
+                    }}
+                    className={`pb-3 text-label-md font-bold transition-all relative ${
+                      messagesTab === "inquiries"
+                        ? "text-primary border-b-2 border-primary font-extrabold"
+                        : "text-on-surface-variant hover:text-primary"
+                    }`}
+                  >
+                    {language === "de" ? "Mietinteressenten-Anfragen" : "Tenant Inquiries"}
+                  </button>
+                  <button
+                    onClick={() => setMessagesTab("support")}
+                    className={`pb-3 text-label-md font-bold transition-all relative ${
+                      messagesTab === "support"
+                        ? "text-primary border-b-2 border-primary font-extrabold"
+                        : "text-on-surface-variant hover:text-primary"
+                    }`}
+                  >
+                    {language === "de" ? "Support kontaktieren" : "Contact Support"}
+                  </button>
+                </div>
 
-                      return (
-                        <div
-                          key={l.id}
-                          className="group bg-white rounded-xl border border-outline-variant overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                {/* Sub Tab: Inquiries (Tenants <-> Support) */}
+                {messagesTab === "inquiries" && (
+                  <div className="space-y-6">
+                    {selectedInquiryThread ? (
+                      <div className="space-y-4">
+                        <button
+                          onClick={() => setSelectedInquiryThread(null)}
+                          className="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary font-bold text-[13px] transition-colors"
                         >
-                          <div className="relative h-44 overflow-hidden bg-surface-dim">
-                            <img
-                              src={primaryPhoto}
-                              alt={l.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              loading="lazy"
-                            />
-                            <button
-                              onClick={() => handleRemoveFavorite(l.id)}
-                              className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-1.5 rounded-full hover:bg-white transition-colors cursor-pointer text-red-500 hover:text-red-700 shadow-sm"
-                              title={language === "de" ? "Entfernen" : "Remove"}
-                            >
-                              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                            </button>
-                          </div>
-                          <div className="p-5 flex-grow flex flex-col justify-between">
-                            <div>
-                              <h3 className="text-[16px] font-bold text-primary leading-snug line-clamp-1 mb-1">{l.title}</h3>
-                              <p className="text-[12px] text-on-surface-variant line-clamp-1 mb-4">📍 {l.street}, {l.zip} {normalizeCityName(l.city, language)}</p>
-                              
-                              <div className="grid grid-cols-3 gap-2 mb-4 border-t border-b border-outline-variant/40 py-2.5">
-                                <div className="text-center">
-                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Warm" : "Warm Rent"}</span>
-                                  <span className="text-[14px] font-bold text-primary">{formatPrice(totalRent || 870)}</span>
-                                </div>
-                                <div className="text-center border-l border-r border-outline-variant/30">
-                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Fläche" : "Area"}</span>
-                                  <span className="text-[14px] font-semibold text-primary">{l.size_sqm} m²</span>
-                                </div>
-                                <div className="text-center">
-                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Zimmer" : "Rooms"}</span>
-                                  <span className="text-[14px] font-semibold text-primary">{l.rooms}</span>
-                                </div>
-                              </div>
-                            </div>
+                          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                          {language === "de" ? "Zurück zur Übersicht" : "Back to Overview"}
+                        </button>
 
-                            <div className="flex gap-2">
-                              <Link
-                                href={`/objekt/${l.id}`}
-                                className="flex-1 text-center bg-primary text-on-primary py-2 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm"
-                              >
-                                {language === "de" ? "Details ansehen" : "View Details"}
-                              </Link>
-                            </div>
-                          </div>
+                        <div className="p-4 bg-surface-container-low border border-outline-variant/60 rounded-2xl">
+                          <p className="text-[12px] text-on-surface-variant font-semibold">
+                            {language === "de" ? "Immobilie: " : "Property: "}{" "}
+                            <span className="text-primary font-bold">{selectedInquiryThread.property.title}</span>
+                          </p>
+                          <p className="text-[12px] text-on-surface-variant font-semibold mt-1">
+                            {language === "de" ? "Mietinteressent: " : "Tenant Applicant: "}{" "}
+                            <span className="text-primary font-bold">{selectedInquiryThread.tenant?.full_name || "Applicant"} ({selectedInquiryThread.tenant?.email})</span>
+                          </p>
                         </div>
-                      );
-                    })}
+
+                        {/* Thread Messages List */}
+                        <div className="border border-outline-variant rounded-2xl bg-white p-5 h-[350px] overflow-y-auto space-y-4 flex flex-col justify-start">
+                          {selectedInquiryThread.messages.map((m: any) => {
+                            const isTenantSender = m.sender_id === selectedInquiryThread.tenant?.id;
+                            const senderName = isTenantSender 
+                              ? (selectedInquiryThread.tenant?.full_name || "Tenant")
+                              : (language === "de" ? "Support-Mitarbeiter" : "Support Agent");
+                            
+                            return (
+                              <div
+                                key={m.id}
+                                className={`flex flex-col max-w-[80%] ${
+                                  isTenantSender ? "self-start items-start" : "self-end items-end ml-auto"
+                                }`}
+                              >
+                                <span className="text-[10px] text-on-surface-variant/80 font-bold mb-1 px-1">
+                                  {senderName}
+                                </span>
+                                <div
+                                  className={`p-3.5 rounded-2xl text-[13px] leading-relaxed shadow-sm ${
+                                    isTenantSender
+                                      ? "bg-surface-container-high text-on-surface rounded-tl-sm"
+                                      : "bg-primary text-on-primary rounded-tr-sm"
+                                  }`}
+                                >
+                                  {m.body}
+                                </div>
+                                <span className="text-[9px] text-on-surface-variant/50 font-semibold mt-1 px-1">
+                                  {new Date(m.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {loadingMessagesTab ? (
+                          <div className="flex justify-center items-center py-12">
+                            <span className="animate-spin rounded-full h-8 w-8 border-3 border-primary border-t-transparent" />
+                          </div>
+                        ) : inquiryThreads.length === 0 ? (
+                          <div className="text-center py-12 text-on-surface-variant text-body-md border border-dashed border-outline-variant/60 rounded-2xl bg-surface-container-low/20">
+                            {language === "de"
+                              ? "Es liegen keine Support-Anfragen zu Ihren Immobilien vor."
+                              : "No inquiry chats found for your properties."}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {inquiryThreads.map((thread, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => setSelectedInquiryThread(thread)}
+                                className="p-5 border border-outline-variant rounded-2xl bg-surface-container-low hover:bg-surface-container transition-all flex justify-between items-center gap-4 cursor-pointer hover:shadow-sm"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="text-label-md font-bold text-primary">
+                                      {thread.tenant?.full_name || "Applicant"}
+                                    </h4>
+                                    <span className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded text-[10px] font-bold truncate max-w-[180px]">
+                                      {thread.property.title}
+                                    </span>
+                                  </div>
+                                  <p className="text-[13px] text-on-surface-variant truncate mt-2 font-medium">
+                                    {thread.messages[thread.messages.length - 1]?.body}
+                                  </p>
+                                </div>
+                                <span className="material-symbols-outlined text-primary text-[20px] flex-shrink-0">
+                                  arrow_forward_ios
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub Tab: Contact Support (Landlord <-> Support) */}
+                {messagesTab === "support" && (
+                  <div className="space-y-6">
+                    {propertiesList.length === 0 ? (
+                      <div className="text-center py-12 text-on-surface-variant text-body-md border border-dashed border-outline-variant rounded-2xl bg-surface-container-low/20">
+                        {language === "de"
+                          ? "Inserieren Sie zuerst eine Immobilie, um den Support zu kontaktieren."
+                          : "Please list a property first to contact support regarding it."}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Select Property dropdown */}
+                        <div className="space-y-1">
+                          <label className="block text-label-sm text-on-surface font-semibold">
+                            {language === "de" ? "Betreffende Immobilie wählen" : "Select property regarding"}
+                          </label>
+                          <select
+                            value={selectedSupportProperty}
+                            onChange={(e) => setSelectedSupportProperty(e.target.value)}
+                            className="w-full h-11 px-4 bg-surface-container-low border border-outline-variant rounded-xl outline-none text-[15px] focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                          >
+                            {propertiesList.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.title} ({p.street}, {p.city})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Support Chat Messages box */}
+                        <div className="border border-outline-variant rounded-2xl bg-white p-5 h-[320px] overflow-y-auto space-y-4 flex flex-col justify-start">
+                          {supportMessages.length === 0 ? (
+                            <div className="self-center text-center max-w-sm py-12">
+                              <p className="text-body-md text-on-surface-variant">
+                                {language === "de"
+                                  ? "Schreiben Sie dem Support-Team bezüglich dieser Immobilie. Wir melden uns umgehend."
+                                  : "Write a message to our support team regarding this property. We will get back to you shortly."}
+                              </p>
+                            </div>
+                          ) : (
+                            supportMessages.map((m) => {
+                              const isSelf = m.sender_id === user?.id;
+                              return (
+                                <div
+                                  key={m.id}
+                                  className={`flex flex-col max-w-[80%] ${
+                                    isSelf ? "self-end items-end ml-auto" : "self-start items-start"
+                                  }`}
+                                >
+                                  <div
+                                    className={`p-3.5 rounded-2xl text-[13px] leading-relaxed shadow-sm ${
+                                      isSelf
+                                        ? "bg-primary text-on-primary rounded-tr-sm"
+                                        : "bg-surface-container-high text-on-surface rounded-tl-sm"
+                                    }`}
+                                  >
+                                    {m.body}
+                                  </div>
+                                  <span className="text-[9px] text-on-surface-variant/50 font-semibold mt-1 px-1">
+                                    {new Date(m.sent_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* Send message form */}
+                        <form onSubmit={handleSendSupportMessage} className="flex gap-3">
+                          <input
+                            type="text"
+                            placeholder={language === "de" ? "Nachricht eingeben..." : "Type your message..."}
+                            value={supportInput}
+                            onChange={(e) => setSupportInput(e.target.value)}
+                            disabled={sendingSupport}
+                            className="flex-grow bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-[14px] outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!supportInput.trim() || sendingSupport}
+                            className="bg-primary text-on-primary px-6 rounded-xl flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            {sendingSupport ? (
+                              <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                            ) : (
+                              <span className="material-symbols-outlined text-[20px] transform rotate-[-30deg]">send</span>
+                            )}
+                          </button>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -606,7 +606,7 @@ export default function HomePage() {
             onSubmit={handleSearch}
             className="max-w-7xl mx-auto bg-white/95 backdrop-blur-md p-4 md:p-6 rounded-xl shadow-2xl"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-10 gap-4 items-end">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-8 gap-4 items-end">
               <div className="text-left sm:col-span-2 md:col-span-3 relative" ref={suggestionsRef}>
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {t("searchCityLabel")}
@@ -657,27 +657,6 @@ export default function HomePage() {
 
               <div className="text-left sm:col-span-1 md:col-span-2">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
-                  {t("searchRoomsLabel")}
-                </label>
-                <select
-                  value={zimmer}
-                  onChange={(e) => setZimmer(e.target.value)}
-                  id="search-rooms"
-                  className="w-full px-4 py-3 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px] h-[50px] font-semibold text-on-surface cursor-pointer"
-                >
-                  <option value="all">{t("all")}</option>
-                  <option value="1">1 Room Apartment</option> 
-                  <option value="2">2 Room Apartment</option>
-                  <option value="3">3 Room Apartment</option>
-                  <option value="4">4 Room Apartment</option>
-                  <option value="5">5 Room Apartment</option>
-                  <option value="house">House</option>
-                  <option value="shared">Shared Accomodation</option>
-                </select>
-              </div>
-
-              <div className="text-left sm:col-span-1 md:col-span-2">
-                <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
                   {language === "de" ? "Einzug" : "Move in"}
                 </label>
                 <input
@@ -708,7 +687,7 @@ export default function HomePage() {
                 type="submit"
                 id="btn-search"
                 disabled={stadt.trim() === ""}
-                className={`h-[50px] rounded-lg text-label-md flex items-center justify-center gap-2 transition-all shadow-lg w-full font-semibold sm:col-span-1 md:col-span-1 ${
+                className={`h-[50px] rounded-lg text-label-md flex items-center justify-center gap-2 transition-all shadow-lg w-full font-semibold sm:col-span-2 md:col-span-1 ${
                   stadt.trim() === ""
                     ? "bg-outline-variant text-on-surface-variant cursor-not-allowed opacity-50"
                     : "bg-primary text-white hover:opacity-90 active:scale-95 cursor-pointer"

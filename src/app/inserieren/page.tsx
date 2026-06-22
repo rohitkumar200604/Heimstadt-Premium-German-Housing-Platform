@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/utils/supabase/client";
@@ -9,11 +9,79 @@ import Footer from "@/components/layout/Footer";
 
 export default function InserierenPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("id");
   const { t, language } = useLanguage();
   const { user, profile, loading, signOut, session } = useAuth();
-  
+  const [isEditMode, setIsEditMode] = useState(false);
   const [landlordId, setLandlordId] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+
+  // Load listing for editing if editId is provided
+  useEffect(() => {
+    if (!editId || !user) return;
+    
+    const loadListing = async () => {
+      try {
+        const { data: prop, error: propErr } = await supabase
+          .from("properties")
+          .select(`*, property_photos(*)`)
+          .eq("id", editId)
+          .single();
+
+        if (propErr) throw propErr;
+
+        if (prop) {
+          setIsEditMode(true);
+          setStep1({
+            typ: prop.property_type || "apartment",
+            strasse: prop.street || "",
+            plz: prop.zip || "",
+            stadt: prop.city || "",
+          });
+          setStep2({
+            kaltmiete: String(prop.rent_cold || ""),
+            nebenkosten: String(prop.rent_utilities || ""),
+            heizkosten: String(prop.rent_heating || ""),
+            flaeche: String(prop.size_sqm || ""),
+            zimmer: String(prop.rooms || ""),
+            etage: String(prop.floor || ""),
+          });
+          setStep4({
+            titel: prop.title || "",
+            beschreibung: prop.description || "",
+            verfuegbar_ab: prop.available_from || "",
+            kaution_monate: String(prop.deposit_months || "3"),
+            moebliert: prop.furnished || false,
+            min_monate: String(prop.min_stay_months || "1"),
+            max_monate: String(prop.max_stay_months || ""),
+          });
+          setAmenities(prop.amenities || []);
+          setSingleBeds(prop.single_beds || 0);
+          setDoubleBeds(prop.double_beds || 0);
+          setRentCalculation(prop.rent_calculation || "monthly");
+          setSmokingAllowed(prop.smoking_allowed || false);
+          setRegistrationPossible(prop.registration_possible || false);
+          setSuitableForCouples(prop.suitable_for_couples || false);
+          if (prop.lat && prop.lng) {
+            setCoords({ lat: prop.lat, lng: prop.lng });
+          }
+          if (prop.property_photos) {
+            const mappedPhotos = prop.property_photos.map((ph: any) => ({
+              cdn_url: ph.cdn_url,
+              key: ph.s3_key,
+              is_primary: ph.is_primary,
+            }));
+            setUploadedPhotos(mappedPhotos);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load property details for edit:", err);
+      }
+    };
+
+    loadListing();
+  }, [editId, user]);
   const [amenities, setAmenities] = useState<string[]>([]);
   const [uploadedPhotos, setUploadedPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -30,6 +98,14 @@ export default function InserierenPage() {
   const [step4, setStep4] = useState({ titel: "", beschreibung: "", verfuegbar_ab: "", kaution_monate: "3", moebliert: false, min_monate: "1", max_monate: "" });
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geocoding, setGeocoding] = useState(false);
+
+  // ── New filter-linked fields ────────────────────────────────────────────────
+  const [singleBeds, setSingleBeds] = useState(0);
+  const [doubleBeds, setDoubleBeds] = useState(0);
+  const [rentCalculation, setRentCalculation] = useState("monthly");
+  const [smokingAllowed, setSmokingAllowed] = useState(false);
+  const [registrationPossible, setRegistrationPossible] = useState(false);
+  const [suitableForCouples, setSuitableForCouples] = useState(false);
 
 
 
@@ -250,21 +326,28 @@ export default function InserierenPage() {
     { num: 5, label: language === "de" ? "Details" : "Details", icon: "tune" },
   ];
 
+  // Use consistent amenity IDs (matching search filters)
   const amenityOpts = [
-    t("balcony"),
-    t("kitchen"),
-    language === "de" ? "Aufzug" : "Elevator",
-    language === "de" ? "Parkplatz" : "Parking Spot",
-    t("petsAllowed"),
-    language === "de" ? "Garten" : "Garden",
-    language === "de" ? "Keller" : "Cellar",
-    language === "de" ? "Klimaanlage" : "Air conditioning",
+    { id: "balcony",          label: language === "de" ? "Balkon"           : "Balcony" },
+    { id: "kitchen",          label: language === "de" ? "Einbauküche"      : "Fitted Kitchen" },
+    { id: "elevator",         label: language === "de" ? "Aufzug"           : "Elevator" },
+    { id: "parking",          label: language === "de" ? "Parkplatz"        : "Parking" },
+    { id: "pets",             label: language === "de" ? "Haustiere erlaubt" : "Pets Allowed" },
+    { id: "garden",           label: language === "de" ? "Garten"           : "Garden" },
+    { id: "cellar",           label: language === "de" ? "Keller"           : "Cellar" },
+    { id: "air_conditioning", label: language === "de" ? "Klimaanlage"      : "Air Conditioning" },
+    { id: "wifi",             label: "WiFi" },
+    { id: "dishwasher",       label: language === "de" ? "Geschirrspüler"   : "Dishwasher" },
+    { id: "washing_machine",  label: language === "de" ? "Waschmaschine"    : "Washing Machine" },
+    { id: "tv",               label: language === "de" ? "Fernseher"        : "TV" },
+    { id: "laundry",          label: language === "de" ? "Waschraum"        : "Laundry Room" },
+    { id: "wheelchair",       label: language === "de" ? "Barrierefrei"     : "Wheelchair Access" },
   ];
 
   const progressPct = ((step - 1) / (stepsList.length - 1)) * 100;
 
-  const toggleAmenity = (a: string) =>
-    setAmenities((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
+  const toggleAmenity = (id: string) =>
+    setAmenities((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const handleDropzoneClick = () => {
     fileInputRef.current?.click();
@@ -338,7 +421,7 @@ export default function InserierenPage() {
       return;
     }
 
-    // Step 4 Submit: Publish Listing
+    // Step 5 Submit: Publish or Update Listing
     if (!landlordId) {
       alert("Error: Landlord profile not loaded.");
       return;
@@ -346,63 +429,137 @@ export default function InserierenPage() {
 
     setUploading(true);
     try {
-      // 1. Write property parameters to DB
-      const { data: prop, error: propErr } = await supabase
-        .from("properties")
-        .insert({
-          landlord_id: landlordId,
-          title: step4.titel,
-          description: step4.beschreibung,
-          street: step1.strasse,
-          city: step1.stadt,
-          zip: step1.plz,
-          property_type: step1.typ,
-          size_sqm: parseFloat(step2.flaeche),
-          rooms: parseFloat(step2.zimmer),
-          rent_cold: parseFloat(step2.kaltmiete),
-          rent_utilities: parseFloat(step2.nebenkosten || "0"),
-          rent_heating: parseFloat(step2.heizkosten || "0"),
-          deposit_months: parseInt(step4.kaution_monate || "3"),
-          available_from: step4.verfuegbar_ab || new Date().toISOString().split("T")[0],
-          furnished: step4.moebliert,
-          pets_allowed: amenities.includes(t("petsAllowed")),
-          amenities: amenities,
-          status: "active",
-          lat: coords?.lat ?? null,
-          lng: coords?.lng ?? null,
-          floor: step2.etage ? parseInt(step2.etage) : null,
-          min_stay_months: step4.min_monate ? parseInt(step4.min_monate) : 1,
-          max_stay_months: step4.max_monate ? parseInt(step4.max_monate) : null,
-        })
-        .select()
-        .single();
+      if (isEditMode && editId) {
+        // 1. Update existing property parameters in DB
+        const { error: propErr } = await supabase
+          .from("properties")
+          .update({
+            title: step4.titel,
+            description: step4.beschreibung,
+            street: step1.strasse,
+            city: step1.stadt,
+            zip: step1.plz,
+            property_type: step1.typ,
+            size_sqm: parseFloat(step2.flaeche),
+            rooms: parseFloat(step2.zimmer),
+            rent_cold: parseFloat(step2.kaltmiete),
+            rent_utilities: parseFloat(step2.nebenkosten || "0"),
+            rent_heating: parseFloat(step2.heizkosten || "0"),
+            deposit_months: parseInt(step4.kaution_monate || "3"),
+            available_from: step4.verfuegbar_ab || new Date().toISOString().split("T")[0],
+            furnished: step4.moebliert,
+            pets_allowed: amenities.includes("pets"),
+            amenities: amenities,
+            lat: coords?.lat ?? null,
+            lng: coords?.lng ?? null,
+            floor: step2.etage ? parseInt(step2.etage) : null,
+            min_stay_months: step4.min_monate ? parseInt(step4.min_monate) : 1,
+            max_stay_months: step4.max_monate ? parseInt(step4.max_monate) : null,
+            single_beds: singleBeds,
+            double_beds: doubleBeds,
+            rent_calculation: rentCalculation,
+            smoking_allowed: smokingAllowed,
+            registration_possible: registrationPossible,
+            suitable_for_couples: suitableForCouples,
+          })
+          .eq("id", editId);
 
-      if (propErr) throw propErr;
+        if (propErr) throw propErr;
 
-      // 2. Write photo parameters to DB
-      if (uploadedPhotos.length > 0) {
-        const photoRows = uploadedPhotos.map((p, idx) => ({
-          property_id: prop.id,
-          s3_key: p.key,
-          cdn_url: p.cdn_url,
-          order_index: idx,
-          is_primary: p.is_primary,
-          alt_text: step4.titel
-        }));
-
-        const { error: photoErr } = await supabase
+        // 2. Delete existing photo references and insert new ones
+        await supabase
           .from("property_photos")
-          .insert(photoRows);
+          .delete()
+          .eq("property_id", editId);
 
-        if (photoErr) throw photoErr;
+        if (uploadedPhotos.length > 0) {
+          const photoRows = uploadedPhotos.map((p, idx) => ({
+            property_id: editId,
+            s3_key: p.key,
+            cdn_url: p.cdn_url,
+            order_index: idx,
+            is_primary: p.is_primary,
+            alt_text: step4.titel
+          }));
+
+          const { error: photoErr } = await supabase
+            .from("property_photos")
+            .insert(photoRows);
+
+          if (photoErr) throw photoErr;
+        }
+
+        alert(
+          language === "de"
+            ? "Ihr Inserat wurde erfolgreich aktualisiert."
+            : "Your listing has been successfully updated."
+        );
+        router.push("/dashboard/landlord");
+      } else {
+        // Create new property in DB
+        const { data: prop, error: propErr } = await supabase
+          .from("properties")
+          .insert({
+            landlord_id: landlordId,
+            title: step4.titel,
+            description: step4.beschreibung,
+            street: step1.strasse,
+            city: step1.stadt,
+            zip: step1.plz,
+            property_type: step1.typ,
+            size_sqm: parseFloat(step2.flaeche),
+            rooms: parseFloat(step2.zimmer),
+            rent_cold: parseFloat(step2.kaltmiete),
+            rent_utilities: parseFloat(step2.nebenkosten || "0"),
+            rent_heating: parseFloat(step2.heizkosten || "0"),
+            deposit_months: parseInt(step4.kaution_monate || "3"),
+            available_from: step4.verfuegbar_ab || new Date().toISOString().split("T")[0],
+            furnished: step4.moebliert,
+            pets_allowed: amenities.includes("pets"),
+            amenities: amenities,
+            status: "active",
+            lat: coords?.lat ?? null,
+            lng: coords?.lng ?? null,
+            floor: step2.etage ? parseInt(step2.etage) : null,
+            min_stay_months: step4.min_monate ? parseInt(step4.min_monate) : 1,
+            max_stay_months: step4.max_monate ? parseInt(step4.max_monate) : null,
+            single_beds: singleBeds,
+            double_beds: doubleBeds,
+            rent_calculation: rentCalculation,
+            smoking_allowed: smokingAllowed,
+            registration_possible: registrationPossible,
+            suitable_for_couples: suitableForCouples,
+          })
+          .select()
+          .single();
+
+        if (propErr) throw propErr;
+
+        // 2. Write photo parameters to DB
+        if (uploadedPhotos.length > 0) {
+          const photoRows = uploadedPhotos.map((p, idx) => ({
+            property_id: prop.id,
+            s3_key: p.key,
+            cdn_url: p.cdn_url,
+            order_index: idx,
+            is_primary: p.is_primary,
+            alt_text: step4.titel
+          }));
+
+          const { error: photoErr } = await supabase
+            .from("property_photos")
+            .insert(photoRows);
+
+          if (photoErr) throw photoErr;
+        }
+
+        alert(
+          language === "de"
+            ? "Vielen Dank! Ihr Inserat wurde erfolgreich veröffentlicht."
+            : "Thank you! Your listing has been successfully published."
+        );
+        router.push("/dashboard/landlord");
       }
-
-      alert(
-        language === "de"
-          ? "Vielen Dank! Ihr Inserat wurde erfolgreich veröffentlicht."
-          : "Thank you! Your listing has been successfully published."
-      );
-      router.push("/dashboard/landlord");
     } catch (err: any) {
       console.error("Error publishing property:", err);
       alert("Error publishing property: " + err.message);
@@ -454,17 +611,13 @@ export default function InserierenPage() {
             <div className="space-y-2">
               <h1 className="text-headline-md font-bold text-primary">
                 {isNotLoggedIn
-                  ? (language === "de" ? "Anmeldung erforderlich" : "Authentication Required")
-                  : (language === "de" ? "Vermieter-Bereich" : "Landlords Only")}
+                  ? (t("authRequired"))
+                  : (t("landlordsOnly"))}
               </h1>
               <p className="text-body-md text-on-surface-variant leading-relaxed">
                 {isNotLoggedIn
-                  ? (language === "de"
-                      ? "Bitte melden Sie sich als Vermieter an, um ein Objekt auf Heimstadt zu inserieren."
-                      : "Please log in or register as a landlord to list your property on Heimstadt.")
-                  : (language === "de"
-                      ? "Dieses Formular ist ausschließlich für Vermieter bestimmt. Sie sind aktuell als Mieter angemeldet."
-                      : "This page is strictly reserved for landlords. You are currently logged in as a Tenant.")}
+                  ? t("pleaseLoginLandlord")
+                  : t("tenantRestricted")}
               </p>
             </div>
 
@@ -472,7 +625,7 @@ export default function InserierenPage() {
             <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/60 text-left space-y-3">
               <h4 className="text-label-sm text-primary font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[#f07d00] text-[18px]">info</span>
-                <span>{language === "de" ? "Was möchten Sie tun?" : "What would you like to do?"}</span>
+                <span>{t("whatToDo")}</span>
               </h4>
               <ul className="text-[13px] text-on-surface-variant space-y-2">
                 {isNotLoggedIn ? (
@@ -488,9 +641,7 @@ export default function InserierenPage() {
                     <li className="flex items-start gap-2">
                       <span className="material-symbols-outlined text-primary text-[16px] mt-0.5">check_circle</span>
                       <span>
-                        {language === "de"
-                          ? "Wenn Sie kein Konto haben, registrieren Sie sich kostenlos als Vermieter."
-                          : "If you don't have an account, register as a landlord for free."}
+                        {t("registerLandlordFree")}
                       </span>
                     </li>
                   </>
@@ -499,9 +650,7 @@ export default function InserierenPage() {
                     <li className="flex items-start gap-2">
                       <span className="material-symbols-outlined text-primary text-[16px] mt-0.5">check_circle</span>
                       <span>
-                        {language === "de"
-                          ? "Wenn Sie ein Objekt vermieten wollen, melden Sie sich ab und erstellen Sie ein Vermieter-Konto."
-                          : "If you want to list a property, please log out and register a Landlord account."}
+                        {t("logoutRegisterLandlord")}
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -525,7 +674,7 @@ export default function InserierenPage() {
                   className="w-full bg-primary text-on-primary py-3.5 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">login</span>
-                  {language === "de" ? "Als Vermieter anmelden" : "Log In as Landlord"}
+                  {t("logInLandlord")}
                 </button>
 
                 <button
@@ -533,7 +682,7 @@ export default function InserierenPage() {
                   className="w-full bg-surface-container-high text-primary py-3.5 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-95 transition-all border border-outline-variant flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">person_add</span>
-                  {language === "de" ? "Als Vermieter registrieren" : "Register as Landlord"}
+                  {t("registerLandlord")}
                 </button>
 
                 <button
@@ -541,7 +690,7 @@ export default function InserierenPage() {
                   className="w-full border border-outline-variant text-on-surface-variant py-3 rounded-xl text-label-md font-bold hover:bg-surface-container-low active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">search</span>
-                  {language === "de" ? "Wohnungen suchen" : "Search Properties"}
+                  {t("searchProperties")}
                 </button>
               </div>
             ) : (
@@ -551,7 +700,7 @@ export default function InserierenPage() {
                   className="w-full bg-primary text-on-primary py-3.5 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">space_dashboard</span>
-                  {language === "de" ? "Zum Mieter-Dashboard" : "Go to Tenant Dashboard"}
+                  {t("goTenantDashboard")}
                 </button>
                 
                 <button
@@ -559,7 +708,7 @@ export default function InserierenPage() {
                   className="w-full border border-outline-variant text-on-surface-variant py-3 rounded-xl text-label-md font-bold hover:bg-surface-container-low active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">search</span>
-                  {language === "de" ? "Wohnungen suchen" : "Search Properties"}
+                  {t("searchProperties")}
                 </button>
 
                 <div className="border-t border-outline-variant/60 my-2 pt-4">
@@ -571,7 +720,7 @@ export default function InserierenPage() {
                     className="text-primary hover:underline text-[13px] font-bold flex items-center justify-center gap-1 mx-auto cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-[16px]">logout</span>
-                    {language === "de" ? "Konto wechseln / Abmelden" : "Switch Account / Log Out"}
+                    {t("switchAccount")}
                   </button>
                 </div>
               </div>
@@ -724,7 +873,7 @@ export default function InserierenPage() {
                     <div className="w-full h-full bg-surface-container flex flex-col items-center justify-center gap-3 text-on-surface-variant">
                       <span className="material-symbols-outlined text-[48px] opacity-40">map</span>
                       <p className="text-[13px] font-semibold opacity-60">
-                        {language === "de" ? "Google Maps API-Schlüssel erforderlich" : "Google Maps API key required"}
+                        {t("googleMapsKeyRequired")}
                       </p>
                       <p className="text-[11px] opacity-40">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</p>
                     </div>
@@ -759,10 +908,10 @@ export default function InserierenPage() {
                   {[
                     { id: "kaltmiete", label: `${t("coldRent")} (€)`, placeholder: "0.00", key: "kaltmiete" },
                     { id: "nebenkosten", label: `${t("utilities")} (€)`, placeholder: "0.00", key: "nebenkosten" },
-                    { id: "heizkosten", label: `${language === "de" ? "Heizkosten" : "Heating Costs"} (€)`, placeholder: "0.00", key: "heizkosten" },
+                    { id: "heizkosten", label: `${t("heatingCosts")} (€)`, placeholder: "0.00", key: "heizkosten" },
                     { id: "flaeche", label: `${t("livingArea")} (m²)`, placeholder: "z.B. 75", key: "flaeche" },
                     { id: "zimmer", label: `${t("rooms")}`, placeholder: "z.B. 3", key: "zimmer" },
-                    { id: "etage", label: `${language === "de" ? "Etage" : "Floor"}`, placeholder: "z.B. 2", key: "etage" },
+                    { id: "etage", label: `${t("floor")}`, placeholder: "z.B. 2", key: "etage" },
                   ].map(({ id, label, placeholder, key }) => (
                     <div key={id} className="space-y-2">
                       <label className="text-label-md text-on-surface font-medium">{label}</label>
@@ -827,7 +976,7 @@ export default function InserierenPage() {
                         <div className="absolute w-12 h-12 bg-[#002046]/5 rounded-full blur-md animate-pulse" />
                       </div>
                       <p className="text-body-md text-primary font-bold">
-                        {language === "de" ? "Bilder werden hochgeladen..." : "Uploading images..."}
+                        {t("uploadingImages")}
                       </p>
                     </div>
                   ) : (
@@ -857,7 +1006,7 @@ export default function InserierenPage() {
                       <img src={p.cdn_url} alt="Uploaded Room" className="w-full h-full object-cover" />
                       {p.is_primary && (
                         <div className="absolute bottom-2 left-2 bg-primary text-on-primary text-[10px] px-2 py-0.5 rounded font-bold uppercase shadow">
-                          {language === "de" ? "Hauptbild" : "Primary"}
+                          {t("primaryPhoto")}
                         </div>
                       )}
                       <button
@@ -919,24 +1068,24 @@ export default function InserierenPage() {
                   <div>
                     <p className="text-label-md text-on-surface font-medium mb-3">{t("amenitiesLabel")}</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {amenityOpts.map((a) => (
+                      {amenityOpts.map(({ id, label }) => (
                         <label
-                          key={a}
-                          htmlFor={`amenity-${a}`}
+                          key={id}
+                          htmlFor={`amenity-${id}`}
                           className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                            amenities.includes(a)
+                            amenities.includes(id)
                               ? "border-primary bg-primary-fixed"
                               : "border-outline-variant hover:bg-surface-container-low"
                           }`}
                         >
                           <input
                             type="checkbox"
-                            id={`amenity-${a}`}
-                            checked={amenities.includes(a)}
-                            onChange={() => toggleAmenity(a)}
+                            id={`amenity-${id}`}
+                            checked={amenities.includes(id)}
+                            onChange={() => toggleAmenity(id)}
                             className="w-5 h-5 rounded accent-primary"
                           />
-                          <span className="text-label-md">{a}</span>
+                          <span className="text-label-md">{label}</span>
                         </label>
                       ))}
                     </div>
@@ -950,7 +1099,7 @@ export default function InserierenPage() {
               <div id="step-5" className="glass-card rounded-xl p-6 md:p-8 shadow-sm border border-outline-variant">
                 <div className="flex items-center gap-3 mb-8">
                   <span className="material-symbols-outlined text-primary text-[32px]">tune</span>
-                  <h2 className="text-headline-md">{language === "de" ? "Weitere Details" : "Additional Details"}</h2>
+                  <h2 className="text-headline-md">{t("additionalDetails")}</h2>
                 </div>
 
                 <div className="space-y-6">
@@ -958,7 +1107,7 @@ export default function InserierenPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-label-md text-on-surface font-medium">
-                        {language === "de" ? "Verfügbar ab" : "Available From"}
+                        {t("availableFrom")}
                       </label>
                       <input
                         id="step5-verfuegbar"
@@ -972,7 +1121,7 @@ export default function InserierenPage() {
 
                     <div className="space-y-2">
                       <label className="text-label-md text-on-surface font-medium">
-                        {language === "de" ? "Kaution (Monate)" : "Deposit (Months)"}
+                        {t("depositMonths")}
                       </label>
                       <select
                         id="step5-kaution"
@@ -993,7 +1142,7 @@ export default function InserierenPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <label className="text-label-md text-on-surface font-medium">
-                        {language === "de" ? "Mindestmietdauer (Monate)" : "Minimum Stay (Months)"}
+                        {t("minimumStay")}
                       </label>
                       <input
                         id="step5-min-monate"
@@ -1008,13 +1157,13 @@ export default function InserierenPage() {
 
                     <div className="space-y-2">
                       <label className="text-label-md text-on-surface font-medium">
-                        {language === "de" ? "Maximale Mietdauer (Monate, optional)" : "Maximum Stay (Months, optional)"}
+                        {t("maximumStay")}
                       </label>
                       <input
                         id="step5-max-monate"
                         type="number"
                         min="1"
-                        placeholder={language === "de" ? "Unbegrenzt" : "Unlimited"}
+                        placeholder={t("unlimited")}
                         value={step4.max_monate}
                         onChange={(e) => setStep4({ ...step4, max_monate: e.target.value })}
                         className="w-full h-14 bg-surface border border-outline-variant rounded-lg px-4 focus:ring-2 focus:ring-primary focus:border-primary outline-none text-[16px]"
@@ -1029,7 +1178,7 @@ export default function InserierenPage() {
                         {language === "de" ? "Möbliert" : "Furnished"}
                       </h4>
                       <p className="text-[12px] text-on-surface-variant mt-0.5">
-                        {language === "de" ? "Ist die Wohnung möbliert?" : "Is the apartment furnished?"}
+                        {t("isFurnishedQuestion")}
                       </p>
                     </div>
                     <button
@@ -1043,26 +1192,174 @@ export default function InserierenPage() {
                     </button>
                   </div>
 
+                  {/* ── Beds ── */}
+                  <div className="space-y-3">
+                    <p className="text-label-md text-on-surface font-medium">
+                      {language === "de" ? "Betten" : "Beds"}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Single beds */}
+                      <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
+                        <div>
+                          <h4 className="text-label-md font-semibold text-on-surface">{language === "de" ? "Einzelbetten" : "Single Beds"}</h4>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => setSingleBeds(c => Math.max(0, c - 1))}
+                            disabled={singleBeds <= 0}
+                            className="w-9 h-9 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-40">
+                            <span className="material-symbols-outlined text-[18px]">remove</span>
+                          </button>
+                          <span className="w-6 text-center text-label-md font-bold">{singleBeds}</span>
+                          <button type="button" onClick={() => setSingleBeds(c => c + 1)}
+                            className="w-9 h-9 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer">
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                          </button>
+                        </div>
+                      </div>
+                      {/* Double beds */}
+                      <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
+                        <div>
+                          <h4 className="text-label-md font-semibold text-on-surface">{language === "de" ? "Doppelbetten" : "Double Beds"}</h4>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => setDoubleBeds(c => Math.max(0, c - 1))}
+                            disabled={doubleBeds <= 0}
+                            className="w-9 h-9 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer disabled:opacity-40">
+                            <span className="material-symbols-outlined text-[18px]">remove</span>
+                          </button>
+                          <span className="w-6 text-center text-label-md font-bold">{doubleBeds}</span>
+                          <button type="button" onClick={() => setDoubleBeds(c => c + 1)}
+                            className="w-9 h-9 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer">
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── How rent is calculated ── */}
+                  <div className="space-y-3">
+                    <p className="text-label-md text-on-surface font-medium">
+                      {language === "de" ? "Mietberechnung" : "How Rent is Calculated"}
+                    </p>
+                    <p className="text-[12px] text-on-surface-variant -mt-1">
+                      {language === "de"
+                        ? "Bestimmt die Abrechnung im ersten und letzten Monat."
+                        : "Determines billing in the first and last months of the stay."}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {[
+                        { value: "monthly", label: language === "de" ? "Monatlich" : "Monthly" },
+                        { value: "biweekly", label: language === "de" ? "Alle 2 Wochen" : "Every 2 Weeks" },
+                        { value: "daily", label: language === "de" ? "Täglich" : "Daily" },
+                      ].map(opt => (
+                        <label key={opt.value}
+                          className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                            rentCalculation === opt.value
+                              ? "border-primary bg-primary-fixed"
+                              : "border-outline-variant hover:bg-surface-container-low"
+                          }`}>
+                          <input
+                            type="radio"
+                            name="rentCalculation"
+                            value={opt.value}
+                            checked={rentCalculation === opt.value}
+                            onChange={() => setRentCalculation(opt.value)}
+                            className="w-4 h-4 accent-primary"
+                          />
+                          <span className="text-label-md">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Smoking / Registration / Couples ── */}
+                  <div className="space-y-3">
+                    <p className="text-label-md text-on-surface font-medium">
+                      {language === "de" ? "Regelungen" : "Rules & Policies"}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                      {/* Smoking */}
+                      <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[20px] text-on-surface-variant">smoking_rooms</span>
+                          <h4 className="text-label-md font-semibold text-on-surface">
+                            {language === "de" ? "Rauchen erlaubt" : "Smoking Allowed"}
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSmokingAllowed(v => !v)}
+                          className={`w-12 h-7 rounded-full transition-colors duration-200 relative flex items-center px-0.5 cursor-pointer ${
+                            smokingAllowed ? "bg-primary" : "bg-outline-variant"
+                          }`}
+                        >
+                          <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
+                        </button>
+                      </div>
+
+                      {/* Registration */}
+                      <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[20px] text-on-surface-variant">how_to_reg</span>
+                          <h4 className="text-label-md font-semibold text-on-surface">
+                            {language === "de" ? "Anmeldung möglich" : "Registration Possible"}
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setRegistrationPossible(v => !v)}
+                          className={`w-12 h-7 rounded-full transition-colors duration-200 relative flex items-center px-0.5 cursor-pointer ${
+                            registrationPossible ? "bg-primary" : "bg-outline-variant"
+                          }`}
+                        >
+                          <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${registrationPossible ? "translate-x-5" : "translate-x-0"}`} />
+                        </button>
+                      </div>
+
+                      {/* Couples */}
+                      <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[20px] text-on-surface-variant">favorite</span>
+                          <h4 className="text-label-md font-semibold text-on-surface">
+                            {language === "de" ? "Paare willkommen" : "Couples Welcome"}
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSuitableForCouples(v => !v)}
+                          className={`w-12 h-7 rounded-full transition-colors duration-200 relative flex items-center px-0.5 cursor-pointer ${
+                            suitableForCouples ? "bg-primary" : "bg-outline-variant"
+                          }`}
+                        >
+                          <div className={`w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 ${suitableForCouples ? "translate-x-5" : "translate-x-0"}`} />
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+
                   {/* Summary card before publish */}
                   <div className="p-5 bg-primary/5 rounded-xl border border-primary/20">
                     <h4 className="text-label-md font-bold text-primary flex items-center gap-2 mb-3">
                       <span className="material-symbols-outlined text-[18px]">checklist</span>
-                      {language === "de" ? "Zusammenfassung" : "Listing Summary"}
+                      {t("listingSummary")}
                     </h4>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-[13px]">
                       <span className="text-on-surface-variant">{language === "de" ? "Typ" : "Type"}:</span>
                       <span className="font-semibold text-primary capitalize">{step1.typ}</span>
                       <span className="text-on-surface-variant">{language === "de" ? "Adresse" : "Address"}:</span>
                       <span className="font-semibold text-primary">{step1.strasse}, {step1.plz} {step1.stadt}</span>
-                      <span className="text-on-surface-variant">{language === "de" ? "Kaltmiete" : "Cold Rent"}:</span>
+                      <span className="text-on-surface-variant">{t("coldRent")}:</span>
                       <span className="font-semibold text-primary">{step2.kaltmiete} €</span>
-                      <span className="text-on-surface-variant">{language === "de" ? "Fläche" : "Area"}:</span>
+                      <span className="text-on-surface-variant">{t("area")}:</span>
                       <span className="font-semibold text-primary">{step2.flaeche} m²</span>
-                      <span className="text-on-surface-variant">{language === "de" ? "Zimmer" : "Rooms"}:</span>
+                      <span className="text-on-surface-variant">{t("rooms")}:</span>
                       <span className="font-semibold text-primary">{step2.zimmer}</span>
                       {coords && (
                         <>
-                          <span className="text-on-surface-variant">{language === "de" ? "GPS" : "GPS"}:</span>
+                          <span className="text-on-surface-variant">{"GPS"}:</span>
                           <span className="font-semibold text-[#f07d00] flex items-center gap-1">
                             <span className="material-symbols-outlined text-[13px]">my_location</span>
                             {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}

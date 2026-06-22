@@ -172,12 +172,33 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
 
 
 
+  const [favorites, setFavorites] = useState<string[]>([]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const searched = localStorage.getItem("heimat_has_searched") === "true";
       setHasSearched(searched);
+      const saved = localStorage.getItem("heimat_favorites");
+      if (saved) {
+        try {
+          setFavorites(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to load favorites", e);
+        }
+      }
     }
   }, []);
+
+  const isFavorited = property && favorites.includes(property.id);
+
+  const toggleFavorite = () => {
+    if (!property) return;
+    const next = isFavorited
+      ? favorites.filter((x) => x !== property.id)
+      : [...favorites, property.id];
+    setFavorites(next);
+    localStorage.setItem("heimat_favorites", JSON.stringify(next));
+  };
 
 
   // Pre-fill form when user session is loaded
@@ -809,9 +830,25 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
                   {t("commissionFree")}
                 </span>
               </div>
-              <h1 className="text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2">
-                {property.title}
-              </h1>
+              <div className="flex justify-between items-start gap-4">
+                <h1 className="text-headline-lg-mobile md:text-headline-lg text-on-surface mb-2 flex-grow">
+                  {property.title}
+                </h1>
+                <button
+                  onClick={toggleFavorite}
+                  className={`flex items-center justify-center p-3 rounded-full border transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 flex-shrink-0 ${
+                    isFavorited
+                      ? "bg-red-50 border-red-200 text-red-500 hover:bg-red-100"
+                      : "bg-white border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary"
+                  }`}
+                  title={isFavorited ? (language === "de" ? "Von der Wunschliste entfernen" : "Remove from Wishlist") : (language === "de" ? "Auf die Wunschliste setzen" : "Save to Wishlist")}
+                  aria-label="Save to wishlist"
+                >
+                  <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: isFavorited ? "'FILL' 1" : "'FILL' 0" }}>
+                    favorite
+                  </span>
+                </button>
+              </div>
               <p className="text-on-surface-variant flex items-center gap-1 text-[16px]">
                 <span className="material-symbols-outlined text-[18px]">location_on</span>
                 {property.street}, {property.zip} {normalizeCityName(property.city, language)}

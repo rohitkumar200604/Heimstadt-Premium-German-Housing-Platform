@@ -130,6 +130,48 @@ const cityMappings: Record<string, string[]> = {
   "konstanz": ["konstanz", "constance"]
 };
 
+const CITY_NEIGHBORHOODS: Record<string, string[]> = {
+  berlin: [
+    "Mitte", "Friedrichshain", "Kreuzberg", "Prenzlauer Berg", "Neukölln",
+    "Charlottenburg", "Wilmersdorf", "Schöneberg", "Tempelhof", "Moabit",
+    "Wedding", "Pankow", "Lichtenberg", "Steglitz", "Zehlendorf", "Spandau",
+    "Reinickendorf", "Treptow", "Köpenick"
+  ],
+  münchen: [
+    "Altstadt-Lehel", "Ludwigsvorstadt-Isarvorstadt", "Maxvorstadt",
+    "Schwabing", "Au-Haidhausen", "Sendling", "Schwanthalerhöhe",
+    "Neuhausen-Nymphenburg", "Bogenhausen", "Trudering-Riem", "Ramersdorf-Perlach",
+    "Obergiesing", "Untergiesing", "Thalkirchen", "Hadern", "Laim"
+  ],
+  munich: [
+    "Altstadt-Lehel", "Ludwigsvorstadt-Isarvorstadt", "Maxvorstadt",
+    "Schwabing", "Au-Haidhausen", "Sendling", "Schwanthalerhöhe",
+    "Neuhausen-Nymphenburg", "Bogenhausen", "Trudering-Riem", "Ramersdorf-Perlach",
+    "Obergiesing", "Untergiesing", "Thalkirchen", "Hadern", "Laim"
+  ],
+  hamburg: [
+    "Altona", "Bergedorf", "Eimsbüttel", "Hamburg-Mitte", "Hamburg-Nord",
+    "Harburg", "Wandsbek", "St. Pauli", "Speicherstadt", "Winterhude",
+    "Eppendorf", "Sternschanze", "Barmbek"
+  ],
+  köln: [
+    "Innenstadt", "Rodenkirchen", "Lindenthal", "Ehrenfeld", "Nippes",
+    "Chorweiler", "Porz", "Kalk", "Mülheim", "Deutz"
+  ],
+  cologne: [
+    "Innenstadt", "Rodenkirchen", "Lindenthal", "Ehrenfeld", "Nippes",
+    "Chorweiler", "Porz", "Kalk", "Mülheim", "Deutz"
+  ],
+  frankfurt: [
+    "Altstadt", "Innenstadt", "Bahnhofsviertel", "Westend", "Nordend",
+    "Ostend", "Sachsenhausen", "Bornheim", "Gallus", "Bockenheim"
+  ],
+  stuttgart: [
+    "Stuttgart-Mitte", "Stuttgart-Nord", "Stuttgart-Ost", "Stuttgart-Süd",
+    "Stuttgart-West", "Bad Cannstatt", "Degerloch", "Möhringen"
+  ]
+};
+
 const ALL_SUGGESTIONS = [
   { de: "Berlin", en: "Berlin" },
   { de: "München", en: "Munich" },
@@ -278,6 +320,17 @@ function SuchePageContent() {
     bedroomsParam ? bedroomsParam.split(",") : []
   );
   const [neighborhoodSearch, setNeighborhoodSearch] = useState("");
+
+  // ── Additional new filters ────────────────────────────────────────────
+  const [minSize, setMinSize] = useState("");
+  const [maxSize, setMaxSize] = useState("");
+  const [roomCount, setRoomCount] = useState(1);
+  const [singleBeds, setSingleBeds] = useState(0);
+  const [doubleBeds, setDoubleBeds] = useState(0);
+  const [rentCalculation, setRentCalculation] = useState<string[]>([]);
+  const [smokingAllowed, setSmokingAllowed] = useState("any");
+  const [registrationPossible, setRegistrationPossible] = useState("any");
+  const [suitableForCouples, setSuitableForCouples] = useState(false);
 
   // Load favorites from localStorage
   useEffect(() => {
@@ -627,16 +680,42 @@ function SuchePageContent() {
 
   // Sync searchInput with URL param on mount / param change
   useEffect(() => {
-    setSearchInput(stadtParam);
-    setMoveInDate(searchParams.get("moveIn") || "");
-    setMoveOutDate(searchParams.get("moveOut") || "");
-    const furParam = searchParams.get("furniture") || "";
-    setFurnitureFurnished(furParam.split(",").includes("furnished"));
-    setFurnitureUnfurnished(furParam.split(",").includes("unfurnished"));
-    setRoommatesGender(searchParams.get("roommates") || "regardless");
-    setLandlordRating(searchParams.get("rating") || "any");
-    setWgSize(searchParams.get("wgSize") || "regardless");
-  }, [stadtParam, searchParams]);
+    const isWishlist = searchParams.get("wishlist") === "true";
+    if (isWishlist) {
+      setSearchInput("");
+      setPriceRange("");
+      setPropertyType("all");
+      setDistance("any");
+      setMoveInDate("");
+      setMoveOutDate("");
+      setFurnitureFurnished(false);
+      setFurnitureUnfurnished(false);
+      setRoommatesGender("regardless");
+      setLandlordRating("any");
+      setWgSize("regardless");
+      setSelectedNeighborhoods([]);
+      setBillsIncluded(false);
+      setNoDeposit(false);
+      setSelectedBedrooms([]);
+      setActiveFilters([]);
+    } else {
+      setSearchInput(stadtParam);
+      setPriceRange(preisParam || "");
+      setPropertyType(zimmerParam);
+      setMoveInDate(searchParams.get("moveIn") || "");
+      setMoveOutDate(searchParams.get("moveOut") || "");
+      const furParam = searchParams.get("furniture") || "";
+      setFurnitureFurnished(furParam.split(",").includes("furnished"));
+      setFurnitureUnfurnished(furParam.split(",").includes("unfurnished"));
+      setRoommatesGender(searchParams.get("roommates") || "regardless");
+      setLandlordRating(searchParams.get("rating") || "any");
+      setWgSize(searchParams.get("wgSize") || "regardless");
+      setSelectedNeighborhoods(neighborhoodParam ? neighborhoodParam.split(",") : []);
+      setBillsIncluded(searchParams.get("billsIncluded") === "true");
+      setNoDeposit(searchParams.get("noDeposit") === "true");
+      setSelectedBedrooms(bedroomsParam ? bedroomsParam.split(",") : []);
+    }
+  }, [stadtParam, zimmerParam, preisParam, neighborhoodParam, bedroomsParam, searchParams]);
 
   // Push URL when city search is submitted
   const applySearch = useCallback(() => {
@@ -682,6 +761,14 @@ function SuchePageContent() {
     { id: "parking", label: language === "de" ? "Parkplatz" : "Parking", icon: "local_parking" },
     { id: "pets", label: language === "de" ? "Haustiere erlaubt" : "Pets Allowed", icon: "pets" },
     { id: "wheelchair", label: language === "de" ? "Barrierefrei" : "Wheelchair Access", icon: "accessible" },
+    { id: "elevator", label: language === "de" ? "Aufzug" : "Elevator", icon: "elevator" },
+    { id: "garden", label: language === "de" ? "Garten" : "Garden", icon: "yard" },
+    { id: "cellar", label: language === "de" ? "Keller" : "Cellar", icon: "inventory_2" },
+    { id: "air_conditioning", label: language === "de" ? "Klimaanlage" : "Air Conditioning", icon: "ac_unit" },
+    { id: "wifi", label: "WiFi", icon: "wifi" },
+    { id: "dishwasher", label: language === "de" ? "Geschirrspüler" : "Dishwasher", icon: "countertops" },
+    { id: "washing_machine", label: language === "de" ? "Waschmaschine" : "Washing Machine", icon: "local_laundry_service" },
+    { id: "tv", label: language === "de" ? "Fernseher" : "TV", icon: "tv" },
   ];
 
   const toggleFilter = (id: string) =>
@@ -701,40 +788,44 @@ function SuchePageContent() {
 
   const typeOptions = [
     { value: "all", label: language === "de" ? "Alle Typen" : "All Types", icon: "home" },
-    { value: "shared_room", label: language === "de" ? "Gemeinschaftszimmer" : "Shared room", icon: "group" },
-    { value: "private_room", label: language === "de" ? "Privatzimmer" : "Private room", icon: "person" },
+    { value: "shared_room", label: language === "de" ? "Gemeinschaftszimmer" : "Shared Room", icon: "group" },
+    { value: "private_room", label: language === "de" ? "Privatzimmer" : "Private Room", icon: "person" },
     { value: "studio", label: "Studio", icon: "apartment" },
     { value: "apartment", label: language === "de" ? "Wohnung" : "Apartment", icon: "domain" },
-    { value: "student_residence", label: language === "de" ? "Studentenwohnheim" : "Student residence", icon: "school" },
+    { value: "student_residence", label: language === "de" ? "Studentenwohnheim" : "Student Residence", icon: "school" },
     { value: "house", label: language === "de" ? "Haus" : "House", icon: "house" },
     { value: "shared", label: language === "de" ? "WG" : "Shared Apartment", icon: "groups" },
   ];
 
   const bedroomOptions = [
-    { value: "1", label: language === "de" ? "1 Schlafzimmer" : "1 bedroom" },
-    { value: "2", label: language === "de" ? "2 Schlafzimmer" : "2 bedrooms" },
-    { value: "3", label: language === "de" ? "3 Schlafzimmer" : "3 bedrooms" },
-    { value: "4", label: language === "de" ? "4+ Schlafzimmer" : "4+ bedrooms" },
+    { value: "1", label: language === "de" ? "1 Schlafzimmer" : "1 Bedroom" },
+    { value: "2", label: language === "de" ? "2 Schlafzimmer" : "2 Bedrooms" },
+    { value: "3", label: language === "de" ? "3 Schlafzimmer" : "3 Bedrooms" },
+    { value: "4", label: language === "de" ? "4+ Schlafzimmer" : "4+ Bedrooms" },
   ];
 
-  const BERLIN_NEIGHBORHOODS = [
-    "Mitte", "Friedrichshain", "Bezirk Friedrichshain-Kreuzberg", "Prenzlauer Berg",
-    "Charlottenburg", "Bezirk Charlottenburg-Wilmersdorf", "Bezirk Pankow", "Kreuzberg",
-    "Neukölln", "Bezirk Treptow-Köpenick", "Niederschöneweide", "Bezirk Neukölln",
-    "Schöneberg", "Bezirk Tempelhof-Schöneberg", "Moabit", "Wedding", "Wilmersdorf",
-    "Bezirk Lichtenberg", "Bezirk Steglitz-Zehlendorf", "Oberschöneweide",
-    "Gesundbrunnen", "Bezirk Reinickendorf", "Bezirk Spandau", "Pankow",
-    "Steglitz", "Adlershof", "Britz", "Westend", "Reinickendorf",
-    "Schmargendorf", "Spandau", "Tiergarten", "Bezirk Marzahn-Hellersdorf",
-    "Friedenau", "Altglienicke", "Dahlem", "Johannisthal", "Kaulsdorf",
-    "Neu-Hohenschönhausen", "Alt-Hohenschönhausen", "Buckow", "Charlottenburg-Nord",
-    "Friedrichsfelde", "Hansaviertel", "Haselhorst", "Kienberg", "Lankwitz",
-    "Lichtenberg", "Lichtenrade", "Wannsee", "Ahrensfelde", "Baumschulenweg",
-    "Bernau", "Birkenstein", "Halensee", "Tempelhof", "Weißensee",
-    "Wilhelmsruh", "Köpenick", "Wilhelmstadt", "Alt-Treptow", "Karlshorst",
-    "Rummelsburg", "Mariendorf", "Niederschönhausen", "Grunewald", "Plänterwald",
-    "Zehlendorf", "Lichterfelde", "Rosenthal", "Schmöckwitz", "Schönefeld",
-  ];
+  const getNeighborhoodList = () => {
+    const cityKey = stadtParam.trim().toLowerCase();
+    if (CITY_NEIGHBORHOODS[cityKey]) {
+      return CITY_NEIGHBORHOODS[cityKey];
+    }
+    
+    // Fallback: extract unique street names (neighborhood hints) from current listings
+    if (listings && listings.length > 0) {
+      const extracted = new Set<string>();
+      listings.forEach(l => {
+        if (l.street) {
+          const streetName = l.street.replace(/\d+$/, "").trim();
+          if (streetName) extracted.add(streetName);
+        }
+      });
+      if (extracted.size > 0) {
+        return Array.from(extracted);
+      }
+    }
+    
+    return CITY_NEIGHBORHOODS["berlin"];
+  };
 
   const toggleNeighborhood = (n: string) => {
     setSelectedNeighborhoods(prev =>
@@ -781,7 +872,16 @@ function SuchePageContent() {
     selectedNeighborhoods.length +
     (billsIncluded ? 1 : 0) +
     (noDeposit ? 1 : 0) +
-    selectedBedrooms.length;
+    selectedBedrooms.length +
+    (minSize ? 1 : 0) +
+    (maxSize ? 1 : 0) +
+    (roomCount > 1 ? 1 : 0) +
+    (singleBeds > 0 ? 1 : 0) +
+    (doubleBeds > 0 ? 1 : 0) +
+    rentCalculation.length +
+    (smokingAllowed !== "any" ? 1 : 0) +
+    (registrationPossible !== "any" ? 1 : 0) +
+    (suitableForCouples ? 1 : 0);
 
   const clearAll = () => {
     setActiveFilters([]);
@@ -800,6 +900,15 @@ function SuchePageContent() {
     setNoDeposit(false);
     setSelectedBedrooms([]);
     setNeighborhoodSearch("");
+    setMinSize("");
+    setMaxSize("");
+    setRoomCount(1);
+    setSingleBeds(0);
+    setDoubleBeds(0);
+    setRentCalculation([]);
+    setSmokingAllowed("any");
+    setRegistrationPossible("any");
+    setSuitableForCouples(false);
   };
 
   // ── Data fetching ─────────────────────────────────────────────────────
@@ -921,6 +1030,29 @@ function SuchePageContent() {
           else f = f.filter(l => l.rooms >= parseFloat(propertyType));
         }
         if (priceRange) f = f.filter(l => l.rent_cold <= parseFloat(priceRange));
+        
+        // Neighborhoods filter
+        if (selectedNeighborhoods.length > 0) {
+          f = f.filter(l =>
+            selectedNeighborhoods.some(n =>
+              (l.street && l.street.toLowerCase().includes(n.toLowerCase())) ||
+              (l.title && l.title.toLowerCase().includes(n.toLowerCase())) ||
+              (l.description && l.description.toLowerCase().includes(n.toLowerCase()))
+            )
+          );
+        }
+        // Bedrooms filter
+        if (selectedBedrooms.length > 0) {
+          f = f.filter(l => selectedBedrooms.includes(String(Math.floor(l.rooms))));
+        }
+        // Bills Included filter
+        if (billsIncluded) {
+          f = f.filter(l => l.rent_utilities === 0 && l.rent_heating === 0);
+        }
+        // No Deposit filter
+        if (noDeposit) {
+          f = f.filter(l => l.deposit_months === 0);
+        }
         if (moveInDate) {
           f = f.filter(l => !l.available_from || new Date(l.available_from) <= new Date(moveInDate));
         }
@@ -957,6 +1089,32 @@ function SuchePageContent() {
         if (activeFilters.includes("parking")) f = f.filter(l => l.amenities?.includes("parking"));
         if (activeFilters.includes("pets")) f = f.filter(l => l.pets_allowed === true);
         if (activeFilters.includes("wheelchair")) f = f.filter(l => l.amenities?.includes("wheelchair"));
+        if (activeFilters.includes("elevator")) f = f.filter(l => l.amenities?.includes("elevator"));
+        if (activeFilters.includes("garden")) f = f.filter(l => l.amenities?.includes("garden"));
+        if (activeFilters.includes("cellar")) f = f.filter(l => l.amenities?.includes("cellar"));
+        if (activeFilters.includes("air_conditioning")) f = f.filter(l => l.amenities?.includes("air_conditioning"));
+        if (activeFilters.includes("wifi")) f = f.filter(l => l.amenities?.includes("wifi"));
+        if (activeFilters.includes("dishwasher")) f = f.filter(l => l.amenities?.includes("dishwasher"));
+        if (activeFilters.includes("washing_machine")) f = f.filter(l => l.amenities?.includes("washing_machine"));
+        if (activeFilters.includes("tv")) f = f.filter(l => l.amenities?.includes("tv"));
+        // Size filter
+        if (minSize) f = f.filter(l => (l.size_sqm || 0) >= parseFloat(minSize));
+        if (maxSize) f = f.filter(l => (l.size_sqm || 0) <= parseFloat(maxSize));
+        // Room count filter
+        if (roomCount > 1) f = f.filter(l => (l.rooms || 0) >= roomCount);
+        // Single/Double beds
+        if (singleBeds > 0) f = f.filter(l => (l.single_beds || 0) >= singleBeds);
+        if (doubleBeds > 0) f = f.filter(l => (l.double_beds || 0) >= doubleBeds);
+        // Rent calculation
+        if (rentCalculation.length > 0) f = f.filter(l => !l.rent_calculation || rentCalculation.includes(l.rent_calculation));
+        // Smoking
+        if (smokingAllowed === "allowed") f = f.filter(l => l.smoking_allowed === true);
+        if (smokingAllowed === "not_allowed") f = f.filter(l => l.smoking_allowed === false);
+        // Registration
+        if (registrationPossible === "possible") f = f.filter(l => l.registration_possible === true);
+        if (registrationPossible === "not_possible") f = f.filter(l => l.registration_possible === false);
+        // Couples
+        if (suitableForCouples) f = f.filter(l => l.suitable_for_couples === true || (l.suitable_for && l.suitable_for.includes("couples")));
 
         // Sorting
         if (sort === "price_asc") f.sort((a, b) => a.rent_cold - b.rent_cold);
@@ -1188,13 +1346,129 @@ function SuchePageContent() {
               icon="tune"
               badge={totalBadge || undefined}
             >
-              {/* ── Amenities ── */}
+              {/* ── Size ── */}
               <div className="px-4 pt-4 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Größe" : "Size"}
+                </p>
+              </div>
+              <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Minimum" : "Minimum"}</span>
+                  <div className="relative">
+                    <select
+                      value={minSize}
+                      onChange={(e) => setMinSize(e.target.value)}
+                      className="w-full pl-3 pr-8 py-2 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
+                    >
+                      {["", "10", "20", "30", "40", "50", "60", "70", "80", "100", "120", "150", "200"].map(v => (
+                        <option key={v} value={v}>{v ? `${v}m²` : (language === "de" ? "0m²" : "0m²")}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">unfold_more</span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-bold text-on-surface-variant/70">{language === "de" ? "Maximum" : "Maximum"}</span>
+                  <div className="relative">
+                    <select
+                      value={maxSize}
+                      onChange={(e) => setMaxSize(e.target.value)}
+                      className="w-full pl-3 pr-8 py-2 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
+                    >
+                      {["", "20", "30", "40", "50", "60", "70", "80", "100", "120", "150", "200", "300"].map(v => (
+                        <option key={v} value={v}>{v ? `${v}m²` : (language === "de" ? "Kein Maximum" : "No maximum")}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[16px]">unfold_more</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Rooms & Beds ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Zimmer & Betten" : "Rooms & Beds"}
+                </p>
+              </div>
+              <div className="px-4 pb-3 space-y-3">
+                {/* Rooms counter */}
+                <div className="flex items-center justify-between">
+                  <span className="text-label-sm text-on-surface font-semibold">{language === "de" ? "Zimmer" : "Rooms"}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setRoomCount(c => Math.max(1, c - 1))}
+                      className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer text-on-surface font-bold disabled:opacity-40"
+                      disabled={roomCount <= 1}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">remove</span>
+                    </button>
+                    <span className="w-6 text-center text-label-sm font-bold text-on-surface">{roomCount}</span>
+                    <button
+                      onClick={() => setRoomCount(c => c + 1)}
+                      className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer text-on-surface font-bold"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                    </button>
+                  </div>
+                </div>
+                {/* Single Beds counter */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-on-surface-variant">bed</span>
+                    <span className="text-label-sm text-on-surface font-semibold">{language === "de" ? "Einzelbetten" : "Single"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSingleBeds(c => Math.max(0, c - 1))}
+                      className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer text-on-surface font-bold disabled:opacity-40"
+                      disabled={singleBeds <= 0}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">remove</span>
+                    </button>
+                    <span className="w-6 text-center text-label-sm font-bold text-on-surface">{singleBeds}</span>
+                    <button
+                      onClick={() => setSingleBeds(c => c + 1)}
+                      className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer text-on-surface font-bold"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                    </button>
+                  </div>
+                </div>
+                {/* Double Beds counter */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-on-surface-variant">king_bed</span>
+                    <span className="text-label-sm text-on-surface font-semibold">{language === "de" ? "Doppelbetten" : "Double"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setDoubleBeds(c => Math.max(0, c - 1))}
+                      className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer text-on-surface font-bold disabled:opacity-40"
+                      disabled={doubleBeds <= 0}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">remove</span>
+                    </button>
+                    <span className="w-6 text-center text-label-sm font-bold text-on-surface">{doubleBeds}</span>
+                    <button
+                      onClick={() => setDoubleBeds(c => c + 1)}
+                      className="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center hover:bg-surface-container transition-colors cursor-pointer text-on-surface font-bold"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Amenities ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
                   {language === "de" ? "Ausstattung & Merkmale" : "Amenities & Features"}
                 </p>
               </div>
-              <div className="pb-1">
+              <div className="pb-1 grid grid-cols-2">
                 {amenityFilters.map(({ id, label, icon }) => (
                   <FilterCheck
                     key={id}
@@ -1223,7 +1497,7 @@ function SuchePageContent() {
                     className="accent-primary w-4 h-4 rounded cursor-pointer"
                   />
                   <span className="text-label-sm text-on-surface font-medium">
-                    {language === "de" ? "Möbliert" : "Furnished"}
+                    {t("furnished")}
                   </span>
                 </label>
                 <label className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors">
@@ -1234,7 +1508,7 @@ function SuchePageContent() {
                     className="accent-primary w-4 h-4 rounded cursor-pointer"
                   />
                   <span className="text-label-sm text-on-surface font-medium">
-                    {language === "de" ? "Unmöbliert" : "Unfurnished"}
+                    {t("unfurnished")}
                   </span>
                 </label>
               </div>
@@ -1371,17 +1645,17 @@ function SuchePageContent() {
                     className="w-full pl-3 pr-10 py-2.5 bg-surface-container-low border border-outline-variant rounded-xl text-label-sm font-semibold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none cursor-pointer"
                   >
                     {[
-                      { value: "regardless", label: "regardless" },
-                      { value: "2", label: "2-person shared apartment" },
-                      { value: "3", label: "3-person shared apartment" },
-                      { value: "4", label: "4-person shared apartment" },
-                      { value: "5", label: "5-person shared apartment" },
-                      { value: "6", label: "6-person shared apartment" },
-                      { value: "7", label: "7-person shared apartment" },
-                      { value: "8", label: "8er shared apartment" },
-                      { value: "9", label: "9er WG" },
-                      { value: "10", label: "10s shared apartment" },
-                      { value: "gt10", label: ">10s shared apartment" }
+                      { value: "regardless", label: language === "de" ? "Egal" : "Regardless" },
+                      { value: "2", label: language === "de" ? "2-Personen-WG" : "2-Person Shared Apartment" },
+                      { value: "3", label: language === "de" ? "3-Personen-WG" : "3-Person Shared Apartment" },
+                      { value: "4", label: language === "de" ? "4-Personen-WG" : "4-Person Shared Apartment" },
+                      { value: "5", label: language === "de" ? "5-Personen-WG" : "5-Person Shared Apartment" },
+                      { value: "6", label: language === "de" ? "6-Personen-WG" : "6-Person Shared Apartment" },
+                      { value: "7", label: language === "de" ? "7-Personen-WG" : "7-Person Shared Apartment" },
+                      { value: "8", label: language === "de" ? "8-Personen-WG" : "8-Person Shared Apartment" },
+                      { value: "9", label: language === "de" ? "9-Personen-WG" : "9-Person Shared Apartment" },
+                      { value: "10", label: language === "de" ? "10-Personen-WG" : "10-Person Shared Apartment" },
+                      { value: "gt10", label: language === "de" ? "Größere WG" : "More Than 10-Person Shared Apartment" }
                     ].map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -1394,20 +1668,20 @@ function SuchePageContent() {
                 </div>
               </div>
 
-              {/* ── Looking for roommates ── */}
+              {/* ── Suitable For / Looking for roommates ── */}
               <div className="border-t border-outline-variant mx-4" />
               <div className="px-4 pt-3 pb-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                  {language === "de" ? "Mitbewohner gesucht" : "Looking for roommates"}
+                  {language === "de" ? "Geeignet für" : "Suitable For"}
                 </p>
               </div>
-              <div className="pb-3 flex flex-col gap-2.5 px-4 pt-1">
+              <div className="pb-1 flex flex-col gap-0.5">
                 {[
-                  { value: "regardless", label: language === "de" ? "egal" : "regardless" },
-                  { value: "masculine", label: language === "de" ? "männlich" : "masculine" },
-                  { value: "female", label: language === "de" ? "weiblich" : "female" }
+                  { value: "regardless", label: language === "de" ? "Egal" : "Regardless" },
+                  { value: "masculine", label: language === "de" ? "Männlich" : "Male" },
+                  { value: "female", label: language === "de" ? "Weiblich" : "Female" }
                 ].map((opt) => (
-                  <label key={opt.value} className="flex items-center gap-3 cursor-pointer select-none">
+                  <label key={opt.value} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors select-none">
                     <input
                       type="radio"
                       name="roommatesGender"
@@ -1419,6 +1693,18 @@ function SuchePageContent() {
                     <span className="text-label-sm text-on-surface font-medium">{opt.label}</span>
                   </label>
                 ))}
+                {/* Couples option — consistent radio-style row */}
+                <label className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors select-none">
+                  <input
+                    type="checkbox"
+                    checked={suitableForCouples}
+                    onChange={() => setSuitableForCouples(!suitableForCouples)}
+                    className="accent-primary w-4 h-4 rounded cursor-pointer"
+                  />
+                  <span className="text-label-sm text-on-surface font-medium">
+                    {language === "de" ? "Paare" : "Couples"}
+                  </span>
+                </label>
               </div>
 
               {/* ── Landlord rating ── */}
@@ -1459,7 +1745,7 @@ function SuchePageContent() {
               <div className="border-t border-outline-variant mx-4" />
               <div className="px-4 pt-3 pb-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                  {language === "de" ? "Nebenkosten & Kaution" : "Bills & Deposit"}
+                  {t("billsAndDeposit")}
                 </p>
               </div>
               <div className="pb-2 flex flex-col">
@@ -1473,7 +1759,7 @@ function SuchePageContent() {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-on-surface-variant">receipt_long</span>
                     <span className="text-label-sm text-on-surface font-medium">
-                      {language === "de" ? "Nebenkosten inklusive" : "Bills included"}
+                      {t("billsIncluded")}
                     </span>
                   </div>
                 </label>
@@ -1487,7 +1773,7 @@ function SuchePageContent() {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px] text-on-surface-variant">money_off</span>
                     <span className="text-label-sm text-on-surface font-medium">
-                      {language === "de" ? "Keine Kaution" : "No deposit"}
+                      {t("noDeposit")}
                     </span>
                   </div>
                 </label>
@@ -1497,14 +1783,14 @@ function SuchePageContent() {
               <div className="border-t border-outline-variant mx-4" />
               <div className="px-4 pt-3 pb-1 flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                  {language === "de" ? "Stadtteile" : "Neighborhoods"}
+                  {t("neighborhoods")}
                 </p>
                 {selectedNeighborhoods.length > 0 && (
                   <button
                     onClick={() => setSelectedNeighborhoods([])}
                     className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
                   >
-                    {language === "de" ? "Alle abwählen" : "Clear all"}
+                    {t("clearAll")}
                   </button>
                 )}
               </div>
@@ -1515,12 +1801,12 @@ function SuchePageContent() {
                     type="text"
                     value={neighborhoodSearch}
                     onChange={(e) => setNeighborhoodSearch(e.target.value)}
-                    placeholder={language === "de" ? "Stadtteil suchen..." : "Search neighborhood..."}
+                    placeholder={t("searchNeighborhood")}
                     className="w-full pl-8 pr-3 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-[12px] font-semibold text-on-surface focus:outline-none focus:border-primary transition-all"
                   />
                 </div>
                 <div className="max-h-[180px] overflow-y-auto custom-scrollbar space-y-0.5">
-                  {BERLIN_NEIGHBORHOODS
+                  {getNeighborhoodList()
                     .filter(n => neighborhoodSearch.trim() === "" || n.toLowerCase().includes(neighborhoodSearch.toLowerCase()))
                     .map((n) => {
                       const checked = selectedNeighborhoods.includes(n);
@@ -1545,9 +1831,9 @@ function SuchePageContent() {
                         </label>
                       );
                     })}
-                  {BERLIN_NEIGHBORHOODS.filter(n => neighborhoodSearch.trim() === "" || n.toLowerCase().includes(neighborhoodSearch.toLowerCase())).length === 0 && (
+                  {getNeighborhoodList().filter(n => neighborhoodSearch.trim() === "" || n.toLowerCase().includes(neighborhoodSearch.toLowerCase())).length === 0 && (
                     <p className="text-[11px] text-on-surface-variant/60 text-center py-3 italic">
-                      {language === "de" ? "Kein Stadtteil gefunden" : "No neighborhood found"}
+                      {t("noNeighborhoodFound")}
                     </p>
                   )}
                 </div>
@@ -1572,7 +1858,7 @@ function SuchePageContent() {
               <div className="border-t border-outline-variant mx-4" />
               <div className="px-4 pt-3 pb-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                  {language === "de" ? "Entfernung vom Zentrum" : "Distance from Centre"}
+                  {t("distanceFromCentre")}
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-1 px-3 pb-3">
@@ -1591,16 +1877,107 @@ function SuchePageContent() {
                 ))}
               </div>
 
+              {/* ── How Rent is Calculated ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Mietberechnung" : "How Rent Is Calculated"}
+                </p>
+                <p className="text-[11px] text-on-surface-variant/70 mt-0.5">
+                  {language === "de"
+                    ? "Dies bestimmt, wie viel Sie im ersten und letzten Monat zahlen."
+                    : "This determines how much you'll pay in the first and last months of your stay."}
+                </p>
+              </div>
+              <div className="px-4 pb-3 pt-2 grid grid-cols-2 gap-y-2.5 gap-x-4">
+                {[
+                  { value: "monthly", label: language === "de" ? "Monatlich" : "Monthly" },
+                  { value: "daily", label: language === "de" ? "Täglich" : "Daily" },
+                  { value: "biweekly", label: language === "de" ? "Alle 2 Wochen" : "Every 2 weeks" },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rentCalculation.includes(opt.value)}
+                      onChange={() => setRentCalculation(prev =>
+                        prev.includes(opt.value) ? prev.filter(x => x !== opt.value) : [...prev, opt.value]
+                      )}
+                      className="accent-primary w-4 h-4 rounded cursor-pointer"
+                    />
+                    <span className="text-label-sm text-on-surface font-medium">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* ── Smoking ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Rauchen" : "Smoking"}
+                </p>
+              </div>
+              <div className="pb-2 flex flex-col">
+                {[
+                  { value: "any", label: language === "de" ? "Egal" : "Any" },
+                  { value: "allowed", label: language === "de" ? "Rauchen erlaubt" : "Smoking allowed" },
+                  { value: "not_allowed", label: language === "de" ? "Rauchen nicht erlaubt" : "Smoking not allowed" },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors select-none">
+                    <input
+                      type="radio"
+                      name="smokingAllowed"
+                      value={opt.value}
+                      checked={smokingAllowed === opt.value}
+                      onChange={() => setSmokingAllowed(opt.value)}
+                      className="accent-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-label-sm text-on-surface font-medium">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* ── Registration ── */}
+              <div className="border-t border-outline-variant mx-4" />
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
+                  {language === "de" ? "Anmeldung" : "Registration"}
+                </p>
+                <p className="text-[11px] text-on-surface-variant/70 mt-0.5 leading-relaxed">
+                  {language === "de"
+                    ? "Je nach Aufenthaltsdauer müssen Sie sich möglicherweise beim Bürgeramt anmelden."
+                    : "Depending on how long you're staying in Germany, you may have to register your house address at the local citizens' office (Bürgeramt)."}
+                </p>
+              </div>
+              <div className="pb-2 flex flex-col pt-1">
+                {[
+                  { value: "any", label: language === "de" ? "Egal" : "Any" },
+                  { value: "possible", label: language === "de" ? "Anmeldung möglich" : "Registration possible" },
+                  { value: "not_possible", label: language === "de" ? "Anmeldung nicht möglich" : "Registration not possible" },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-3 px-4 py-2 hover:bg-surface-container cursor-pointer transition-colors select-none">
+                    <input
+                      type="radio"
+                      name="registrationPossible"
+                      value={opt.value}
+                      checked={registrationPossible === opt.value}
+                      onChange={() => setRegistrationPossible(opt.value)}
+                      className="accent-primary w-4 h-4 cursor-pointer"
+                    />
+                    <span className="text-label-sm text-on-surface font-medium">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
               {/* ── Footer: reset ── */}
               <div className="border-t border-outline-variant px-6 py-4 flex justify-between items-center bg-surface-container-lowest">
                 <button
                   onClick={clearAll}
                   className="text-label-sm font-bold text-on-surface hover:text-primary underline cursor-pointer"
                 >
-                  Reset
+                  {language === "de" ? "Alle zurücksetzen" : "Clear all"}
                 </button>
                 <span className="text-[12px] text-on-surface-variant font-medium">
-                  {totalBadge} {language === "de" ? "aktiv" : "active"}
+                  {totalBadge} {t("active")}
                 </span>
               </div>
             </Dropdown>
@@ -1611,13 +1988,13 @@ function SuchePageContent() {
             {/* ── Sort By dropdown ── */}
             <Dropdown
               id="dd-sort"
-              label={language === "de" ? "Sortierung" : "Sort"}
+              label={t("sort")}
               icon="swap_vert"
               align="right"
             >
               <div className="px-4 pt-3 pb-1">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">
-                  {language === "de" ? "Sortieren nach" : "Sort by"}
+                  {t("sortBy")}
                 </p>
               </div>
               <div className="pb-3">
@@ -1640,7 +2017,7 @@ function SuchePageContent() {
             {user && (
               <Dropdown
                 id="dd-saved-filters"
-                label={language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}
+                label={t("savedSearches")}
                 icon="bookmarks"
                 align="right"
               >
@@ -1648,12 +2025,12 @@ function SuchePageContent() {
                   {/* Save current search form */}
                   <div className="space-y-2">
                     <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant">
-                      {language === "de" ? "Aktuelle Suche speichern" : "Save Current Search"}
+                      {t("saveCurrentSearch")}
                     </p>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder={language === "de" ? "Name der Suche..." : "Search name..."}
+                        placeholder={t("searchName")}
                         value={newFilterName}
                         onChange={(e) => setNewFilterName(e.target.value)}
                         className="flex-1 h-9 px-3 bg-surface-container-low border border-outline-variant rounded-lg text-label-sm focus:outline-none focus:border-primary text-[13px] text-on-surface"
@@ -1675,7 +2052,7 @@ function SuchePageContent() {
                   {/* List of saved searches */}
                   <div className="space-y-2 pt-2 border-t border-outline-variant/60">
                     <p className="text-[11px] font-black uppercase tracking-wider text-on-surface-variant">
-                      {language === "de" ? "Gespeicherte Vorlagen" : "Saved Templates"}
+                      {t("savedTemplates")}
                     </p>
                     {savedFiltersLoading ? (
                       <div className="flex justify-center py-4">
@@ -1683,7 +2060,7 @@ function SuchePageContent() {
                       </div>
                     ) : savedFilters.length === 0 ? (
                       <p className="text-[12px] text-on-surface-variant/70 italic text-center py-2">
-                        {language === "de" ? "Keine gespeicherten Suchen." : "No saved searches."}
+                        {t("noSavedSearches")}
                       </p>
                     ) : (
                       <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
@@ -1702,7 +2079,7 @@ function SuchePageContent() {
                             <button
                               onClick={() => handleDeleteFilter(filter.id)}
                               className="text-on-surface-variant hover:text-error cursor-pointer flex items-center justify-center p-1 rounded-md hover:bg-surface-container"
-                              title={language === "de" ? "Löschen" : "Delete"}
+                              title={t("delete")}
                             >
                               <span className="material-symbols-outlined text-[16px]">delete</span>
                             </button>
@@ -1722,7 +2099,7 @@ function SuchePageContent() {
                 className="flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-bold text-error border border-error/30 bg-error/5 hover:bg-error/10 transition-all cursor-pointer flex-shrink-0 whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-[14px]">filter_list_off</span>
-                {language === "de" ? "Filter löschen" : "Clear filters"}
+                {t("clearFilters")}
               </button>
             )}
           </div>
@@ -1745,19 +2122,19 @@ function SuchePageContent() {
             <div className="min-w-0">
               <h1 className="text-[20px] md:text-headline-lg text-primary font-bold leading-snug truncate">
                 {searchParams.get("wishlist") === "true"
-                  ? (language === "de" ? "Meine Wunschliste" : "My Wishlist")
+                  ? t("myWishlist")
                   : hasSearched
                     ? (stadtParam
-                      ? (language === "de" ? `Wohnungen in ${stadtParam}` : `Apartments in ${stadtParam}`)
-                      : (language === "de" ? "Gefilterte Wohnungen" : "Filtered Apartments"))
-                    : (language === "de" ? "Alle verfügbaren Unterkünfte" : "All Available Accommodations")}
+                      ? `${t("apartmentsIn")} ${stadtParam}`
+                      : t("filteredApartments"))
+                    : t("allAvailableAccommodations")}
               </h1>
               <p className="text-[13px] md:text-body-md text-on-surface-variant mt-0.5">
                 {searchParams.get("wishlist") === "true"
-                  ? (language === "de" ? `${listings.length} gespeicherte Objekte` : `${listings.length} saved properties`)
+                  ? `${listings.length} ${language === "de" ? "gespeicherte Objekte" : "saved properties"}`
                   : hasSearched
                     ? <>{listings.length} {t("resultsFound")}{sort !== "newest" && <span className="ml-2 text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">{currentSortLabel}</span>}</>
-                    : (language === "de" ? "Entdecke alle freien Wohnungen und Zimmer in Deutschland." : "Explore all available apartments and rooms in Germany.")}
+                    : t("exploreApartments")}
               </p>
             </div>
           </div>
@@ -1778,14 +2155,14 @@ function SuchePageContent() {
               {furnitureFurnished && (
                 <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">weekend</span>
-                  {language === "de" ? "Möbliert" : "Furnished"}
+                  {t("furnished")}
                   <button onClick={() => setFurnitureFurnished(false)} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
               {furnitureUnfurnished && (
                 <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">check_box_outline_blank</span>
-                  {language === "de" ? "Unmöbliert" : "Unfurnished"}
+                  {t("unfurnished")}
                   <button onClick={() => setFurnitureUnfurnished(false)} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
@@ -1813,14 +2190,14 @@ function SuchePageContent() {
               {roommatesGender !== "regardless" && (
                 <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">diversity_3</span>
-                  {language === "de" ? `Mitbewohner: ${roommatesGender === "masculine" ? "männlich" : "weiblich"}` : `Roommates: ${roommatesGender}`}
+                  {`${t("roommates")}: ${roommatesGender === "masculine" ? (language === "de" ? "männlich" : "Male") : roommatesGender === "female" ? (language === "de" ? "weiblich" : "Female") : roommatesGender}`}
                   <button onClick={() => setRoommatesGender("regardless")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
               {landlordRating !== "any" && (
                 <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">star</span>
-                  {landlordRating === "4_plus" ? (language === "de" ? "Bewertung: 4+" : "Rating: 4+") : landlordRating === "3_plus" ? (language === "de" ? "Bewertung: 3+" : "Rating: 3+") : (language === "de" ? "Neue Vermieter" : "New landlords")}
+                  {landlordRating === "4_plus" ? `${t("rating")}: 4+` : landlordRating === "3_plus" ? `${t("rating")}: 3+` : t("newLandlords")}
                   <button onClick={() => setLandlordRating("any")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
@@ -1834,14 +2211,14 @@ function SuchePageContent() {
               {moveInDate && (
                 <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">calendar_today</span>
-                  {language === "de" ? `Einzug: ${moveInDate}` : `Move in: ${moveInDate}`}
+                  {`${t("moveIn")}: ${moveInDate}`}
                   <button onClick={() => setMoveInDate("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
               {moveOutDate && (
                 <span className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[12px] font-bold border border-primary/20 flex-shrink-0 whitespace-nowrap">
                   <span className="material-symbols-outlined text-[13px]">calendar_today</span>
-                  {language === "de" ? `Auszug: ${moveOutDate}` : `Move out: ${moveOutDate}`}
+                  {`${t("moveOut")}: ${moveOutDate}`}
                   <button onClick={() => setMoveOutDate("")} className="ml-1 cursor-pointer hover:opacity-70"><span className="material-symbols-outlined text-[13px]">close</span></button>
                 </span>
               )}
@@ -2030,7 +2407,7 @@ function SuchePageContent() {
             )
           ) : listings.length === 0 ? (
             <div className="text-center py-24 text-on-surface-variant text-body-md w-full border-2 border-dashed border-outline-variant/40 rounded-2xl bg-white">
-              {language === "de" ? "Keine Objekte gefunden. Bitte Filter anpassen." : "No listings found. Try adjusting your filters."}
+              {t("noListingsFound")}
             </div>
           ) : (
             <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
@@ -2054,7 +2431,7 @@ function SuchePageContent() {
                       {l.furnished && (
                         <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1">
                           <span className="material-symbols-outlined text-[12px]">weekend</span>
-                          {language === "de" ? "Möbliert" : "Furnished"}
+                          {t("furnished")}
                         </span>
                       )}
                       <button

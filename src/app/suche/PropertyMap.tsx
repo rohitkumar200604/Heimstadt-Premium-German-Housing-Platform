@@ -193,16 +193,16 @@ export default function PropertyMap({ listings, stadtParam }: PropertyMapProps) 
                 ${listing.street || ""}, ${normalizeCityName(listing.city, language)}
               </p>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span style="font-weight: 800; font-size: 14px; color: #002046;">${formatPrice(rentTotal)} <span style="font-size: 10px; font-weight: 500; color: #44474e;">/ ${language === "de" ? "warm" : "warm"}</span></span>
+                <span style="font-weight: 800; font-size: 14px; color: #002046;">${formatPrice(rentTotal)} <span style="font-size: 10px; font-weight: 500; color: #44474e;">/ ${t("warm")}</span></span>
                 ${listing.landlord_rating ? `<span style="font-size: 11px; font-weight: bold; color: #735c00; display: inline-flex; align-items: center; gap: 2px;">★ ${listing.landlord_rating.toFixed(1)}</span>` : ""}
               </div>
               <div style="display: flex; gap: 6px; font-size: 11px; color: #44474e; margin-bottom: 10px; border-top: 1px solid #c4c6cf; padding-top: 6px;">
-                <span>${listing.rooms} ${language === "de" ? "Zimmer" : "Rooms"}</span>
+                <span>${listing.rooms} ${t("rooms")}</span>
                 <span>•</span>
                 <span>${listing.size_sqm} m²</span>
               </div>
               <a href="/objekt/${listing.id}" style="display: block; width: 100%; text-align: center; background-color: #002046; color: #ffffff; border: none; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; text-decoration: none; box-sizing: border-box; cursor: pointer; transition: opacity 0.2s;">
-                ${language === "de" ? "Details anzeigen" : "View Details"}
+                ${t("viewDetails")}
               </a>
             </div>
           </div>

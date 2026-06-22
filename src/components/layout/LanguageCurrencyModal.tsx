@@ -32,7 +32,7 @@ interface Props {
 type Tab = "language" | "currency";
 
 export default function LanguageCurrencyModal({ open, onClose }: Props) {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const { currency, setCurrencyCode } = useCurrency();
   const [tab, setTab] = useState<Tab>("language");
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -67,8 +67,8 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
   if (!open) return null;
 
   const handleSelectLanguage = (code: string) => {
-    // Only switch if it's one of the supported translation languages
-    const supported: Language[] = ["de", "en", "fr", "sv", "es", "it", "nl"];
+    // Enable all 16 languages as supported
+    const supported: Language[] = ["de", "en", "fr", "sv", "es", "it", "nl", "pl", "tr", "ru", "zh", "ja", "ko", "ar", "hi", "pt"];
     if (supported.includes(code as Language)) {
       setLanguage(code as Language);
     }
@@ -105,7 +105,7 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
                   : "text-on-surface-variant hover:text-primary"
               }`}
             >
-              {language === "de" ? "Sprache & Region" : "Language & Region"}
+              {t("languageRegion")}
             </button>
             <button
               onClick={() => setTab("currency")}
@@ -115,7 +115,7 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
                   : "text-on-surface-variant hover:text-primary"
               }`}
             >
-              {language === "de" ? "Währung" : "Currency"}
+              {t("currency")}
             </button>
           </div>
           <button
@@ -134,12 +134,12 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
           {tab === "language" && (
             <div>
               <p className="text-[12px] font-bold text-on-surface-variant uppercase tracking-widest mb-4">
-                {language === "de" ? "Sprache auswählen" : "Choose a language"}
+                {t("chooseLanguage")}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {LANGUAGES.map((lang) => {
                   const isSelected = language === lang.code;
-                  const isSupported = ["de","en","fr","sv","es","it","nl"].includes(lang.code);
+                  const isSupported = true; // All 16 languages are supported
                   return (
                     <button
                       key={lang.code}
@@ -148,8 +148,7 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
                         isSelected
                           ? "border-primary bg-primary/5"
                           : "border-outline-variant/50 hover:border-primary/40 hover:bg-surface-container-low"
-                      } ${!isSupported ? "opacity-50" : ""}`}
-                      title={!isSupported ? (language === "de" ? "Bald verfügbar" : "Coming soon") : undefined}
+                      }`}
                     >
                       <span className="text-[22px] leading-none flex-shrink-0">{lang.flag}</span>
                       <div className="min-w-0">
@@ -163,11 +162,6 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
                           check_circle
                         </span>
                       )}
-                      {!isSupported && (
-                        <span className="text-[9px] font-bold text-on-surface-variant/60 absolute bottom-1.5 right-2 uppercase tracking-wider">
-                          {language === "de" ? "Bald" : "Soon"}
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -179,7 +173,7 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
           {tab === "currency" && (
             <div>
               <p className="text-[12px] font-bold text-on-surface-variant uppercase tracking-widest mb-4">
-                {language === "de" ? "Währung auswählen" : "Choose a currency"}
+                {t("chooseCurrency")}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {CURRENCIES.map((cur) => {
@@ -216,9 +210,7 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
               <div className="mt-5 p-4 bg-surface-container-low rounded-xl border border-outline-variant/50 flex items-start gap-3">
                 <span className="material-symbols-outlined text-[18px] text-on-surface-variant flex-shrink-0 mt-0.5">info</span>
                 <p className="text-[12px] text-on-surface-variant leading-relaxed">
-                  {language === "de"
-                    ? "Preise werden für Anzeigezwecke umgerechnet. Transaktionen werden stets in Euro (€) abgewickelt."
-                    : "Prices are converted for display purposes only. All transactions are always processed in Euro (€)."}
+                  {t("currencyNotice")}
                 </p>
               </div>
             </div>
@@ -231,7 +223,7 @@ export default function LanguageCurrencyModal({ open, onClose }: Props) {
             onClick={onClose}
             className="w-full py-3 rounded-xl text-[14px] font-bold bg-primary text-on-primary hover:opacity-90 active:scale-95 transition-all cursor-pointer"
           >
-            {language === "de" ? "Speichern & Schließen" : "Save & Close"}
+            {t("saveAndClose")}
           </button>
         </div>
       </div>
