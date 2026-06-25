@@ -12,10 +12,11 @@ import { getDisplayPhoto } from "@/utils/get-display-photo";
 import { normalizeCityName } from "@/utils/translations";
 
 function promiseTimeout<T>(promise: any, ms: number): Promise<T> {
+  const finalMs = Math.max(ms, 20000); // Safe minimum of 20 seconds for cold starts / slow DB instances
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error("Database query timed out"));
-    }, ms);
+    }, finalMs);
 
     Promise.resolve(promise)
       .then((res) => {
@@ -307,7 +308,7 @@ function TenantDashboardContent() {
       const mockListings: any[] = [
         {
           id: "berlin-studio",
-          title: language === "de" ? "Helles Studio-Apartment nahe Alexanderplatz" : "Bright Studio Apartment near Alexanderplatz",
+          title: t("tenantDash_brightStudioApartmentNearAlexa"),
           city: "Berlin", street: "Karl-Liebknecht-Str. 12", zip: "10178",
           rooms: 1, size_sqm: 38, rent_cold: 720, rent_utilities: 80, rent_heating: 70,
           pets_allowed: true, furnished: false,
@@ -317,7 +318,7 @@ function TenantDashboardContent() {
         },
         {
           id: "munich-expat",
-          title: language === "de" ? "Premium 3-Zimmer-Wohnung am Englischen Garten" : "Premium 3-Room Apartment at Englischen Garten",
+          title: t("tenantDash_premium3roomApartmentAtEnglisc"),
           city: "München", street: "Königinstraße 44", zip: "80539",
           rooms: 3, size_sqm: 82, rent_cold: 1650, rent_utilities: 150, rent_heating: 110,
           pets_allowed: false, furnished: true,
@@ -327,7 +328,7 @@ function TenantDashboardContent() {
         },
         {
           id: "hamburg-loft",
-          title: language === "de" ? "Stilvolles Loft in der Speicherstadt" : "Stylish Loft in Speicherstadt",
+          title: t("tenantDash_stylishLoftInSpeicherstadt"),
           city: "Hamburg", street: "Am Sandtorkai 10", zip: "20457",
           rooms: 2, size_sqm: 65, rent_cold: 1120, rent_utilities: 110, rent_heating: 90,
           pets_allowed: true, furnished: true,
@@ -337,7 +338,7 @@ function TenantDashboardContent() {
         },
         {
           id: "berlin-wg",
-          title: language === "de" ? "Gemütliches Zimmer in Studenten-WG" : "Cozy Room in Student Shared Apartment",
+          title: t("tenantDash_cozyRoomInStudentSharedApartme"),
           city: "Berlin", street: "Königin-Luise-Str. 15", zip: "14195",
           rooms: 1, size_sqm: 20, rent_cold: 450, rent_utilities: 60, rent_heating: 40,
           pets_allowed: true, furnished: false,
@@ -347,7 +348,7 @@ function TenantDashboardContent() {
         },
         {
           id: "cologne-studio",
-          title: language === "de" ? "Modernes Studio im Herzen Kölns" : "Modern Studio in Cologne City Centre",
+          title: t("tenantDash_modernStudioInCologneCityCentr"),
           city: "Köln", street: "Schildergasse 8", zip: "50667",
           rooms: 1, size_sqm: 32, rent_cold: 680, rent_utilities: 75, rent_heating: 55,
           pets_allowed: false, furnished: true,
@@ -504,9 +505,7 @@ function TenantDashboardContent() {
 
       // 4. Show custom success popup
       alert(
-        language === "de"
-          ? "Ihr Premium-Abonnement wurde erfolgreich gekündigt."
-          : "Your premium subscription has been successfully cancelled."
+        t("tenantDash_yourPremiumSubscriptionHasBeen")
       );
     } catch (err) {
       console.error("Error cancelling premium:", err);
@@ -516,9 +515,7 @@ function TenantDashboardContent() {
   const handleRunProfileAnalyzer = async () => {
     if (!isPremium) {
       alert(
-        language === "de"
-          ? "AI Profile Analyzer ist ein Premium-Feature. Bitte erwerben Sie Premium, um Ihren Score zu berechnen."
-          : "AI Profile Analyzer is a Premium feature. Please purchase Premium to calculate your match score."
+        t("tenantDash_aiProfileAnalyzerIsAPremiumFea")
       );
       return;
     }
@@ -564,9 +561,7 @@ function TenantDashboardContent() {
       }
 
       setSuccessMsg(
-        language === "de"
-          ? "AI Profile Analyzer erfolgreich abgeschlossen! Ihr Eignungsscore wurde berechnet."
-          : "AI Profile Analyzer successfully completed! Your suitability score has been calculated."
+        t("tenantDash_aiProfileAnalyzerSuccessfullyC")
       );
 
       // Refresh everything to reflect the new state
@@ -640,9 +635,7 @@ function TenantDashboardContent() {
 
       setTenantProfile(updatedTp);
       setSuccessMsg(
-        language === "de"
-          ? "Profil details erfolgreich gespeichert!"
-          : "Profile details successfully saved!"
+        t("tenantDash_profileDetailsSuccessfullySave")
       );
       
       // Refresh context profile details
@@ -707,9 +700,7 @@ function TenantDashboardContent() {
       }
 
       setSuccessMsg(
-        language === "de"
-          ? `"${file.name}" wurde erfolgreich hochgeladen!`
-          : `"${file.name}" uploaded successfully!`
+        t("tenantDash_filenameUploadedSuccessfully")
       );
     } catch (err: any) {
       console.error("Doc upload error:", err);
@@ -747,9 +738,7 @@ function TenantDashboardContent() {
       }
 
       setSuccessMsg(
-        language === "de"
-          ? "Dokument erfolgreich entfernt."
-          : "Document successfully removed."
+        t("tenantDash_documentSuccessfullyRemoved")
       );
     } catch (err: any) {
       console.error("Doc remove error:", err);
@@ -767,10 +756,10 @@ function TenantDashboardContent() {
   const requiredDocs = ["passport"];
   const getDocDisplayName = (key: string) => {
     switch (key) {
-      case "passport": return language === "de" ? "Reisepass / Ausweis" : "Passport / ID";
-      case "enrollment": return language === "de" ? "Immatrikulationsbescheinigung" : "Enrollment Cert";
-      case "income": return language === "de" ? "Einkommensnachweis" : "Proof of Income";
-      case "visa": return language === "de" ? "Visum / Aufenthaltstitel" : "Visa / Permit";
+      case "passport": return t("tenantDash_passportId");
+      case "enrollment": return t("tenantDash_enrollmentCert");
+      case "income": return t("tenantDash_proofOfIncome");
+      case "visa": return t("tenantDash_visaPermit");
       default: return key;
     }
   };
@@ -794,12 +783,12 @@ function TenantDashboardContent() {
     const confirmedActive = status === "confirmed";
 
     return [
-      { labelDe: "Suche", labelEn: "Discovery", active: true },
-      { labelDe: "Bewerbung", labelEn: "Intent", active: true },
-      { labelDe: "Unterlagen", labelEn: "Documents", active: true },
-      { labelDe: "Genehmigung", labelEn: "Approval", active: approvedActive },
-      { labelDe: "Kaution", labelEn: "Deposit", active: depositActive },
-      { labelDe: "Einzug", labelEn: "Move-In", active: confirmedActive },
+      { label: t("pipeSearch"), active: true },
+      { label: t("pipeIntent"), active: true },
+      { label: t("pipeDocuments"), active: true },
+      { label: t("pipeApproval"), active: approvedActive },
+      { label: t("pipeDeposit"), active: depositActive },
+      { label: t("pipeMoveIn"), active: confirmedActive },
     ];
   };
 
@@ -838,7 +827,7 @@ function TenantDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">account_circle</span>
-              <span>{language === "de" ? "Profil & Finanzen" : "Profile & Finance"}</span>
+              <span>{t("tenantDash_profileFinance")}</span>
             </button>
             
             <button
@@ -850,7 +839,7 @@ function TenantDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">calendar_month</span>
-              <span>{language === "de" ? "Buchungen" : "My Bookings"}</span>
+              <span>{t("tenantDash_myBookings")}</span>
             </button>
             
             <button
@@ -862,7 +851,7 @@ function TenantDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">folder_shared</span>
-              <span>{language === "de" ? "Dokumente" : "Documents"}</span>
+              <span>{t("tenantDash_documents")}</span>
             </button>
 
             <button
@@ -874,7 +863,7 @@ function TenantDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">favorite</span>
-              <span>{language === "de" ? "Favoriten" : "Favourites"}</span>
+              <span>{t("tenantDash_favourites")}</span>
             </button>
 
             <button
@@ -886,7 +875,7 @@ function TenantDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">bookmarks</span>
-              <span>{language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}</span>
+              <span>{t("tenantDash_savedSearches")}</span>
             </button>
 
             {/* Divider */}
@@ -896,19 +885,19 @@ function TenantDashboardContent() {
             <div className="p-3 bg-surface-container-low/40 rounded-xl border border-outline-variant/50 space-y-3">
               <h4 className="text-[12px] font-bold text-primary flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[#f07d00] text-[18px]">card_membership</span>
-                <span>{language === "de" ? "Mitgliedschaft" : "Membership"}</span>
+                <span>{t("tenantDash_membership")}</span>
               </h4>
               
               {!isPremium ? (
                 <div className="space-y-2">
                   <div className="text-[11px] text-on-surface-variant leading-tight">
-                    {language === "de" ? "Kostenloser Tarif" : "Free Basic Plan"}
+                    {t("tenantDash_freeBasicPlan")}
                   </div>
                   <Link
                     href="/preise?plan=3months"
                     className="w-full bg-[#f07d00] text-white py-2 rounded-lg font-bold text-[11px] hover:opacity-90 active:scale-95 transition-all text-center block"
                   >
-                    {language === "de" ? "Jetzt upgraden" : "Upgrade Now"}
+                    {t("tenantDash_upgradeNow")}
                   </Link>
                 </div>
               ) : (
@@ -931,7 +920,7 @@ function TenantDashboardContent() {
                     return (
                       <div className="space-y-1.5 pt-1">
                         <div className="flex justify-between text-[9px] text-on-surface-variant font-bold">
-                          <span>{language === "de" ? "Gültigkeit" : "Validity"}</span>
+                          <span>{t("tenantDash_validity")}</span>
                           <span>{daysRemaining}d left</span>
                         </div>
                         <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
@@ -941,7 +930,7 @@ function TenantDashboardContent() {
                           />
                         </div>
                         <div className="text-[9px] text-on-surface-variant/80 font-medium italic">
-                          {language === "de" ? "Bis:" : "Exp:"} {new Date(sub.endDate).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                          {t("tenantDash_exp")} {new Date(sub.endDate).toLocaleDateString(t("tenantDash_enus"))}
                         </div>
                       </div>
                     );
@@ -951,7 +940,7 @@ function TenantDashboardContent() {
                     onClick={cancelPremium}
                     className="w-full border border-outline-variant text-on-surface-variant py-1.5 rounded-lg text-[10px] font-bold hover:bg-surface-container-low hover:text-error hover:border-error/40 active:scale-95 transition-all text-center cursor-pointer mt-1"
                   >
-                    {language === "de" ? "Abo kündigen" : "Cancel Subscription"}
+                    {t("tenantDash_cancelSubscription")}
                   </button>
                 </div>
               )}
@@ -967,12 +956,10 @@ function TenantDashboardContent() {
                 <div>
                   <h2 className="text-headline-md font-bold text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-                    {language === "de" ? "Favoriten" : "Favourites"}
+                    {t("tenantDash_favourites")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Hier finden Sie alle Ihre gemerkten Unterkünfte. Verwalten Sie Ihre Favoriten und starten Sie direkt Ihre Bewerbungen."
-                      : "Here you can find all your saved properties. Manage your favorites and apply to them directly."}
+                    {t("tenantDash_hereYouCanFindAllYourSavedProp")}
                   </p>
                 </div>
 
@@ -988,14 +975,14 @@ function TenantDashboardContent() {
                   <div className="text-center py-16 text-on-surface-variant border-2 border-dashed border-outline-variant/55 rounded-2xl bg-surface-container-low/30 space-y-4">
                     <span className="material-symbols-outlined text-[48px] text-outline-variant">favorite_border</span>
                     <p className="text-body-md">
-                      {language === "de" ? "Keine Favoriten gespeichert." : "No saved favorites yet."}
+                      {t("tenantDash_noSavedFavoritesYet")}
                     </p>
                     <button
                       onClick={() => router.push("/suche")}
                       className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-label-sm font-bold hover:opacity-90 active:scale-95 transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[18px]">search</span>
-                      {language === "de" ? "Wohnungen suchen" : "Search Properties"}
+                      {t("tenantDash_searchProperties")}
                     </button>
                   </div>
                 ) : (
@@ -1019,7 +1006,7 @@ function TenantDashboardContent() {
                             <button
                               onClick={() => handleRemoveFavorite(l.id)}
                               className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm p-1.5 rounded-full hover:bg-white transition-colors cursor-pointer text-red-500 hover:text-red-700 shadow-sm"
-                              title={language === "de" ? "Entfernen" : "Remove"}
+                              title={t("tenantDash_remove")}
                             >
                               <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
                             </button>
@@ -1031,15 +1018,15 @@ function TenantDashboardContent() {
                               
                               <div className="grid grid-cols-3 gap-2 mb-4 border-t border-b border-outline-variant/40 py-2.5">
                                 <div className="text-center">
-                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Warm" : "Warm Rent"}</span>
+                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{t("tenantDash_warmRent")}</span>
                                   <span className="text-[14px] font-bold text-primary">{formatPrice(totalRent)}</span>
                                 </div>
                                 <div className="text-center border-l border-r border-outline-variant/30">
-                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Fläche" : "Area"}</span>
+                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{t("tenantDash_area")}</span>
                                   <span className="text-[14px] font-semibold text-primary">{l.size_sqm} m²</span>
                                 </div>
                                 <div className="text-center">
-                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{language === "de" ? "Zimmer" : "Rooms"}</span>
+                                  <span className="block text-[9px] font-bold uppercase tracking-wider text-on-surface-variant">{t("tenantDash_rooms")}</span>
                                   <span className="text-[14px] font-semibold text-primary">{l.rooms}</span>
                                 </div>
                               </div>
@@ -1050,7 +1037,7 @@ function TenantDashboardContent() {
                                 href={`/objekt/${l.id}`}
                                 className="flex-1 text-center bg-primary text-on-primary py-2 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm"
                               >
-                                {language === "de" ? "Details ansehen" : "View Details"}
+                                {t("tenantDash_viewDetails")}
                               </Link>
                             </div>
                           </div>
@@ -1067,12 +1054,10 @@ function TenantDashboardContent() {
               <div className="bg-white border border-outline-variant p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
                 <div>
                   <h2 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Persönliche & Finanzielle Details" : "Personal & Financial Details"}
+                    {t("tenantDash_personalFinancialDetails")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Tragen Sie Ihre Angaben ein, damit Vermieter Ihre Bonität und Eignung bewerten können. Diese Daten werden für den AI Match Score verwendet."
-                      : "Provide your academic and financial details. This information is required for secure landlord approvals and the AI trust match score."}
+                    {t("tenantDash_provideYourAcademicAndFinancia")}
                   </p>
                 </div>
 
@@ -1080,26 +1065,24 @@ function TenantDashboardContent() {
                 <div className="border border-outline-variant/60 rounded-2xl p-5 bg-surface-container-low/40">
                   <h3 className="text-label-md font-bold text-primary flex items-center gap-2 mb-4">
                     <span className="material-symbols-outlined text-[#f07d00]">card_membership</span>
-                    {language === "de" ? "Abonnement & Mitgliedschaft" : "Membership Plan Details"}
+                    {t("tenantDash_membershipPlanDetails")}
                   </h3>
                   
                   {!isPremium ? (
                     <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                       <div>
                         <span className="bg-surface-container-high border border-outline-variant text-[11px] text-on-surface-variant font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-                          {language === "de" ? "Kostenloser Tarif" : "Free Basic Plan"}
+                          {t("tenantDash_freeBasicPlan")}
                         </span>
                         <p className="text-[13px] text-on-surface-variant mt-2 max-w-xl">
-                          {language === "de"
-                            ? "Upgrade auf Premium, um verifizierte Bewerbungsportfolios zu erhalten."
-                            : "Upgrade to Premium to unlock verified application portfolios."}
+                          {t("tenantDash_upgradeToPremiumToUnlockVerifi")}
                         </p>
                       </div>
                       <Link
                         href="/preise?plan=3months"
                         className="bg-[#f07d00] text-white px-6 py-2.5 rounded-xl font-bold text-[13px] hover:opacity-90 active:scale-95 transition-all shadow-md shadow-[#f07d00]/25 text-center flex-shrink-0"
                       >
-                        {language === "de" ? "Jetzt upgraden" : "Upgrade Now"}
+                        {t("tenantDash_upgradeNow")}
                       </Link>
                     </div>
                   ) : (
@@ -1127,8 +1110,8 @@ function TenantDashboardContent() {
                           return (
                             <div className="mt-4 space-y-2">
                               <div className="flex justify-between text-[11px] text-on-surface-variant font-semibold">
-                                <span>{language === "de" ? "Gültigkeit" : "Validity"}</span>
-                                <span>{daysRemaining} {language === "de" ? "Tage verbleibend" : "days left"}</span>
+                                <span>{t("tenantDash_validity")}</span>
+                                <span>{daysRemaining} {t("tenantDash_daysLeft")}</span>
                               </div>
                               <div className="w-full h-2.5 bg-surface-container-high rounded-full overflow-hidden">
                                 <div 
@@ -1137,7 +1120,7 @@ function TenantDashboardContent() {
                                 />
                               </div>
                               <div className="text-[11px] text-on-surface-variant/80 font-medium italic mt-1 text-right">
-                                {language === "de" ? "Ablaufdatum:" : "Expires on:"} {new Date(sub.endDate).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                                {t("tenantDash_expiresOn")} {new Date(sub.endDate).toLocaleDateString(t("tenantDash_enus"))}
                               </div>
                             </div>
                           );
@@ -1148,7 +1131,7 @@ function TenantDashboardContent() {
                         onClick={cancelPremium}
                         className="w-full border border-outline-variant text-on-surface-variant py-2.5 rounded-xl text-[12px] font-bold hover:bg-surface-container-low hover:text-error hover:border-error/40 active:scale-95 transition-all text-center cursor-pointer"
                       >
-                        {language === "de" ? "Abonnement kündigen" : "Cancel Subscription"}
+                        {t("tenantDash_cancelSubscription")}
                       </button>
                     </div>
                   )}
@@ -1172,13 +1155,13 @@ function TenantDashboardContent() {
                   {/* Category 1: Identity */}
                   <div className="space-y-4">
                     <h3 className="text-label-md font-bold text-primary uppercase border-b border-outline-variant/60 pb-1.5">
-                      {language === "de" ? "Identität & Kontakt" : "Identity & Contact"}
+                      {t("tenantDash_identityContact")}
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Vollständiger Name" : "Full Name"}
+                          {t("tenantDash_fullName")}
                         </label>
                         <input
                           type="text"
@@ -1191,7 +1174,7 @@ function TenantDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Telefonnummer" : "Phone Number"}
+                          {t("tenantDash_phoneNumber")}
                         </label>
                         <input
                           type="tel"
@@ -1207,7 +1190,7 @@ function TenantDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "E-Mail-Adresse (Gesperrt)" : "Email Address (Locked)"}
+                          {t("tenantDash_emailAddressLocked")}
                         </label>
                         <input
                           type="email"
@@ -1219,7 +1202,7 @@ function TenantDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Staatsangehörigkeit" : "Nationality"}
+                          {t("tenantDash_nationality")}
                         </label>
                         <input
                           type="text"
@@ -1235,13 +1218,13 @@ function TenantDashboardContent() {
                   {/* Category 2: Academic & Income details */}
                   <div className="space-y-4 pt-4">
                     <h3 className="text-label-md font-bold text-primary uppercase border-b border-outline-variant/60 pb-1.5">
-                      {language === "de" ? "Akademische & Finanzielle Angaben" : "Academic & Financial Details"}
+                      {t("tenantDash_academicFinancialDetails")}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1 col-span-1 md:col-span-2">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Universität / Hochschule" : "University Name"}
+                          {t("tenantDash_universityName")}
                         </label>
                         <input
                           type="text"
@@ -1254,7 +1237,7 @@ function TenantDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Studienbeginn (Enrollment)" : "Enrollment Date"}
+                          {t("tenantDash_enrollmentDate")}
                         </label>
                         <input
                           type="date"
@@ -1266,7 +1249,7 @@ function TenantDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Voraussichtlicher Abschluss" : "Expected Graduation"}
+                          {t("tenantDash_expectedGraduation")}
                         </label>
                         <input
                           type="date"
@@ -1278,24 +1261,24 @@ function TenantDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Beschäftigungsverhältnis" : "Employment Status"}
+                          {t("tenantDash_employmentStatus")}
                         </label>
                         <select
                           value={profileForm.employment_status}
                           onChange={(e) => setProfileForm({ ...profileForm, employment_status: e.target.value })}
                           className="w-full h-11 px-4 bg-surface-container-low border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-[15px]"
                         >
-                          <option value="">{language === "de" ? "Auswählen..." : "Select..."}</option>
-                          <option value="student">{language === "de" ? "Student (Vollzeit)" : "Student (Full-time)"}</option>
-                          <option value="working_student">{language === "de" ? "Werkstudent" : "Working Student"}</option>
-                          <option value="employed">{language === "de" ? "Angestellt" : "Employed"}</option>
-                          <option value="intern">{language === "de" ? "Praktikant" : "Intern"}</option>
+                          <option value="">{t("tenantDash_select")}</option>
+                          <option value="student">{t("tenantDash_studentFulltime")}</option>
+                          <option value="working_student">{t("tenantDash_workingStudent")}</option>
+                          <option value="employed">{t("tenantDash_employed")}</option>
+                          <option value="intern">{t("tenantDash_intern")}</option>
                         </select>
                       </div>
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Monatliches Nettoeinkommen (€)" : "Monthly Net Income (€)"}
+                          {t("tenantDash_monthlyNetIncome")}
                         </label>
                         <input
                           type="text"
@@ -1324,7 +1307,7 @@ function TenantDashboardContent() {
                       {savingProfile && (
                         <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                       )}
-                      {language === "de" ? "Änderungen speichern" : "Save Changes"}
+                      {t("tenantDash_saveChanges")}
                     </button>
                   </div>
                 </form>
@@ -1338,12 +1321,10 @@ function TenantDashboardContent() {
                   <div className="bg-white border border-outline-variant p-8 rounded-2xl shadow-sm text-center space-y-4">
                     <span className="material-symbols-outlined text-[56px] text-primary">book_online</span>
                     <h3 className="text-headline-md font-bold text-primary">
-                      {language === "de" ? "Keine Buchungen gefunden" : "No Active Bookings"}
+                      {t("tenantDash_noActiveBookings")}
                     </h3>
                     <p className="text-body-md text-on-surface-variant max-w-md mx-auto">
-                      {language === "de"
-                        ? "Sie haben noch keine Buchungsanfragen gestellt. Finden Sie eine passende Unterkunft und starten Sie Ihre Bewerbung!"
-                        : "You haven't submitted any booking requests yet. Browse properties and start your rent application today!"}
+                      {t("tenantDash_youHaventSubmittedAnyBookingRe")}
                     </p>
                     <button
                       onClick={() => router.push("/suche")}
@@ -1372,15 +1353,15 @@ function TenantDashboardContent() {
                           <div className="flex items-center gap-3 text-on-surface">
                             <span className="material-symbols-outlined text-primary text-[20px]">calendar_today</span>
                             <span className="text-[14px]">
-                              <strong>{language === "de" ? "Zeitraum: " : "Period: "}</strong>
-                              {new Date(activeBooking.move_in_date).toLocaleDateString(language === "de" ? "de-DE" : "en-US")} - {new Date(activeBooking.move_out_date).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                              <strong>{t("tenantDash_period")}</strong>
+                              {new Date(activeBooking.move_in_date).toLocaleDateString(t("tenantDash_enus"))} - {new Date(activeBooking.move_out_date).toLocaleDateString(t("tenantDash_enus"))}
                             </span>
                           </div>
                           
                           <div className="flex items-center gap-3 text-on-surface">
                             <span className="material-symbols-outlined text-primary text-[20px]">euro</span>
                             <span className="text-[14px]">
-                              <strong>{language === "de" ? "Monatsmiete: " : "Monthly Rent: "}</strong>
+                              <strong>{t("tenantDash_monthlyRent")}</strong>
                               {formatPrice(Number(property?.rent_cold || activeBooking.rent_total))}
                             </span>
                           </div>
@@ -1388,8 +1369,8 @@ function TenantDashboardContent() {
                           <div className="flex items-center gap-3 text-on-surface">
                             <span className="material-symbols-outlined text-primary text-[20px]">hourglass_empty</span>
                             <span className="text-[14px]">
-                              <strong>{language === "de" ? "Einzug in: " : "Move-in in: "}</strong>
-                              {getCountdown(activeBooking.move_in_date)} {language === "de" ? "Tagen" : "Days"}
+                              <strong>{t("tenantDash_moveinIn")}</strong>
+                              {getCountdown(activeBooking.move_in_date)} {t("tenantDash_days")}
                             </span>
                           </div>
                         </div>
@@ -1397,28 +1378,22 @@ function TenantDashboardContent() {
 
                       <div className="bg-surface-container-low border border-outline-variant p-6 rounded-2xl space-y-4 self-start">
                         <h4 className="text-label-md font-bold text-primary border-b border-outline-variant pb-2 uppercase tracking-wide">
-                          {language === "de" ? "Nächste Schritte" : "Next Actions Required"}
+                          {t("tenantDash_nextActionsRequired")}
                         </h4>
                         
                         {activeBooking.status === "pending" && (
                           <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                            {language === "de"
-                              ? "Der Vermieter prüft Ihre Bewerbung. Um Ihre Chancen zu erhöhen, stellen Sie sicher, dass all Ihre Dokumente unter 'Dokumente' hochgeladen sind."
-                              : "The landlord is currently reviewing your intent. To boost matching success, verify that all files in the 'Documents' tab are uploaded and approved."}
+                            {t("tenantDash_theLandlordIsCurrentlyReviewin")}
                           </p>
                         )}
                         {activeBooking.status === "docs_review" && (
                           <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                            {language === "de"
-                              ? "Wir überprüfen Ihre Dokumente. Status: Ausstehend."
-                              : "We are checking your documents. Status: Pending."}
+                            {t("tenantDash_weAreCheckingYourDocumentsStat")}
                           </p>
                         )}
                         {activeBooking.status === "approved" && (
                           <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                            {language === "de"
-                              ? "Glückwunsch! Ihre Bewerbung wurde genehmigt. Sie können nun die Kaution hinterlegen, um Ihre Buchung endgültig zu sichern."
-                              : "Congratulations! Your application has been approved. Proceed to deposit the reservation guarantee to lock the booking."}
+                            {t("tenantDash_congratulationsYourApplication")}
                           </p>
                         )}
                         
@@ -1426,7 +1401,7 @@ function TenantDashboardContent() {
                           onClick={() => router.push(`/buchen/${activeBooking.id}`)}
                           className="w-full bg-primary text-on-primary py-3 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-95 transition-all cursor-pointer text-center mt-2"
                         >
-                          {language === "de" ? "Buchungs-Center öffnen" : "Open Booking Center"}
+                          {t("tenantDash_openBookingCenter")}
                         </button>
                       </div>
                     </div>
@@ -1434,7 +1409,7 @@ function TenantDashboardContent() {
                     {/* Visual Timeline details */}
                     <div className="space-y-4">
                       <h3 className="text-label-md font-bold text-primary uppercase">
-                        {language === "de" ? "Visualisierter Bewerbungsverlauf" : "Visualized Application Timeline"}
+                        {t("tenantDash_visualizedApplicationTimeline")}
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-7 gap-4">
                         {pipeline.map((step, idx) => (
@@ -1452,7 +1427,7 @@ function TenantDashboardContent() {
                               {idx + 1}
                             </div>
                             <p className="text-[11px] leading-tight mt-1">
-                              {language === "de" ? step.labelDe : step.labelEn}
+                              {step.label}
                             </p>
                           </div>
                         ))}
@@ -1469,12 +1444,10 @@ function TenantDashboardContent() {
               <div className="bg-white border border-outline-variant p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
                 <div>
                   <h2 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Verifizierungs-Dokumente" : "Verification Documents"}
+                    {t("tenantDash_verificationDocuments")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Laden Sie Ihre erforderlichen Nachweise hoch. Ein verifiziertes Profil beschleunigt den Zusageprozess bei Vermietern erheblich."
-                      : "Upload your required verification papers. A fully verified profile gives you priority access and immediate landlord approvals."}
+                    {t("tenantDash_uploadYourRequiredVerification")}
                   </p>
                 </div>
 
@@ -1490,12 +1463,12 @@ function TenantDashboardContent() {
                     </span>
                     <div>
                       <h4 className="font-bold text-label-md">
-                        {language === "de" ? "Verifiziertes Bewerberportfolio" : "Verified Applicant Portfolio"}
+                        {t("tenantDash_verifiedApplicantPortfolio")}
                       </h4>
                       <p className="text-[11px] text-on-surface-variant mt-0.5">
                         {isPremium 
-                          ? (language === "de" ? "Dein verifiziertes Portfolio ist für Vermieter vollständig sichtbar und hervorgehoben." : "Your verified portfolio is fully visible and highlighted to landlords.")
-                          : (language === "de" ? "Dein verifiziertes Portfolio wird erst nach einem Upgrade auf Premium für Vermieter sichtbar sein." : "Your verified portfolio will only be visible to landlords after upgrading to Premium.")
+                          ? (t("tenantDash_yourVerifiedPortfolioIsFullyVi"))
+                          : (t("tenantDash_yourVerifiedPortfolioWillOnlyB"))
                         }
                       </p>
                     </div>
@@ -1505,7 +1478,7 @@ function TenantDashboardContent() {
                       href="/preise?plan=3months"
                       className="bg-[#f07d00] text-white px-4 py-2 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
                     >
-                      {language === "de" ? "Jetzt freischalten" : "Unlock Now"}
+                      {t("tenantDash_unlockNow")}
                     </Link>
                   )}
                 </div>
@@ -1545,15 +1518,15 @@ function TenantDashboardContent() {
                         <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <h4 className="text-label-md font-bold text-primary">
-                                {language === "de" ? docType.labelDe : docType.labelEn}
+                                {getDocDisplayName(docType.key)}
                               </h4>
                               {docType.optional ? (
                                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant border border-outline-variant/60">
-                                  {language === "de" ? "Optional" : "Optional"}
+                                  {t("tenantDash_optional")}
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                  {language === "de" ? "Pflicht" : "Required"}
+                                  {t("tenantDash_required")}
                                 </span>
                               )}
                             </div>
@@ -1582,18 +1555,18 @@ function TenantDashboardContent() {
                           {status === "pending" && (
                             <span className="flex items-center gap-1.5 text-secondary text-[12px] font-bold">
                               <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
-                              {language === "de" ? "In Prüfung..." : "Under Review..."}
+                              {t("tenantDash_underReview")}
                             </span>
                           )}
                           {status === "rejected" && (
                             <span className="flex items-center gap-1.5 text-error text-[12px] font-bold">
                               <span className="material-symbols-outlined text-[16px]">error</span>
-                              {language === "de" ? "Bitte erneut hochladen" : "Please re-upload"}
+                              {t("tenantDash_pleaseReupload")}
                             </span>
                           )}
                           {status === "missing" && (
                             <span className="flex items-center gap-1.5 text-on-surface-variant text-[12px] font-medium italic">
-                              {language === "de" ? "Noch nicht hochgeladen" : "Not uploaded yet"}
+                              {t("tenantDash_notUploadedYet")}
                             </span>
                           )}
 
@@ -1606,12 +1579,12 @@ function TenantDashboardContent() {
                               {uploadingDoc === docType.key ? (
                                 <>
                                   <span className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
-                                  <span>{language === "de" ? "Lädt hoch..." : "Uploading..."}</span>
+                                  <span>{t("tenantDash_uploading")}</span>
                                 </>
                               ) : (
                                 <>
                                   <span className="material-symbols-outlined text-[14px]">upload_file</span>
-                                  <span>{status === "missing" ? (language === "de" ? "Hochladen" : "Upload") : (language === "de" ? "Ersetzen" : "Replace")}</span>
+                                  <span>{status === "missing" ? (t("tenantDash_upload")) : (t("tenantDash_replace"))}</span>
                                 </>
                               )}
                             </label>
@@ -1627,10 +1600,10 @@ function TenantDashboardContent() {
                               <button
                                 onClick={() => handleDocRemove(docType.key)}
                                 className="px-3 py-2 rounded-lg text-[12px] font-bold border border-error text-error hover:bg-error/5 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
-                                title={language === "de" ? "Dokument entfernen" : "Remove document"}
+                                title={t("tenantDash_removeDocument")}
                               >
                                 <span className="material-symbols-outlined text-[14px]">delete</span>
-                                <span>{language === "de" ? "Löschen" : "Remove"}</span>
+                                <span>{t("tenantDash_remove")}</span>
                               </button>
                             )}
                             {/* Manage in booking page if booking exists */}
@@ -1638,7 +1611,7 @@ function TenantDashboardContent() {
                               <button
                                 onClick={() => router.push(`/buchen/${activeBooking.id}`)}
                                 className="px-3 py-2 rounded-lg text-[12px] font-bold border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary active:scale-95 transition-all cursor-pointer"
-                                title={language === "de" ? "Im Buchungsportal öffnen" : "Open in booking portal"}
+                                title={t("tenantDash_openInBookingPortal")}
                               >
                                 <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                               </button>
@@ -1658,12 +1631,10 @@ function TenantDashboardContent() {
                 <div>
                   <h2 className="text-headline-md font-bold text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined text-[28px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>bookmarks</span>
-                    {language === "de" ? "Gespeicherte Suchen" : "Saved Searches"}
+                    {t("tenantDash_savedSearches")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Verwalten Sie Ihre gespeicherten Suchfilter. Sie können diese jederzeit anwenden, um passende Wohnungen zu finden."
-                      : "Manage your saved search filters. Apply them anytime to find matching properties."}
+                    {t("tenantDash_manageYourSavedSearchFiltersAp")}
                   </p>
                 </div>
 
@@ -1679,14 +1650,14 @@ function TenantDashboardContent() {
                   <div className="text-center py-16 text-on-surface-variant border-2 border-dashed border-outline-variant/55 rounded-2xl bg-surface-container-low/30 space-y-4">
                     <span className="material-symbols-outlined text-[48px] text-outline-variant">bookmarks</span>
                     <p className="text-body-md">
-                      {language === "de" ? "Keine gespeicherten Suchen vorhanden." : "No saved searches yet."}
+                      {t("tenantDash_noSavedSearchesYet")}
                     </p>
                     <button
                       onClick={() => router.push("/suche")}
                       className="bg-primary text-on-primary px-5 py-2.5 rounded-xl text-label-sm font-bold hover:opacity-90 active:scale-95 transition-all shadow cursor-pointer inline-flex items-center gap-1.5"
                     >
                       <span className="material-symbols-outlined text-[18px]">search</span>
-                      {language === "de" ? "Neue Suche starten" : "Start a new search"}
+                      {t("tenantDash_startANewSearch")}
                     </button>
                   </div>
                 ) : (
@@ -1708,15 +1679,15 @@ function TenantDashboardContent() {
                               <button
                                 onClick={() => handleDeleteSavedFilter(filter.id)}
                                 className="text-on-surface-variant hover:text-error transition-colors p-1 rounded-md hover:bg-surface-container-low cursor-pointer"
-                                title={language === "de" ? "Löschen" : "Delete"}
+                                title={t("tenantDash_delete")}
                               >
                                 <span className="material-symbols-outlined text-[18px]">delete</span>
                               </button>
                             </div>
                             
                             <p className="text-[11px] text-on-surface-variant/75 mb-4">
-                              {language === "de" ? "Erstellt am: " : "Saved on: "}
-                              {new Date(filter.created_at).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                              {t("tenantDash_savedOn")}
+                              {new Date(filter.created_at).toLocaleDateString(t("tenantDash_enus"))}
                             </p>
 
                             {hasBadges && (
@@ -1736,27 +1707,27 @@ function TenantDashboardContent() {
                                 {f.rooms && (
                                   <span className="text-[11px] font-bold bg-[#1b365d]/5 text-[#1b365d] border border-[#1b365d]/10 px-2 py-0.5 rounded-md flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[12px]">bed</span>
-                                    {f.rooms === "wg" ? (language === "de" ? "WG-Zimmer" : "WG Room") : `${f.rooms} ${language === "de" ? "Zimmer" : "Rooms"}`}
+                                    {f.rooms === "wg" ? (t("tenantDash_wgRoom")) : `${f.rooms} ${t("tenantDash_rooms")}`}
                                   </span>
                                 )}
                                 {f.moveIn && (
                                   <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
-                                    📅 {language === "de" ? "Einzug" : "Move in"}: {new Date(f.moveIn).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                                    📅 {t("tenantDash_moveIn")}: {new Date(f.moveIn).toLocaleDateString(t("tenantDash_enus"))}
                                   </span>
                                 )}
                                 {f.moveOut && (
                                   <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
-                                    📅 {language === "de" ? "Auszug" : "Move out"}: {new Date(f.moveOut).toLocaleDateString(language === "de" ? "de-DE" : "en-US")}
+                                    📅 {t("tenantDash_moveOut")}: {new Date(f.moveOut).toLocaleDateString(t("tenantDash_enus"))}
                                   </span>
                                 )}
                                 {f.furnished !== null && (
                                   <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
-                                    🛋️ {f.furnished ? (language === "de" ? "Möbliert" : "Furnished") : (language === "de" ? "Unmöbliert" : "Unfurnished")}
+                                    🛋️ {f.furnished ? (t("tenantDash_furnished")) : (t("tenantDash_unfurnished"))}
                                   </span>
                                 )}
                                 {f.petsAllowed && (
                                   <span className="text-[11px] font-semibold bg-surface-variant text-on-surface-variant border border-outline-variant/60 px-2 py-0.5 rounded-md">
-                                    🐾 {language === "de" ? "Haustiere erlaubt" : "Pets allowed"}
+                                    🐾 {t("tenantDash_petsAllowed")}
                                   </span>
                                 )}
                                 {f.wgSize && f.wgSize !== "regardless" && (
@@ -1788,7 +1759,7 @@ function TenantDashboardContent() {
                             className="w-full text-center bg-primary text-on-primary py-2.5 rounded-xl text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
                           >
                             <span className="material-symbols-outlined text-[16px]">travel_explore</span>
-                            {language === "de" ? "Suche anwenden" : "Apply Search"}
+                            {t("tenantDash_applySearch")}
                           </button>
                         </div>
                       );

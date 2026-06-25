@@ -33,9 +33,7 @@ function PreisePageContent() {
   const handlePayment = async () => {
     if (!user) {
       (alert as any)(
-        language === "de"
-          ? "Bitte logge dich zuerst ein, um ein Premium-Abonnement abzuschließen."
-          : "Please log in first to purchase a Premium membership.",
+        t("loginForPremium"),
         () => {
           router.push(`/auth/login?redirect=${encodeURIComponent(`/preise?plan=${selectedDuration}`)}`);
         }
@@ -49,13 +47,9 @@ function PreisePageContent() {
       setTimeout(() => {
         setIsSubmitting(false);
         (alert as any)(
-          language === "de"
-            ? `Zahlung erfolgreich! Du bist jetzt Premium-Mitglied (${
-                selectedDuration === "1month" ? "1 Monat" : selectedDuration === "3months" ? "3 Monate" : "12 Monate"
-              }).`
-            : `Payment successful! You are now a Premium member (${
-                selectedDuration === "1month" ? "1 month" : selectedDuration === "3months" ? "3 months" : "12 months"
-              }).`,
+          `${t("premiumUpgradeSuccess")} (${
+            selectedDuration === "1month" ? t("billing1Month").replace('*', '') : selectedDuration === "3months" ? t("billing3Months") : t("billing12Months")
+          }).`,
           () => {
             if (profile?.role === "landlord") {
               router.push("/dashboard/landlord");
@@ -67,7 +61,7 @@ function PreisePageContent() {
       }, 1500);
     } catch (err) {
       setIsSubmitting(false);
-      alert(language === "de" ? "Fehler beim Upgrade des Abonnements" : "Error upgrading subscription");
+      alert(t("upgradeError"));
     }
   };
 
@@ -77,12 +71,10 @@ function PreisePageContent() {
         {/* Title */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <h1 className="text-headline-lg font-bold text-primary">
-            {language === "de" ? "Wähle deine Mitgliedschaft" : "Choose Your Membership"}
+            {t("chooseMembership")}
           </h1>
           <p className="text-on-surface-variant text-body-md">
-            {language === "de" 
-              ? "Nutze Heimstadt kostenlos oder sichere dir exklusive Premium-Vorteile für eine schnellere Wohnungssuche."
-              : "Use Heimstadt for free or unlock exclusive premium features to accelerate your housing search."}
+            {t("chooseMembershipDesc")}
           </p>
         </div>
 
@@ -100,14 +92,10 @@ function PreisePageContent() {
 
             <div className="space-y-4 relative z-10">
               <h2 className="text-headline-md font-bold text-primary">
-                {language === "de"
-                  ? "Premium-Vorteile aktiv für alle Vermieter"
-                  : "Premium Benefits Active for All Landlords"}
+                {t("premiumLandlordTitle")}
               </h2>
               <p className="text-on-surface-variant text-body-md max-w-xl mx-auto leading-relaxed">
-                {language === "de"
-                  ? "Als Vermieter auf Heimstadt erhalten Sie aktuell kostenfreien Zugang zu allen exklusiven Premium-Funktionen. Es ist kein separater Tarif oder Abschluss eines Abonnements notwendig!"
-                  : "As a landlord on Heimstadt, you currently receive free access to all exclusive premium features. No separate plan or subscription signup is required!"}
+                {t("premiumLandlordDesc")}
               </p>
             </div>
 
@@ -115,14 +103,14 @@ function PreisePageContent() {
             <div className="bg-white/60 backdrop-blur-sm border border-outline-variant/60 rounded-2xl p-6 md:p-8 max-w-lg mx-auto relative z-10 shadow-sm text-left">
               <h3 className="font-bold text-[16px] text-primary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[20px]">verified</span>
-                {language === "de" ? "Ihre aktiven Premium-Features:" : "Your Active Premium Features:"}
+                {t("activePremiumFeatures")}
               </h3>
               <ul className="space-y-3.5 text-left text-[15px] text-on-surface-variant">
                 {[
-                  { label: language === "de" ? "Unbegrenzte Immobilieninserate anlegen" : "Create unlimited property listings" },
-                  { label: language === "de" ? "Zugriff auf verifizierte Bewerberportfolios" : "Access verified applicant portfolios" },
-                  { label: language === "de" ? "Direkte WhatsApp-Benachrichtigungen bei Anfragen" : "Direct WhatsApp notifications on requests" },
-                  { label: language === "de" ? "Direkte Chat-Kommunikation mit Bewerbern" : "Direct chat communication with applicants" }
+                  { label: t("limitlessListings") },
+                  { label: t("accessApplicantPortfolios") },
+                  { label: t("whatsappNotifications") },
+                  { label: t("directChatApplicants") }
                 ].map(({ label }, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <span className="material-symbols-outlined text-primary text-[20px] select-none mt-0.5">check_circle</span>
@@ -137,7 +125,7 @@ function PreisePageContent() {
               className="bg-primary text-on-primary px-8 py-4 rounded-full font-bold text-[16px] hover:opacity-90 active:scale-98 transition-all shadow-lg shadow-primary/20 cursor-pointer relative z-10 inline-flex items-center gap-2"
             >
               <span className="material-symbols-outlined text-[20px]">space_dashboard</span>
-              {language === "de" ? "Zum Vermieter-Dashboard" : "Go to Landlord Dashboard"}
+              {t("goLandlordDashboard")}
             </button>
           </div>
         ) : (
@@ -151,28 +139,26 @@ function PreisePageContent() {
                   </span>
                   <div className="flex items-baseline gap-1 mt-4">
                     <span className="text-[36px] font-bold text-primary">{formatPrice(0)}</span>
-                    <span className="text-on-surface-variant text-[14px]">/ {language === "de" ? "Monat" : "Month"}</span>
+                    <span className="text-on-surface-variant text-[14px]">/ {t("perMonthLabel")}</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <h3 className="font-bold text-[16px] text-on-surface">
-                    {language === "de" ? "Standard-Suche & Basisdaten" : "Standard Search & Basic Info"}
+                    {t("standardSearchBasicInfo")}
                   </h3>
                   <p className="text-[14px] text-on-surface-variant">
-                    {language === "de" 
-                      ? "Ideal, wenn du Zeit hast und den Marktplatz unverbindlich kennenlernen möchtest."
-                      : "Ideal if you have time and want to explore the marketplace without commitment."}
+                    {t("standardSearchDesc")}
                   </p>
                 </div>
 
                 <ul className="space-y-4 text-[14px] text-on-surface-variant border-t border-outline-variant/50 pt-6">
                   {[
-                    { label: language === "de" ? "Unbegrenzt Immobilien durchsuchen" : "Browse unlimited properties", check: true },
-                    { label: language === "de" ? "Standard-Bewerberliste für Vermieter" : "Standard applicant list for landlords", check: true },
-                    { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords", check: false },
-                    { label: language === "de" ? "Priorisierte Bewerbungen (Premium)" : "Priority applications (Premium)", check: false },
-                    { label: language === "de" ? "Verifiziertes Bewerberportfolio" : "Validated application portfolio", check: false },
+                    { label: t("freeBrowse"), check: true },
+                    { label: t("standardApplicant"), check: true },
+                    { label: t("directChat"), check: false },
+                    { label: t("priorityRequests"), check: false },
+                    { label: t("validatedPortfolio"), check: false },
                   ].map(({ label, check }, i) => (
                     <li key={i} className={`flex items-center gap-3 ${!check ? "text-outline-variant line-through" : ""}`}>
                       <span className={`material-symbols-outlined text-[20px] ${check ? "text-[#137333]" : "text-outline-variant"}`}>
@@ -185,7 +171,7 @@ function PreisePageContent() {
               </div>
 
               <button className="w-full border-2 border-primary text-primary py-3.5 rounded-xl font-bold hover:bg-primary/5 active:scale-98 transition-all mt-8 cursor-pointer text-center text-label-md">
-                {language === "de" ? "Kostenlos starten" : "Start Free"}
+                {t("startFree")}
               </button>
             </div>
 
@@ -196,7 +182,7 @@ function PreisePageContent() {
                 <div className="w-full mb-8">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-[14px] font-bold text-[#f07d00]">{t("stepReview")}</span>
-                    <span className="text-[12px] font-bold text-on-surface-variant/80">45% {language === "de" ? "abgeschlossen" : "completed"}</span>
+                    <span className="text-[12px] font-bold text-on-surface-variant/80">45% {t("completed")}</span>
                   </div>
                   {/* Progress bar line */}
                   <div className="w-full h-3 bg-surface-container-high rounded-full overflow-hidden">
@@ -288,15 +274,15 @@ function PreisePageContent() {
                 {/* Premium Features List */}
                 <div className="border-t border-outline-variant/60 pt-6 space-y-4">
                   <h4 className="font-bold text-[15px] text-on-surface">
-                    {language === "de" ? "Premium-Vorteile im Überblick:" : "Premium Benefits at a Glance:"}
+                    {t("premiumBenefitsOverview")}
                   </h4>
                   <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[14px] text-on-surface-variant">
                     {[
-                      { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords" },
-                      { label: language === "de" ? "Geprüftes Bewerberportfolio" : "Validated applicant portfolio" },
-                      { label: language === "de" ? "Priorisierte Bewerber-Anfragen" : "Priority applicant requests" },
-                      { label: language === "de" ? "Unbegrenzte Chat-Vorgänge" : "Unlimited chat sessions" },
-                      { label: language === "de" ? "Escrow-Treuhandgarantie" : "Secure escrow guarantee" }
+                      { label: t("directChat") },
+                      { label: t("validatedPortfolio") },
+                      { label: t("priorityRequests") },
+                      { label: t("unlimitedChat") },
+                      { label: t("escrowGuarantee") }
                     ].map(({ label }, i) => (
                       <li key={i} className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[#f07d00] text-[18px]">verified</span>

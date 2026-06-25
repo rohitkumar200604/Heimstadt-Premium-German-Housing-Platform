@@ -331,11 +331,7 @@ export default function HomePage() {
   const handleBlogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!blogTitle.trim() || !blogContent.trim() || !blogPlaceName.trim() || !blogAuthorName.trim()) {
-      window.alert(
-        language === "de"
-          ? "Bitte füllen Sie alle erforderlichen Felder aus."
-          : "Please fill in all required fields."
-      );
+      window.alert(t("fillRequiredFields"));
       return;
     }
 
@@ -358,11 +354,7 @@ export default function HomePage() {
         const { error } = await supabase.from("blogs").insert(newPost);
         if (error) throw error;
         
-        window.alert(
-          language === "de"
-            ? "Erfolgreich! Dein Erfahrungsbericht wurde hochgeladen."
-            : "Success! Your experience has been published."
-        );
+        window.alert(t("blogSuccess"));
         fetchLatestBlogs();
         setIsBlogModalOpen(false);
         resetBlogForm();
@@ -376,21 +368,13 @@ export default function HomePage() {
           },
           ...prev,
         ].slice(0, 3));
-        window.alert(
-          language === "de"
-            ? "Erfolgreich eingereicht! (Lokal simuliert - kein Supabase konfiguriert)"
-            : "Successfully submitted! (Locally simulated - no Supabase configured)"
-        );
+        window.alert(t("blogSuccessLocal"));
         setIsBlogModalOpen(false);
         resetBlogForm();
       }
     } catch (err: any) {
       console.error("Error submitting homepage blog:", err);
-      window.alert(
-        language === "de"
-          ? `Fehler beim Veröffentlichen: ${err.message}`
-          : `Error publishing experience: ${err.message}`
-      );
+      window.alert(`${t("publishError")}: ${err.message}`);
     } finally {
       setBlogSubmitting(false);
     }
@@ -623,13 +607,13 @@ export default function HomePage() {
                       if (stadt.trim() !== "") {
                         handleInputChange(stadt);
                       } else {
-                        const all = ALL_SUGGESTIONS.map((c) => (language === "de" ? c.de : c.en));
+                        const all = ALL_SUGGESTIONS.map((c) => (language === "de" || language === "fr" || language === "nl" || language === "pl" ? c.de : c.en));
                         setFilteredCities(all);
                         setShowSuggestions(true);
                       }
                     }}
                     id="search-city"
-                    placeholder={language === "de" ? "Stadt eingeben..." : "Enter city..."}
+                    placeholder={t("cityInputPlaceholder")}
                     className="w-full pl-10 pr-4 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[16px] font-semibold text-on-surface h-[50px]"
                     autoComplete="off"
                   />
@@ -657,7 +641,7 @@ export default function HomePage() {
 
               <div className="text-left sm:col-span-1 md:col-span-2">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
-                  {language === "de" ? "Einzug" : "Move in"}
+                  {t("moveIn")}
                 </label>
                 <input
                   type="date"
@@ -671,7 +655,7 @@ export default function HomePage() {
 
               <div className="text-left sm:col-span-1 md:col-span-2">
                 <label className="block text-label-sm text-on-surface-variant mb-2 ml-1">
-                  {language === "de" ? "Auszug" : "Move out"}
+                  {t("moveOut")}
                 </label>
                 <input
                   type="date"
@@ -694,6 +678,7 @@ export default function HomePage() {
                 }`}
               >
                 <span className="material-symbols-outlined text-xl">search</span>
+                <span>{t("searchBtn")}</span>
               </button>
             </div>
           </form>
@@ -727,7 +712,7 @@ export default function HomePage() {
             className="flex overflow-x-auto gap-0 py-4 no-scrollbar w-full"
           >
             {[...CITIES, ...CITIES].map((item, idx) => {
-              const cityName = language === "de" ? item.nameDe : item.nameEn;
+              const cityName = language === "de" || language === "fr" || language === "nl" || language === "pl" ? item.nameDe : item.nameEn;
               return (
                 <div
                   key={`${item.nameDe}-${idx}`}
@@ -788,15 +773,13 @@ export default function HomePage() {
       <section className="py-24 max-w-[1280px] mx-auto px-5 md:px-[48px] w-full border-t border-outline-variant/30">
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
           <span className="text-secondary text-label-md tracking-wider uppercase block">
-            {language === "de" ? "Flexible Tarife" : "Flexible Plans"}
+            {t("flexiblePlans")}
           </span>
           <h2 className="text-headline-lg-mobile md:text-headline-lg text-primary">
-            {language === "de" ? "Finde deine neue Heimstadt schneller" : "Find Your New Home Faster"}
+            {t("findHomeTitle")}
           </h2>
           <p className="text-body-md text-on-surface-variant">
-            {language === "de"
-              ? "Nutze Heimstadt komplett kostenlos oder profitiere von unserem Premium-Paket mit exklusiven Such-Vorteilen."
-              : "Use Heimstadt completely free or get our Premium package with exclusive search benefits."}
+            {t("findHomeSubtitle")}
           </p>
         </div>
 
@@ -805,22 +788,22 @@ export default function HomePage() {
           <div className="lg:col-span-5 bg-white border border-outline-variant rounded-2xl p-8 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
             <div className="space-y-6">
               <div>
-                <h3 className="text-[20px] font-bold text-primary">{language === "de" ? "Kostenlose Basis-Mitgliedschaft" : "Free Basic Membership"}</h3>
+                <h3 className="text-[20px] font-bold text-primary">{t("freeMembership")}</h3>
                 <p className="text-[14px] text-on-surface-variant mt-2">
-                  {language === "de" ? "Kostenlos stöbern und direkt bewerben" : "Browse for free and apply directly"}
+                  {t("freeMembershipDesc")}
                 </p>
                 <div className="flex items-baseline gap-1 mt-6">
                   <span className="text-[40px] font-bold text-primary">{formatPrice(0)}</span>
-                  <span className="text-on-surface-variant text-[14px]">/ {language === "de" ? "Monat" : "Month"}</span>
+                  <span className="text-on-surface-variant text-[14px]">/ {t("perMonthLabel")}</span>
                 </div>
               </div>
 
               <ul className="space-y-4 text-[14px] text-on-surface-variant border-t border-outline-variant/40 pt-6">
                 {[
-                  { text: language === "de" ? "Unbegrenzt Immobilien durchsuchen" : "Browse unlimited properties", check: true },
-                  { text: language === "de" ? "Standard-Bewerberliste für Vermieter" : "Standard applicant list for landlords", check: true },
-                  { text: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords", check: false },
-                  { text: language === "de" ? "Verifiziertes Bewerberportfolio" : "Validated application portfolio", check: false },
+                  { text: t("freeBrowse"), check: true },
+                  { text: t("standardApplicant"), check: true },
+                  { text: t("directChat"), check: false },
+                  { text: t("validatedPortfolio"), check: false },
                 ].map(({ text, check }, i) => (
                   <li key={i} className={`flex items-center gap-3 ${!check ? "text-outline-variant/60 line-through" : ""}`}>
                     <span className={`material-symbols-outlined text-[20px] ${check ? "text-[#137333]" : "text-outline-variant"}`}>
@@ -835,14 +818,14 @@ export default function HomePage() {
               onClick={() => router.push("/suche")}
               className="w-full border-2 border-primary text-primary py-3.5 rounded-xl font-bold hover:bg-primary/5 active:scale-98 transition-all mt-8 cursor-pointer text-center text-label-md"
             >
-              {language === "de" ? "Jetzt kostenlos starten" : "Start Free Now"}
+              {t("startFreeNow")}
             </button>
           </div>
 
           {/* Premium Card */}
           <div className="lg:col-span-7 bg-white border-2 border-[#f07d00] rounded-2xl p-8 flex flex-col justify-between shadow-lg relative bg-gradient-to-b from-white to-[#f07d00]/5">
             <div className="absolute top-0 right-8 -translate-y-1/2 bg-[#f07d00] text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm">
-              {language === "de" ? "Sehr Empfohlen" : "Highly Recommended"}
+              {t("highlyRecommended")}
             </div>
 
             <div className="space-y-6">
@@ -852,18 +835,16 @@ export default function HomePage() {
                   Heimstadt Premium
                 </h3>
                 <p className="text-[14px] text-on-surface-variant mt-2">
-                  {language === "de"
-                    ? "Maximale Suchgeschwindigkeit mit bevorzugten Bewerbungen."
-                    : "Maximum search speed with priority applications."}
+                  {t("premiumDesc")}
                 </p>
               </div>
 
               {/* Minified Pricing Cards from the reference image */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-outline-variant/40 pt-6">
                 {[
-                  { key: "1month", duration: language === "de" ? "1 Monat*" : "1 month*", price: formatPrice(10.99), sub: "" },
-                  { key: "3months", duration: language === "de" ? "3 Monate" : "3 months", price: formatPrice(9.99), sub: language === "de" ? "/ Monat" : "/per mo", featured: true },
-                  { key: "12months", duration: language === "de" ? "12 Monate" : "12 months", price: formatPrice(7.99), sub: language === "de" ? "/ Monat" : "/per mo" },
+                  { key: "1month", duration: t("billing1Month"), price: formatPrice(10.99), sub: "" },
+                  { key: "3months", duration: t("billing3Months"), price: formatPrice(9.99), sub: t("perMonth"), featured: true },
+                  { key: "12months", duration: t("billing12Months"), price: formatPrice(7.99), sub: t("perMonth") },
                 ].map(({ key, duration, price, sub, featured }, i) => (
                   <div
                     key={key}
@@ -874,7 +855,7 @@ export default function HomePage() {
                   >
                     {featured && (
                       <span className="absolute top-0 left-1/2 -translate-y-1/2 -translate-x-1/2 bg-[#f07d00] text-white text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm whitespace-nowrap">
-                        {language === "de" ? "Beliebt" : "Top Seller"}
+                        {t("topSellersLabel")}
                       </span>
                     )}
                     <span className="text-[12px] font-bold text-on-surface-variant block mb-2">{duration}</span>
@@ -886,21 +867,21 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-[11px] text-on-surface-variant/80 italic">
-                {language === "de" ? "*ohne validiertes Bewerberportfolio" : "*without a validated application portfolio"}
+                {t("pricingDisclaimer")}
               </p>
 
               {/* Premium Feature Checklist */}
               <div className="border-t border-outline-variant/40 pt-4 mt-4 space-y-3">
                 <span className="text-[12px] font-bold text-primary uppercase tracking-wider block">
-                  {language === "de" ? "Das ist enthalten:" : "What's included:"}
+                  {t("whatsIncluded")}
                 </span>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[13px] text-on-surface-variant">
                   {[
-                    { label: language === "de" ? "Direkter Chat mit Vermietern" : "Direct chat with landlords" },
-                    { label: language === "de" ? "Verifiziertes Bewerberportfolio" : "Validated applicant portfolio" },
-                    { label: language === "de" ? "Priorisierte Bewerber-Anfragen" : "Priority applicant requests" },
-                    { label: language === "de" ? "Unbegrenzte Chat-Vorgänge" : "Unlimited chat sessions" },
-                    { label: language === "de" ? "Escrow-Treuhandgarantie" : "Secure escrow guarantee" }
+                    { label: t("directChat") },
+                    { label: t("validatedPortfolio") },
+                    { label: t("priorityRequests") },
+                    { label: t("unlimitedChat") },
+                    { label: t("escrowGuarantee") }
                   ].map(({ label }, i) => (
                     <li key={i} className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[#f07d00] text-[16px]">verified</span>
@@ -915,7 +896,7 @@ export default function HomePage() {
               onClick={() => router.push(`/preise?plan=${selectedPremiumPlan}`)}
               className="w-full bg-[#f07d00] text-white py-4 rounded-full font-bold text-label-md hover:opacity-90 active:scale-98 transition-all mt-8 cursor-pointer shadow-md shadow-[#f07d00]/20 text-center block"
             >
-              {language === "de" ? "Premium-Vorteile sichern" : "Get Premium Membership"}
+              {t("getPremiumBtn")}
             </button>
           </div>
         </div>
@@ -1003,10 +984,10 @@ export default function HomePage() {
         <div className="flex justify-between items-end mb-12 flex-wrap gap-4">
           <div>
             <span className="text-secondary text-label-md tracking-wider uppercase block mb-1">
-              {language === "de" ? "Erfahrungsberichte" : "User Experiences"}
+              {t("userExperiences")}
             </span>
             <h2 className="text-headline-lg-mobile md:text-headline-lg text-primary">
-              {language === "de" ? "Echte Erlebnisse unserer Community" : "Real Stories From Our Community"}
+              {t("realStories")}
             </h2>
           </div>
           <div className="flex gap-3">
@@ -1020,7 +1001,7 @@ export default function HomePage() {
               href="/blogs"
               className="border-2 border-primary text-primary px-5 py-2 rounded-full text-label-md font-bold hover:bg-primary/5 active:scale-95 transition-all text-center flex items-center"
             >
-              {language === "de" ? "Alle Berichte lesen" : "Read All Stories"}
+              {t("readAllStories")}
             </Link>
           </div>
         </div>
@@ -1033,9 +1014,7 @@ export default function HomePage() {
           <div className="bg-white border border-outline-variant rounded-2xl p-12 text-center shadow-sm flex flex-col items-center justify-center space-y-3">
             <span className="material-symbols-outlined text-[48px] text-outline-variant">rate_review</span>
             <p className="text-body-md text-on-surface-variant font-medium">
-              {language === "de"
-                ? "Noch keine Berichte vorhanden. Teile als Erster deine Erfahrung!"
-                : "No experiences shared yet. Be the first to share yours!"}
+              {t("noBlogsYet")}
             </p>
           </div>
         ) : (
@@ -1072,7 +1051,7 @@ export default function HomePage() {
                         ))}
                     </div>
                     <span className="text-[10px] text-on-surface-variant/80">
-                      {new Date(blog.created_at).toLocaleDateString(language === "de" ? "de" : "en", {
+                      {new Date(blog.created_at).toLocaleDateString(language === "de" ? "de-DE" : language === "fr" ? "fr-FR" : language === "es" ? "es-ES" : language === "it" ? "it-IT" : language === "nl" ? "nl-NL" : language === "pt" ? "pt-BR" : "en-US", {
                         month: "short",
                         year: "numeric",
                       })}
@@ -1098,7 +1077,7 @@ export default function HomePage() {
                   <div>
                     <p className="text-label-md text-primary font-bold text-[13px]">{blog.author_name}</p>
                     <p className="text-[9px] text-on-surface-variant/75 uppercase tracking-wider font-semibold">
-                      {blog.author_id ? (language === "de" ? "Verifiziert" : "Verified") : (language === "de" ? "Gast" : "Guest")}
+                      {blog.author_id ? t("verifiedLabel") : t("guestLabel")}
                     </p>
                   </div>
                 </div>
@@ -1142,14 +1121,14 @@ export default function HomePage() {
               {/* Place/House Name */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Unterkunft / Ort *" : "Accommodation / Place *"}
+                  {t("blogAccommodation")}
                 </label>
                 <input
                   type="text"
                   required
                   value={blogPlaceName}
                   onChange={(e) => setBlogPlaceName(e.target.value)}
-                  placeholder={language === "de" ? "z.B. Tiergarten Premium Loft, Berlin" : "e.g., Tiergarten Premium Loft, Berlin"}
+                  placeholder={t("blogAccommodationPlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
                 />
               </div>
@@ -1157,14 +1136,14 @@ export default function HomePage() {
               {/* Title */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Titel des Berichts *" : "Title of your experience *"}
+                  {t("blogTitle2")}
                 </label>
                 <input
                   type="text"
                   required
                   value={blogTitle}
                   onChange={(e) => setBlogTitle(e.target.value)}
-                  placeholder={language === "de" ? "z.B. Ein unvergesslicher Aufenthalt!" : "e.g., An unforgettable stay!"}
+                  placeholder={t("blogTitlePlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
                 />
               </div>
@@ -1172,21 +1151,19 @@ export default function HomePage() {
               {/* Author name */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Ihr Name *" : "Your Name *"}
+                  {t("yourName")}
                 </label>
                 <input
                   type="text"
                   required
                   value={blogAuthorName}
                   onChange={(e) => setBlogAuthorName(e.target.value)}
-                  placeholder={language === "de" ? "z.B. Lisa M." : "e.g., Lisa M."}
+                  placeholder={t("yourNamePlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
                 />
                 {!user && (
                   <p className="text-[10px] text-secondary font-semibold">
-                    {language === "de"
-                      ? "Hinweis: Sie sind als Gast eingeloggt. Melden Sie sich an, um Ihren verifizierten Account zu nutzen."
-                      : "Note: You are posting as a guest. Log in to show your verified user badge."}
+                    {t("guestNote")}
                   </p>
                 )}
               </div>
@@ -1194,7 +1171,7 @@ export default function HomePage() {
               {/* Star Rating Select */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Bewertung *" : "Rating *"}
+                  {t("blogRating")}
                 </label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -1220,14 +1197,14 @@ export default function HomePage() {
               {/* Content Description */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Deine Erfahrung & Gefühle *" : "Your Experience & Feelings *"}
+                  {t("blogExperience")}
                 </label>
                 <textarea
                   required
                   rows={4}
                   value={blogContent}
                   onChange={(e) => setBlogContent(e.target.value)}
-                  placeholder={language === "de" ? "Wie hast du dich gefühlt? Wie war die Nachbarschaft, die Ausstattung, die Anbindung?" : "How did you feel? How was the neighborhood, amenities, transit?"}
+                  placeholder={t("blogExperiencePlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md font-sans"
                 />
               </div>
@@ -1235,7 +1212,7 @@ export default function HomePage() {
               {/* Photo Selector */}
               <div className="space-y-2">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Bild auswählen" : "Choose a Cover Photo"}
+                  {t("chooseCoverPhoto")}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
@@ -1266,7 +1243,7 @@ export default function HomePage() {
                 {/* Custom Image URL Option */}
                 <div className="space-y-1 mt-2">
                   <span className="text-[11px] text-on-surface-variant/80 font-bold block">
-                    {language === "de" ? "Oder eigene Bild-URL eingeben:" : "Or enter your own image URL:"}
+                    {t("orEnterImageUrl")}
                   </span>
                   <input
                     type="url"
@@ -1285,7 +1262,7 @@ export default function HomePage() {
                   onClick={() => setIsBlogModalOpen(false)}
                   className="flex-1 border border-outline-variant py-3 rounded-xl font-bold text-label-md text-on-surface-variant hover:bg-surface-container-low active:scale-98 transition-all cursor-pointer text-center"
                 >
-                  {language === "de" ? "Abbrechen" : "Cancel"}
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
@@ -1295,10 +1272,10 @@ export default function HomePage() {
                   {blogSubmitting ? (
                     <>
                       <div className="w-5 h-5 rounded-full border-[2px] border-white/20 border-t-white animate-spin" />
-                      <span>{language === "de" ? "Wird gesendet..." : "Submitting..."}</span>
+                      <span>{t("submitting")}</span>
                     </>
                   ) : (
-                    <span>{language === "de" ? "Veröffentlichen" : "Publish"}</span>
+                    <span>{t("publish")}</span>
                   )}
                 </button>
               </div>

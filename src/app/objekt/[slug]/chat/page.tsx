@@ -55,25 +55,25 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
       const mocks: Record<string, any> = {
         "berlin-studio": {
           id: "berlin-studio",
-          title: language === "de" ? "Helles Studio-Apartment nahe Alexanderplatz" : "Bright Studio Apartment near Alexanderplatz",
+          title: t("objektChat_brightStudioApartmentNearAlexa"),
           city: "Berlin",
           street: "Karl-Liebknecht-Str. 12",
         },
         "munich-expat": {
           id: "munich-expat",
-          title: language === "de" ? "Premium 3-Zimmer-Wohnung am Englischen Garten" : "Premium 3-Room Apartment at Englischen Garten",
+          title: t("objektChat_premium3roomApartmentAtEnglisc"),
           city: "München",
           street: "Königinstraße 44",
         },
         "hamburg-loft": {
           id: "hamburg-loft",
-          title: language === "de" ? "Stilvolles Loft in der Speicherstadt" : "Stylish Loft in Speicherstadt",
+          title: t("objektChat_stylishLoftInSpeicherstadt"),
           city: "Hamburg",
           street: "Am Sandtorkai 10",
         },
         "berlin-wg": {
           id: "berlin-wg",
-          title: language === "de" ? "Gemütliches Zimmer in Studenten-WG" : "Cozy Room in Student Shared Apartment",
+          title: t("objektChat_cozyRoomInStudentSharedApartme"),
           city: "Berlin",
           street: "Königin-Luise-Str. 15",
         }
@@ -81,7 +81,7 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
 
       const defaultMock = {
         id: "mock-apply-87a",
-        title: language === "de" ? "Lichtdurchflutete 3-Zimmer-Wohnung am Tiergarten" : "Bright 3-room apartment near Tiergarten",
+        title: t("objektChat_bright3roomApartmentNearTierga"),
         street: "Torstraße 142",
         city: "Berlin",
       };
@@ -237,19 +237,17 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
         </div>
         <div>
           <h1 className="text-headline-lg font-bold text-primary mb-3">
-            {language === "de" ? "Zugriff eingeschränkt" : "Access Restricted"}
+            {t("objektChat_accessRestricted")}
           </h1>
           <p className="text-body-md text-on-surface-variant max-w-md">
-            {language === "de"
-              ? "Dieses Feature ist exklusiv für Premium-Abonnenten verfügbar."
-              : "This feature is exclusively available to Premium subscribers."}
+            {t("objektChat_thisFeatureIsExclusivelyAvaila")}
           </p>
         </div>
         <button
           onClick={() => router.push("/preise")}
           className="bg-primary text-on-primary px-8 py-4 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg"
         >
-          {language === "de" ? "Premium freischalten" : "Unlock Premium"}
+          {t("objektChat_unlockPremium")}
         </button>
       </main>
     );
@@ -264,7 +262,7 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
           className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary font-semibold text-[14px] transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          {language === "de" ? "Zurück zum Objekt" : "Back to property"}
+          {t("objektChat_backToProperty")}
         </Link>
       </div>
 
@@ -284,7 +282,7 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
                 Heimstadt Support Team
               </h3>
               <p className="text-[12px] text-on-primary/80 font-medium mt-0.5 flex items-center gap-1.5">
-                {property ? property.title : (language === "de" ? "Fragen zur Wohnung" : "Questions about property")}
+                {property ? property.title : (t("objektChat_questionsAboutProperty"))}
               </p>
             </div>
           </div>
@@ -299,9 +297,7 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
           {!loadingMessages && chatMessages.length === 0 && (
             <div className="self-center text-center max-w-sm py-8">
               <p className="text-body-md text-on-surface-variant">
-                {language === "de"
-                  ? "Schreib uns eine Nachricht — unser Team antwortet dir direkt hier."
-                  : "Send us a message — our team will reply to you right here."}
+                {t("objektChat_sendUsAMessageOurTeamWillReply")}
               </p>
             </div>
           )}
@@ -338,7 +334,7 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
                 <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce delay-300" />
               </div>
               <span className="text-[10px] text-on-surface-variant/60 font-semibold mt-1 px-1">
-                {language === "de" ? "Senden..." : "Sending..."}
+                {t("objektChat_sending")}
               </span>
             </div>
           )}
@@ -350,7 +346,7 @@ export default function PropertyChatPage({ params }: { params: Promise<{ slug: s
           <input
             id="chat-input-field"
             type="text"
-            placeholder={language === "de" ? "Nachricht eingeben..." : "Type your message here..."}
+            placeholder={t("objektChat_typeYourMessageHere")}
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             disabled={chatLoading}

@@ -48,7 +48,7 @@ export default function VerifyPage() {
       }
 
       setUploads((prev) => ({ ...prev, [docType]: file.name }));
-      setSuccessMsg(language === "de" ? `"${file.name}" erfolgreich hochgeladen!` : `"${file.name}" uploaded successfully!`);
+      setSuccessMsg(t("verify_filenameUploadedSuccessfully"));
     } catch (err: any) {
       console.error("Upload error:", err);
       setErrorMsg(err.message || "Upload failed");
@@ -73,7 +73,7 @@ export default function VerifyPage() {
         delete next[docType];
         return next;
       });
-      setSuccessMsg(language === "de" ? "Dokument erfolgreich gelöscht!" : "Document successfully removed!");
+      setSuccessMsg(t("verify_documentSuccessfullyRemoved"));
     } catch (err: any) {
       console.error("Delete error:", err);
       setErrorMsg(err.message || "Failed to delete document");
@@ -84,13 +84,11 @@ export default function VerifyPage() {
     e.preventDefault();
     const hasPassport = uploads["passport"];
     if (!hasPassport) {
-      setErrorMsg(language === "de" ? "Bitte laden Sie mindestens Ihren Ausweis / Reisepass hoch." : "Please upload at least your passport / ID card.");
+      setErrorMsg(t("verify_pleaseUploadAtLeastYourPasspor"));
       return;
     }
     alert(
-      language === "de"
-        ? "Ihre Dokumente wurden erfolgreich zur Prüfung eingereicht!"
-        : "Your documents have been successfully submitted for review!"
+      t("verify_yourDocumentsHaveBeenSuccessfu")
     );
   };
 
@@ -153,16 +151,16 @@ export default function VerifyPage() {
                           <h3 className="text-label-md font-bold text-primary">{label}</h3>
                           {optional ? (
                             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant border border-outline-variant/60">
-                              {language === "de" ? "Optional" : "Optional"}
+                              {t("verify_optional")}
                             </span>
                           ) : (
                             <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                              {language === "de" ? "Pflicht" : "Required"}
+                              {t("verify_required")}
                             </span>
                           )}
                         </div>
                         <p className="text-[12px] text-on-surface-variant leading-relaxed truncate">
-                          {uploadedName ? `📎 ${uploadedName}` : (language === "de" ? "PDF, JPG oder PNG bis 10MB." : "PDF, JPG or PNG up to 10MB.")}
+                          {uploadedName ? `📎 ${uploadedName}` : (t("verify_pdfJpgOrPngUpTo10mb"))}
                         </p>
                       </div>
                     </div>
@@ -179,14 +177,14 @@ export default function VerifyPage() {
                             htmlFor={`verify-upload-${id}`}
                             className="text-[12px] text-on-surface-variant underline cursor-pointer hover:text-primary"
                           >
-                            {language === "de" ? "Ersetzen" : "Replace"}
+                            {t("verify_replace")}
                           </label>
                           <button
                             type="button"
                             onClick={() => handleDocRemove(id)}
                             className="text-[12px] text-error underline cursor-pointer hover:opacity-85"
                           >
-                            {language === "de" ? "Löschen" : "Remove"}
+                            {t("verify_remove")}
                           </button>
                         </div>
                       ) : (
@@ -197,12 +195,12 @@ export default function VerifyPage() {
                           {isUploading ? (
                             <>
                               <span className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
-                              <span>{language === "de" ? "Lädt hoch..." : "Uploading..."}</span>
+                              <span>{t("verify_uploading")}</span>
                             </>
                           ) : (
                             <>
                               <span className="material-symbols-outlined text-[14px]">upload_file</span>
-                              <span>{language === "de" ? "Datei hochladen" : "Upload File"}</span>
+                              <span>{t("verify_uploadFile")}</span>
                             </>
                           )}
                         </label>

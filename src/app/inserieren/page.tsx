@@ -323,25 +323,25 @@ export default function InserierenPage() {
     { num: 2, label: t("indicatorPrice"), icon: "euro_symbol" },
     { num: 3, label: t("indicatorPhotos"), icon: "add_a_photo" },
     { num: 4, label: t("indicatorDesc"), icon: "description" },
-    { num: 5, label: language === "de" ? "Details" : "Details", icon: "tune" },
+    { num: 5, label: t("inserieren_details"), icon: "tune" },
   ];
 
   // Use consistent amenity IDs (matching search filters)
   const amenityOpts = [
-    { id: "balcony",          label: language === "de" ? "Balkon"           : "Balcony" },
-    { id: "kitchen",          label: language === "de" ? "Einbauküche"      : "Fitted Kitchen" },
-    { id: "elevator",         label: language === "de" ? "Aufzug"           : "Elevator" },
-    { id: "parking",          label: language === "de" ? "Parkplatz"        : "Parking" },
-    { id: "pets",             label: language === "de" ? "Haustiere erlaubt" : "Pets Allowed" },
-    { id: "garden",           label: language === "de" ? "Garten"           : "Garden" },
-    { id: "cellar",           label: language === "de" ? "Keller"           : "Cellar" },
-    { id: "air_conditioning", label: language === "de" ? "Klimaanlage"      : "Air Conditioning" },
+    { id: "balcony",          label: t("inserieren_balcony") },
+    { id: "kitchen",          label: t("inserieren_fittedKitchen") },
+    { id: "elevator",         label: t("inserieren_elevator") },
+    { id: "parking",          label: t("inserieren_parking") },
+    { id: "pets",             label: t("inserieren_petsAllowed") },
+    { id: "garden",           label: t("inserieren_garden") },
+    { id: "cellar",           label: t("inserieren_cellar") },
+    { id: "air_conditioning", label: t("inserieren_airConditioning") },
     { id: "wifi",             label: "WiFi" },
-    { id: "dishwasher",       label: language === "de" ? "Geschirrspüler"   : "Dishwasher" },
-    { id: "washing_machine",  label: language === "de" ? "Waschmaschine"    : "Washing Machine" },
-    { id: "tv",               label: language === "de" ? "Fernseher"        : "TV" },
-    { id: "laundry",          label: language === "de" ? "Waschraum"        : "Laundry Room" },
-    { id: "wheelchair",       label: language === "de" ? "Barrierefrei"     : "Wheelchair Access" },
+    { id: "dishwasher",       label: t("inserieren_dishwasher") },
+    { id: "washing_machine",  label: t("inserieren_washingMachine") },
+    { id: "tv",               label: t("inserieren_tv") },
+    { id: "laundry",          label: t("inserieren_laundryRoom") },
+    { id: "wheelchair",       label: t("inserieren_wheelchairAccess") },
   ];
 
   const progressPct = ((step - 1) / (stepsList.length - 1)) * 100;
@@ -490,9 +490,7 @@ export default function InserierenPage() {
         }
 
         alert(
-          language === "de"
-            ? "Ihr Inserat wurde erfolgreich aktualisiert."
-            : "Your listing has been successfully updated."
+          t("inserieren_yourListingHasBeenSuccessfully")
         );
         router.push("/dashboard/landlord");
       } else {
@@ -554,9 +552,7 @@ export default function InserierenPage() {
         }
 
         alert(
-          language === "de"
-            ? "Vielen Dank! Ihr Inserat wurde erfolgreich veröffentlicht."
-            : "Thank you! Your listing has been successfully published."
+          t("inserieren_thankYouYourListingHasBeenSucc")
         );
         router.push("/dashboard/landlord");
       }
@@ -633,9 +629,7 @@ export default function InserierenPage() {
                     <li className="flex items-start gap-2">
                       <span className="material-symbols-outlined text-primary text-[16px] mt-0.5">check_circle</span>
                       <span>
-                        {language === "de"
-                          ? "Melden Sie sich an, um den Entwurf oder Ihre Veröffentlichungen fortzusetzen."
-                          : "Log in to continue editing draft publications or manage your listings."}
+                        {t("inserieren_logInToContinueEditingDraftPub")}
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -656,9 +650,7 @@ export default function InserierenPage() {
                     <li className="flex items-start gap-2">
                       <span className="material-symbols-outlined text-primary text-[16px] mt-0.5">check_circle</span>
                       <span>
-                        {language === "de"
-                          ? "Wenn Sie eine Wohnung mieten wollen, können Sie unsere Suche nutzen."
-                          : "If you are looking to rent, you can continue searching for properties."}
+                        {t("inserieren_ifYouAreLookingToRentYouCanCon")}
                       </span>
                     </li>
                   </>
@@ -670,7 +662,7 @@ export default function InserierenPage() {
             {isNotLoggedIn ? (
               <div className="flex flex-col gap-3 pt-2">
                 <button
-                  onClick={() => router.push("/auth/login?role=landlord&redirect=/inserieren")}
+                  onClick={() => router.push("/auth/login/landlord?redirect=/inserieren")}
                   className="w-full bg-primary text-on-primary py-3.5 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">login</span>
@@ -678,7 +670,7 @@ export default function InserierenPage() {
                 </button>
 
                 <button
-                  onClick={() => router.push("/auth/register?role=landlord&redirect=/inserieren")}
+                  onClick={() => router.push("/auth/register/landlord?redirect=/inserieren")}
                   className="w-full bg-surface-container-high text-primary py-3.5 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-95 transition-all border border-outline-variant flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[20px]">person_add</span>
@@ -715,7 +707,7 @@ export default function InserierenPage() {
                   <button
                     onClick={async () => {
                       await signOut();
-                      router.push("/auth/login?role=landlord");
+                      router.push("/auth/login/landlord");
                     }}
                     className="text-primary hover:underline text-[13px] font-bold flex items-center justify-center gap-1 mx-auto cursor-pointer"
                   >
@@ -1129,11 +1121,11 @@ export default function InserierenPage() {
                         onChange={(e) => setStep4({ ...step4, kaution_monate: e.target.value })}
                         className="w-full h-14 bg-surface border border-outline-variant rounded-lg px-4 focus:ring-2 focus:ring-primary focus:border-primary outline-none text-[16px]"
                       >
-                        <option value="1">1 {language === "de" ? "Monat" : "month"}</option>
-                        <option value="2">2 {language === "de" ? "Monate" : "months"}</option>
-                        <option value="3">3 {language === "de" ? "Monate" : "months"}</option>
-                        <option value="4">4 {language === "de" ? "Monate" : "months"}</option>
-                        <option value="6">6 {language === "de" ? "Monate" : "months"}</option>
+                        <option value="1">1 {t("inserieren_month")}</option>
+                        <option value="2">2 {t("inserieren_months")}</option>
+                        <option value="3">3 {t("inserieren_months")}</option>
+                        <option value="4">4 {t("inserieren_months")}</option>
+                        <option value="6">6 {t("inserieren_months")}</option>
                       </select>
                     </div>
                   </div>
@@ -1175,7 +1167,7 @@ export default function InserierenPage() {
                   <div className="flex items-center justify-between p-5 bg-surface-container-low rounded-xl border border-outline-variant">
                     <div>
                       <h4 className="text-label-md font-bold text-on-surface">
-                        {language === "de" ? "Möbliert" : "Furnished"}
+                        {t("inserieren_furnished")}
                       </h4>
                       <p className="text-[12px] text-on-surface-variant mt-0.5">
                         {t("isFurnishedQuestion")}
@@ -1195,13 +1187,13 @@ export default function InserierenPage() {
                   {/* ── Beds ── */}
                   <div className="space-y-3">
                     <p className="text-label-md text-on-surface font-medium">
-                      {language === "de" ? "Betten" : "Beds"}
+                      {t("inserieren_beds")}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Single beds */}
                       <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
                         <div>
-                          <h4 className="text-label-md font-semibold text-on-surface">{language === "de" ? "Einzelbetten" : "Single Beds"}</h4>
+                          <h4 className="text-label-md font-semibold text-on-surface">{t("inserieren_singleBeds")}</h4>
                         </div>
                         <div className="flex items-center gap-3">
                           <button type="button" onClick={() => setSingleBeds(c => Math.max(0, c - 1))}
@@ -1219,7 +1211,7 @@ export default function InserierenPage() {
                       {/* Double beds */}
                       <div className="flex items-center justify-between p-4 bg-surface-container-low rounded-xl border border-outline-variant">
                         <div>
-                          <h4 className="text-label-md font-semibold text-on-surface">{language === "de" ? "Doppelbetten" : "Double Beds"}</h4>
+                          <h4 className="text-label-md font-semibold text-on-surface">{t("inserieren_doubleBeds")}</h4>
                         </div>
                         <div className="flex items-center gap-3">
                           <button type="button" onClick={() => setDoubleBeds(c => Math.max(0, c - 1))}
@@ -1240,18 +1232,16 @@ export default function InserierenPage() {
                   {/* ── How rent is calculated ── */}
                   <div className="space-y-3">
                     <p className="text-label-md text-on-surface font-medium">
-                      {language === "de" ? "Mietberechnung" : "How Rent is Calculated"}
+                      {t("inserieren_howRentIsCalculated")}
                     </p>
                     <p className="text-[12px] text-on-surface-variant -mt-1">
-                      {language === "de"
-                        ? "Bestimmt die Abrechnung im ersten und letzten Monat."
-                        : "Determines billing in the first and last months of the stay."}
+                      {t("inserieren_determinesBillingInTheFirstAnd")}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {[
-                        { value: "monthly", label: language === "de" ? "Monatlich" : "Monthly" },
-                        { value: "biweekly", label: language === "de" ? "Alle 2 Wochen" : "Every 2 Weeks" },
-                        { value: "daily", label: language === "de" ? "Täglich" : "Daily" },
+                        { value: "monthly", label: t("inserieren_monthly") },
+                        { value: "biweekly", label: t("inserieren_every2Weeks") },
+                        { value: "daily", label: t("inserieren_daily") },
                       ].map(opt => (
                         <label key={opt.value}
                           className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
@@ -1276,7 +1266,7 @@ export default function InserierenPage() {
                   {/* ── Smoking / Registration / Couples ── */}
                   <div className="space-y-3">
                     <p className="text-label-md text-on-surface font-medium">
-                      {language === "de" ? "Regelungen" : "Rules & Policies"}
+                      {t("inserieren_rulesPolicies")}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -1285,7 +1275,7 @@ export default function InserierenPage() {
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-[20px] text-on-surface-variant">smoking_rooms</span>
                           <h4 className="text-label-md font-semibold text-on-surface">
-                            {language === "de" ? "Rauchen erlaubt" : "Smoking Allowed"}
+                            {t("inserieren_smokingAllowed")}
                           </h4>
                         </div>
                         <button
@@ -1304,7 +1294,7 @@ export default function InserierenPage() {
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-[20px] text-on-surface-variant">how_to_reg</span>
                           <h4 className="text-label-md font-semibold text-on-surface">
-                            {language === "de" ? "Anmeldung möglich" : "Registration Possible"}
+                            {t("inserieren_registrationPossible")}
                           </h4>
                         </div>
                         <button
@@ -1323,7 +1313,7 @@ export default function InserierenPage() {
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-[20px] text-on-surface-variant">favorite</span>
                           <h4 className="text-label-md font-semibold text-on-surface">
-                            {language === "de" ? "Paare willkommen" : "Couples Welcome"}
+                            {t("inserieren_couplesWelcome")}
                           </h4>
                         </div>
                         <button
@@ -1347,9 +1337,9 @@ export default function InserierenPage() {
                       {t("listingSummary")}
                     </h4>
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-[13px]">
-                      <span className="text-on-surface-variant">{language === "de" ? "Typ" : "Type"}:</span>
+                      <span className="text-on-surface-variant">{t("inserieren_type")}:</span>
                       <span className="font-semibold text-primary capitalize">{step1.typ}</span>
-                      <span className="text-on-surface-variant">{language === "de" ? "Adresse" : "Address"}:</span>
+                      <span className="text-on-surface-variant">{t("inserieren_address")}:</span>
                       <span className="font-semibold text-primary">{step1.strasse}, {step1.plz} {step1.stadt}</span>
                       <span className="text-on-surface-variant">{t("coldRent")}:</span>
                       <span className="font-semibold text-primary">{step2.kaltmiete} €</span>

@@ -148,6 +148,14 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
   const { user, profile, isPremium } = useAuth();
   const { t, language } = useLanguage();
   const { formatPrice } = useCurrency();
+  const [view, setView] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      setView(urlParams.get("view"));
+    }
+  }, []);
   
   const [property, setProperty] = useState<any>(null);
   const [loadingProperty, setLoadingProperty] = useState(true);
@@ -477,6 +485,14 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
       }
     });
 
+  const handleWriteReviewClick = () => {
+    if (profile?.role === "landlord") {
+      (window as any).alert(t("tenantOnlyFeature"));
+      return;
+    }
+    setReviewFormOpen(!reviewFormOpen);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -488,6 +504,11 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
           router.push(`/auth/login?redirect=/objekt/${slug}`);
         }
       );
+      return;
+    }
+
+    if (profile?.role === "landlord") {
+      (window as any).alert(t("tenantOnlyFeature"));
       return;
     }
 
@@ -933,69 +954,77 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
             </div>
 
             {/* Customer Support Chatbot / Premium Support Option */}
-            <div className="mb-12 border border-outline-variant/40 rounded-2xl overflow-hidden bg-gradient-to-br from-surface-container-lowest to-surface-container-low p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 justify-between relative">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-5">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 relative ${isPremium ? 'bg-primary/10 text-primary' : 'bg-surface-container-highest text-on-surface-variant'}`}>
-                  <span className="material-symbols-outlined text-[32px]">
-                    {isPremium ? 'support_agent' : 'lock'}
-                  </span>
-                  {isPremium && (
-                    <span className="absolute bottom-1 right-1 w-3 h-3 bg-[#34a853] rounded-full border-2 border-surface-container-lowest" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPremium ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
-                      {isPremium 
-                        ? (language === "de" ? "Premium Vorteil" : "Premium Benefit") 
-                        : (language === "de" ? "Premium Feature" : "Premium Feature")}
+            {view !== "landlord" && (
+              <div className="mb-12 border border-outline-variant/40 rounded-2xl overflow-hidden bg-gradient-to-br from-surface-container-lowest to-surface-container-low p-6 md:p-8 shadow-sm flex flex-col md:flex-row items-center gap-6 justify-between relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-5">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 relative ${isPremium ? 'bg-primary/10 text-primary' : 'bg-surface-container-highest text-on-surface-variant'}`}>
+                    <span className="material-symbols-outlined text-[32px]">
+                      {isPremium ? 'support_agent' : 'lock'}
                     </span>
                     {isPremium && (
-                      <span className="bg-[#e6f4ea] text-[#137333] px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-[#34a853] rounded-full animate-pulse" />
-                        Online
-                      </span>
+                      <span className="absolute bottom-1 right-1 w-3 h-3 bg-[#34a853] rounded-full border-2 border-surface-container-lowest" />
                     )}
                   </div>
-                  <h3 className="text-headline-sm font-bold text-on-surface mb-1">
-                    {isPremium 
-                      ? (language === "de" ? "Persönlicher Premium Support" : "Personal Premium Support")
-                      : (language === "de" ? "Persönlicher Support" : "Personal Support")}
-                  </h3>
-                  <p className="text-body-md text-on-surface-variant max-w-lg leading-relaxed">
-                    {isPremium 
-                      ? (language === "de" 
-                          ? "Chatte direkt mit unserem Heimstadt-Support-Team für alle Fragen zu dieser Wohnung." 
-                          : "Chat directly with our Heimstadt support team for any questions regarding this property.")
-                      : (language === "de"
-                          ? "Schalte den direkten Chat mit unserem Support-Team frei, um Fragen zu dieser Wohnung sofort zu klären."
-                          : "Unlock direct chat with our support team to get answers about this property instantly.")}
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isPremium ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                        {isPremium 
+                          ? (language === "de" ? "Premium Vorteil" : "Premium Benefit") 
+                          : (language === "de" ? "Premium Feature" : "Premium Feature")}
+                      </span>
+                      {isPremium && (
+                        <span className="bg-[#e6f4ea] text-[#137333] px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-[#34a853] rounded-full animate-pulse" />
+                          Online
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-headline-sm font-bold text-on-surface mb-1">
+                      {isPremium 
+                        ? (language === "de" ? "Persönlicher Premium Support" : "Personal Premium Support")
+                        : (language === "de" ? "Persönlicher Support" : "Personal Support")}
+                    </h3>
+                    <p className="text-body-md text-on-surface-variant max-w-lg leading-relaxed">
+                      {isPremium 
+                        ? (language === "de" 
+                            ? "Chatte direkt mit unserem Heimstadt-Support-Team für alle Fragen zu dieser Wohnung." 
+                            : "Chat directly with our Heimstadt support team for any questions regarding this property.")
+                        : (language === "de"
+                            ? "Schalte den direkten Chat mit unserem Support-Team frei, um Fragen zu dieser Wohnung sofort zu klären."
+                            : "Unlock direct chat with our support team to get answers about this property instantly.")}
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full md:w-auto flex-shrink-0">
+                  {isPremium ? (
+                    <button
+                      id="btn-chat-with-us"
+                      onClick={() => {
+                        if (profile?.role === "landlord") {
+                          (window as any).alert(t("tenantOnlyFeature"));
+                        } else {
+                          router.push(`/objekt/${slug}/chat`);
+                        }
+                      }}
+                      className="w-full md:w-auto text-center inline-flex items-center justify-center gap-2 bg-primary text-on-primary px-6 py-3.5 rounded-xl font-bold text-label-md hover:opacity-90 active:scale-95 transition-all shadow-md hover:shadow-primary/20 cursor-pointer font-sans"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">chat</span>
+                      {language === "de" ? "Mit uns chatten" : "Chat with us"}
+                    </button>
+                  ) : (
+                    <Link
+                      id="btn-upgrade-premium"
+                      href="/preise"
+                      className="w-full md:w-auto text-center inline-flex items-center justify-center gap-2 bg-surface-container-highest text-primary border border-outline-variant px-6 py-3.5 rounded-xl font-bold text-label-md hover:bg-surface-container-high active:scale-95 transition-all cursor-pointer font-sans"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
+                      {language === "de" ? "Premium freischalten" : "Unlock Premium"}
+                    </Link>
+                  )}
                 </div>
               </div>
-              <div className="w-full md:w-auto flex-shrink-0">
-                {isPremium ? (
-                  <Link
-                    id="btn-chat-with-us"
-                    href={`/objekt/${slug}/chat`}
-                    className="w-full md:w-auto text-center inline-flex items-center justify-center gap-2 bg-primary text-on-primary px-6 py-3.5 rounded-xl font-bold text-label-md hover:opacity-90 active:scale-95 transition-all shadow-md hover:shadow-primary/20 cursor-pointer font-sans"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">chat</span>
-                    {language === "de" ? "Mit uns chatten" : "Chat with us"}
-                  </Link>
-                ) : (
-                  <Link
-                    id="btn-upgrade-premium"
-                    href="/preise"
-                    className="w-full md:w-auto text-center inline-flex items-center justify-center gap-2 bg-surface-container-highest text-primary border border-outline-variant px-6 py-3.5 rounded-xl font-bold text-label-md hover:bg-surface-container-high active:scale-95 transition-all cursor-pointer font-sans"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
-                    {language === "de" ? "Premium freischalten" : "Unlock Premium"}
-                  </Link>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Book Before Arrival Section */}
             <div className="mb-12 border border-outline-variant/40 rounded-2xl p-6 md:p-8 bg-surface-container-lowest shadow-sm">
@@ -1086,7 +1115,8 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
             </div>
 
             {/* Guest Reviews Section */}
-            <div className="mb-12 border border-outline-variant/40 rounded-2xl p-6 md:p-8 bg-surface-container-lowest shadow-sm">
+            {view !== "landlord" && (
+              <div className="mb-12 border border-outline-variant/40 rounded-2xl p-6 md:p-8 bg-surface-container-lowest shadow-sm">
               {/* Header */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
@@ -1107,7 +1137,7 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
                   {user ? (
                     <button
                       type="button"
-                      onClick={() => setReviewFormOpen(!reviewFormOpen)}
+                      onClick={handleWriteReviewClick}
                       className="bg-primary text-on-primary px-4 py-2.5 rounded-xl text-label-md font-bold hover:opacity-90 active:scale-98 transition-all flex items-center gap-1 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[16px]">add</span>
@@ -1273,92 +1303,95 @@ export default function ObjektDetailPage({ params }: { params: Promise<{ slug: s
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* ── Sidebar (4 cols) ──────────────────────────── */}
           <aside className="lg:col-span-4">
             <div className="sticky top-[80px] space-y-6">
               {/* Contact form */}
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-lg shadow-primary/5">
-                <h3 className="text-headline-md text-on-surface mb-6">{t("contactSidebarTitle")}</h3>
-                {!user ? (
-                  <div className="text-center py-6 px-2 space-y-5">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
-                      <span className="material-symbols-outlined text-[32px]">lock</span>
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="text-[18px] font-bold text-primary">
-                        {language === "de" ? "Anmelden erforderlich" : "Login Required"}
-                      </h4>
-                      <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                        {language === "de"
-                          ? "Um dieses Haus zu buchen oder den Vermieter zu kontaktieren, müssen Sie eingeloggt sein."
-                          : "To request a booking or message the provider, you must be logged in."}
+              {view !== "landlord" && (
+                <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-lg shadow-primary/5">
+                  <h3 className="text-headline-md text-on-surface mb-6">{t("contactSidebarTitle")}</h3>
+                  {!user ? (
+                    <div className="text-center py-6 px-2 space-y-5">
+                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+                        <span className="material-symbols-outlined text-[32px]">lock</span>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="text-[18px] font-bold text-primary">
+                          {language === "de" ? "Anmelden erforderlich" : "Login Required"}
+                        </h4>
+                        <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                          {language === "de"
+                            ? "Um dieses Haus zu buchen oder den Vermieter zu kontaktieren, müssen Sie eingeloggt sein."
+                            : "To request a booking or message the provider, you must be logged in."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/auth/login?redirect=/objekt/${slug}`)}
+                        className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-bold hover:opacity-90 active:scale-98 transition-all shadow cursor-pointer text-label-md text-center"
+                      >
+                        {language === "de" ? "Jetzt anmelden" : "Log In Now"}
+                      </button>
+                      <p className="text-[12px] text-on-surface-variant">
+                        {language === "de" ? "Noch kein Konto? " : "New to Heimstadt? "}
+                        <Link href="/auth/register" className="text-primary font-bold hover:underline">
+                          {language === "de" ? "Hier registrieren" : "Register here"}
+                        </Link>
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/auth/login?redirect=/objekt/${slug}`)}
-                      className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-bold hover:opacity-90 active:scale-98 transition-all shadow cursor-pointer text-label-md text-center"
-                    >
-                      {language === "de" ? "Jetzt anmelden" : "Log In Now"}
-                    </button>
-                    <p className="text-[12px] text-on-surface-variant">
-                      {language === "de" ? "Noch kein Konto? " : "New to Heimstadt? "}
-                      <Link href="/auth/register" className="text-primary font-bold hover:underline">
-                        {language === "de" ? "Hier registrieren" : "Register here"}
-                      </Link>
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    {[
-                      { id: "name", label: t("formName"), type: "text", placeholder: "Erika Mustermann", key: "name" },
-                      { id: "email", label: t("formEmail"), type: "email", placeholder: "beispiel@heimat.de", key: "email" },
-                      { id: "tel", label: t("formPhone"), type: "tel", placeholder: "+49 123 456789", key: "tel" },
-                    ].map(({ id, label, type, placeholder, key }) => (
-                      <div key={id}>
-                        <label className="block text-label-md text-on-surface-variant mb-1">{label}</label>
-                        <input
-                          id={id}
-                          type={type}
-                          placeholder={placeholder}
-                          value={form[key as keyof typeof form]}
-                          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                          className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-[16px]"
-                          required
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      {[
+                        { id: "name", label: t("formName"), type: "text", placeholder: "Erika Mustermann", key: "name" },
+                        { id: "email", label: t("formEmail"), type: "email", placeholder: "beispiel@heimat.de", key: "email" },
+                        { id: "tel", label: t("formPhone"), type: "tel", placeholder: "+49 123 456789", key: "tel" },
+                      ].map(({ id, label, type, placeholder, key }) => (
+                        <div key={id}>
+                          <label className="block text-label-md text-on-surface-variant mb-1">{label}</label>
+                          <input
+                            id={id}
+                            type={type}
+                            placeholder={placeholder}
+                            value={form[key as keyof typeof form]}
+                            onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                            className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-[16px]"
+                            required
+                          />
+                        </div>
+                      ))}
+                      <div>
+                        <label className="block text-label-md text-on-surface-variant mb-1">{t("formMessage")}</label>
+                        <textarea
+                          id="form-message"
+                          rows={4}
+                          placeholder={t("formMessagePlaceholder")}
+                          value={form.message}
+                          onChange={(e) => setForm({ ...form, message: e.target.value })}
+                          className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none text-[16px]"
+                          
                         />
                       </div>
-                    ))}
-                    <div>
-                      <label className="block text-label-md text-on-surface-variant mb-1">{t("formMessage")}</label>
-                      <textarea
-                        id="form-message"
-                        rows={4}
-                        placeholder={t("formMessagePlaceholder")}
-                        value={form.message}
-                        onChange={(e) => setForm({ ...form, message: e.target.value })}
-                        className="w-full bg-surface-container-low border border-outline-variant rounded-lg p-3 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none text-[16px]"
-                        
-                      />
-                    </div>
-                    <button
-                      id="btn-besichtigung"
-                      type="submit"
-                      disabled={submittingBooking}
-                      className="w-full bg-primary text-on-primary py-4 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {submittingBooking && (
-                        <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                      )}
-                      {t("submitRequestBtn")}
-                    </button>
-                    <p className="text-center text-[12px] text-on-surface-variant">
-                      {t("formDisclaimer")}
-                    </p>
-                  </form>
-                )}
-              </div>
+                      <button
+                        id="btn-besichtigung"
+                        type="submit"
+                        disabled={submittingBooking}
+                        className="w-full bg-primary text-on-primary py-4 rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {submittingBooking && (
+                          <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                        )}
+                        {t("submitRequestBtn")}
+                      </button>
+                      <p className="text-center text-[12px] text-on-surface-variant">
+                        {t("formDisclaimer")}
+                      </p>
+                    </form>
+                  )}
+                </div>
+              )}
 
               {/* Landlord card */}
               <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-6 flex items-center gap-4">

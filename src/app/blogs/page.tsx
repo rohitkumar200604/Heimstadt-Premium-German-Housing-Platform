@@ -34,16 +34,14 @@ const CURATED_IMAGES = [
   },
 ];
 
-const getMockBlogs = (lang: string) => [
+const getMockBlogs = (t: any) => [
   {
     id: "mock-1",
     author_id: "mock-user-1",
     author_name: "Maximilian K.",
     author_avatar: null,
-    title: lang === "de" ? "Traumhafte Zeit in Berlin-Mitte" : "Dream Stay in Berlin-Mitte",
-    content: lang === "de" 
-      ? "Die Wohnung war fantastisch gelegen, super hell und modern eingerichtet. Perfekt für Studierende und Expats! Die U-Bahn ist direkt vor der Tür." 
-      : "The apartment was in a fantastic location, super bright and modernly furnished. Perfect for students and expats! The subway is right outside the door.",
+    title: t("mockBlog1Title"),
+    content: t("mockBlog1Content"),
     rating: 5,
     place_name: "Berlin Cozy Flat",
     image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&auto=format&fit=crop&q=80",
@@ -54,10 +52,8 @@ const getMockBlogs = (lang: string) => [
     author_id: "mock-user-2",
     author_name: "Sabine H.",
     author_avatar: null,
-    title: lang === "de" ? "Wunderschönes Loft in München" : "Beautiful Loft in Munich",
-    content: lang === "de"
-      ? "Der Vermieter war sehr freundlich und der 3D-Rundgang hat exakt der Realität entsprochen. Die Lage im Glockenbachviertel ist unschlagbar!"
-      : "The landlord was very friendly and the 3D tour matched reality perfectly. The location in the Glockenbachviertel is unbeatable!",
+    title: t("mockBlog2Title"),
+    content: t("mockBlog2Content"),
     rating: 5,
     place_name: "Munich Modern Loft",
     image_url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80",
@@ -68,10 +64,8 @@ const getMockBlogs = (lang: string) => [
     author_id: null,
     author_name: "Thomas L.",
     author_avatar: null,
-    title: lang === "de" ? "Perfekte Anbindung in Frankfurt" : "Perfect Transit in Frankfurt",
-    content: lang === "de"
-      ? "Sehr sauberes Zimmer, die Anbindung an die Innenstadt war hervorragend. Etwas laut wegen der Straße, aber das moderne Bad gleicht das aus."
-      : "Very clean room, transit to the city center was excellent. A bit loud due to the street, but the modern bathroom makes up for it.",
+    title: t("mockBlog3Title"),
+    content: t("mockBlog3Content"),
     rating: 4,
     place_name: "Frankfurt Transit Apartment",
     image_url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=800&auto=format&fit=crop&q=80",
@@ -117,11 +111,11 @@ export default function BlogPage() {
           dbBlogs = data;
         }
       }
-      const mockList = getMockBlogs(language);
+      const mockList = getMockBlogs(t);
       setBlogs([...dbBlogs, ...mockList]);
     } catch (err) {
       console.error("Failed to fetch blogs:", err);
-      setBlogs(getMockBlogs(language));
+      setBlogs(getMockBlogs(t));
     } finally {
       setLoading(false);
     }
@@ -156,11 +150,7 @@ export default function BlogPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim() || !placeName.trim() || !authorName.trim()) {
-      window.alert(
-        language === "de"
-          ? "Bitte füllen Sie alle erforderlichen Felder aus."
-          : "Please fill in all required fields."
-      );
+      window.alert(t("fillRequiredFields"));
       return;
     }
 
@@ -183,11 +173,7 @@ export default function BlogPage() {
         const { error } = await supabase.from("blogs").insert(newPost);
         if (error) throw error;
         
-        window.alert(
-          language === "de"
-            ? "Erfolgreich! Dein Erfahrungsbericht wurde hochgeladen."
-            : "Success! Your experience has been published."
-        );
+        window.alert(t("blogSuccess"));
         fetchBlogs();
         setIsModalOpen(false);
         resetForm();
@@ -202,21 +188,13 @@ export default function BlogPage() {
           },
           ...prev,
         ]);
-        window.alert(
-          language === "de"
-            ? "Erfolgreich eingereicht! (Lokal simuliert - kein Supabase konfiguriert)"
-            : "Successfully submitted! (Locally simulated - no Supabase configured)"
-        );
+        window.alert(t("blogSuccessLocal"));
         setIsModalOpen(false);
         resetForm();
       }
     } catch (err: any) {
       console.error("Error submitting blog:", err);
-      window.alert(
-        language === "de"
-          ? `Fehler beim Veröffentlichen: ${err.message}`
-          : `Error publishing experience: ${err.message}`
-      );
+      window.alert(`${t("publishError")}: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -282,7 +260,7 @@ export default function BlogPage() {
               <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <div className="w-12 h-12 rounded-full border-[3px] border-[#002046]/10 border-t-[#002046] animate-spin" />
                 <p className="text-body-md text-on-surface-variant font-medium">
-                  {language === "de" ? "Erfahrungsberichte werden geladen..." : "Loading experiences..."}
+                  {t("loadingExperiences")}
                 </p>
               </div>
             ) : filteredBlogs.length === 0 ? (
@@ -291,12 +269,10 @@ export default function BlogPage() {
                   rate_review
                 </span>
                 <h3 className="text-headline-md text-primary font-bold">
-                  {language === "de" ? "Noch keine Berichte" : "No experiences yet"}
+                  {t("noBlogsTitle")}
                 </h3>
                 <p className="text-body-md text-on-surface-variant max-w-md">
-                  {language === "de"
-                    ? "Es wurden bisher keine Erfahrungsberichte geteilt. Teile als Erster deine Erlebnisse über Häuser oder Städte!"
-                    : "No experiences have been shared yet. Be the first to tell others about your stays and adventures!"}
+                  {t("noBlogsDesc")}
                 </p>
                 <button
                   onClick={() => setIsModalOpen(true)}
@@ -333,7 +309,7 @@ export default function BlogPage() {
                           </div>
                           <span className="text-[11px] text-on-surface-variant/80 font-medium">
                             {new Date(blog.created_at).toLocaleDateString(
-                              language === "de" ? "de-DE" : "en-US",
+                              language,
                               { month: "short", year: "numeric" }
                             )}
                           </span>
@@ -362,7 +338,7 @@ export default function BlogPage() {
                         <div>
                           <p className="text-label-md text-primary font-bold">{blog.author_name}</p>
                           <p className="text-[10px] text-on-surface-variant/70 uppercase tracking-wider font-semibold">
-                            {blog.author_id ? (language === "de" ? "Verifizierter Nutzer" : "Verified User") : (language === "de" ? "Gast" : "Guest")}
+                            {blog.author_id ? t("verifiedUser") : t("guestLabel")}
                           </p>
                         </div>
                       </div>
@@ -378,12 +354,10 @@ export default function BlogPage() {
             {/* Share CTA Widget */}
             <div className="bg-gradient-to-br from-[#f07d00] to-[#d97000] text-white p-6 rounded-2xl shadow-md space-y-4">
               <h3 className="text-[20px] font-black">
-                {language === "de" ? "Teile deine Erfahrung!" : "Share Your Story!"}
+                {t("shareYourStory")}
               </h3>
               <p className="text-body-sm opacity-90 leading-relaxed">
-                {language === "de"
-                  ? "Hast du ein tolles Zimmer bewohnt oder eine Stadt besucht? Berichte anderen Nutzern davon und hilf ihnen bei der Suche."
-                  : "Did you live in a cozy apartment or visit a beautiful city? Tell other community members how it felt!"}
+                {t("shareYourStoryDesc")}
               </p>
               <button
                 onClick={() => setIsModalOpen(true)}
@@ -396,13 +370,13 @@ export default function BlogPage() {
             {/* Filter Dashboard */}
             <div className="bg-white border border-outline-variant p-6 rounded-2xl shadow-sm space-y-6">
               <h3 className="text-headline-sm text-primary font-bold border-b border-outline-variant/40 pb-3">
-                {language === "de" ? "Filtern & Suchen" : "Filter & Search"}
+                {t("filterAndSearch")}
               </h3>
 
               {/* Text Search */}
               <div className="space-y-2">
                 <label className="block text-label-sm text-on-surface-variant ml-1 font-semibold">
-                  {language === "de" ? "Stichwort suchen" : "Keyword search"}
+                  {t("keywordSearch")}
                 </label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-[20px] pointer-events-none">
@@ -412,7 +386,7 @@ export default function BlogPage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={language === "de" ? "z.B. Berlin, modern..." : "e.g., Berlin, cozy..."}
+                    placeholder={t("blogSearchPlaceholder")}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-body-md"
                   />
                   {searchQuery && (
@@ -429,7 +403,7 @@ export default function BlogPage() {
               {/* Rating filter */}
               <div className="space-y-3">
                 <label className="block text-label-sm text-on-surface-variant ml-1 font-semibold">
-                  {language === "de" ? "Bewertung" : "Rating"}
+                  {t("blogRating")}
                 </label>
                 <div className="flex flex-col gap-2">
                   <button
@@ -440,7 +414,7 @@ export default function BlogPage() {
                         : "border-outline-variant text-on-surface-variant hover:bg-surface-container-low"
                     }`}
                   >
-                    <span>{language === "de" ? "Alle Bewertungen" : "All ratings"}</span>
+                    <span>{t("allRatings")}</span>
                     <span className="text-[12px] opacity-75">({blogs.length})</span>
                   </button>
                   {[5, 4, 3, 2, 1].map((stars) => {
@@ -494,14 +468,14 @@ export default function BlogPage() {
               {/* Place/House Name */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Unterkunft / Ort *" : "Accommodation / Place *"}
+                  {t("blogAccommodation")}
                 </label>
                 <input
                   type="text"
                   required
                   value={placeName}
                   onChange={(e) => setPlaceName(e.target.value)}
-                  placeholder={language === "de" ? "z.B. Tiergarten Premium Loft, Berlin" : "e.g., Tiergarten Premium Loft, Berlin"}
+                  placeholder={t("blogAccommodationPlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
                 />
               </div>
@@ -509,14 +483,14 @@ export default function BlogPage() {
               {/* Title */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Titel des Berichts *" : "Title of your experience *"}
+                  {t("blogTitle2")}
                 </label>
                 <input
                   type="text"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder={language === "de" ? "z.B. Ein unvergesslicher Aufenthalt!" : "e.g., An unforgettable stay!"}
+                  placeholder={t("blogTitlePlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
                 />
               </div>
@@ -524,21 +498,19 @@ export default function BlogPage() {
               {/* Author name */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Ihr Name *" : "Your Name *"}
+                  {t("yourName")}
                 </label>
                 <input
                   type="text"
                   required
                   value={authorName}
                   onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder={language === "de" ? "z.B. Lisa M." : "e.g., Lisa M."}
+                  placeholder={t("yourNamePlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md"
                 />
                 {!user && (
                   <p className="text-[10px] text-secondary font-semibold">
-                    {language === "de"
-                      ? "Hinweis: Sie sind als Gast eingeloggt. Melden Sie sich an, um Ihren verifizierten Account zu nutzen."
-                      : "Note: You are posting as a guest. Log in to show your verified user badge."}
+                    {t("guestNote")}
                   </p>
                 )}
               </div>
@@ -546,7 +518,7 @@ export default function BlogPage() {
               {/* Star Rating Select */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Bewertung *" : "Rating *"}
+                  {t("blogRating")}
                 </label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -572,14 +544,14 @@ export default function BlogPage() {
               {/* Content Description */}
               <div className="space-y-1.5">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Deine Erfahrung & Gefühle *" : "Your Experience & Feelings *"}
+                  {t("blogExperience")}
                 </label>
                 <textarea
                   required
                   rows={4}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder={language === "de" ? "Wie hast du dich gefühlt? Wie war die Nachbarschaft, die Ausstattung, die Anbindung?" : "How did you feel? How was the neighborhood, amenities, transit?"}
+                  placeholder={t("blogExperiencePlaceholder")}
                   className="w-full px-4 py-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-body-md font-sans"
                 />
               </div>
@@ -587,7 +559,7 @@ export default function BlogPage() {
               {/* Photo Selector */}
               <div className="space-y-2">
                 <label className="block text-label-sm text-on-surface-variant font-bold">
-                  {language === "de" ? "Bild auswählen" : "Choose a Cover Photo"}
+                  {t("chooseCoverPhoto")}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {CURATED_IMAGES.map((img) => (
@@ -613,7 +585,7 @@ export default function BlogPage() {
                 {/* Custom Image URL Option */}
                 <div className="space-y-1 mt-2">
                   <span className="text-[11px] text-on-surface-variant/80 font-bold block">
-                    {language === "de" ? "Oder eigene Bild-URL eingeben:" : "Or enter your own image URL:"}
+                    {t("orEnterImageUrl")}
                   </span>
                   <input
                     type="url"
@@ -632,7 +604,7 @@ export default function BlogPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 border border-outline-variant py-3 rounded-xl font-bold text-label-md text-on-surface-variant hover:bg-surface-container-low active:scale-98 transition-all cursor-pointer text-center"
                 >
-                  {language === "de" ? "Abbrechen" : "Cancel"}
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
@@ -642,10 +614,10 @@ export default function BlogPage() {
                   {submitting ? (
                     <>
                       <div className="w-5 h-5 rounded-full border-[2px] border-white/20 border-t-white animate-spin" />
-                      <span>{language === "de" ? "Wird gesendet..." : "Submitting..."}</span>
+                      <span>{t("submitting")}</span>
                     </>
                   ) : (
-                    <span>{language === "de" ? "Veröffentlichen" : "Publish"}</span>
+                    <span>{t("publish")}</span>
                   )}
                 </button>
               </div>

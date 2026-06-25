@@ -9,6 +9,9 @@ import GlobalAlert from "@/components/common/GlobalAlert";
 export const metadata: Metadata = {
   title: "Heimstadt | Exklusive Immobilien in Deutschland",
   description: "Hochwertige Mietwohnungen für internationale Studierende und Expats in Berlin, München und Hamburg. Buchen Sie vor Ihrer Ankunft.",
+  icons: {
+    icon: "/logo.jpg",
+  },
 };
 
 export default function RootLayout({

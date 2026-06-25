@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -11,13 +11,15 @@ import LanguageCurrencyModal from "@/components/layout/LanguageCurrencyModal";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isWishlist = searchParams.get("wishlist") === "true";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [lcModalOpen, setLcModalOpen] = useState(false);
   const { language, t } = useLanguage();
   const { currency } = useCurrency();
-  const { profile, signOut, isPremium, refreshProfile } = useAuth();
+  const { user, profile, signOut, isPremium, refreshProfile } = useAuth();
 
   const handleSwitchRole = async (targetRole: "tenant" | "landlord") => {
     if (!profile) return;
@@ -65,8 +67,8 @@ export default function Navbar() {
   }, [pathname]);
 
 
-  const navLink = (href: string, label: string, icon?: string) => {
-    const active = pathname === href || pathname.startsWith(href + "/");
+  const navLink = (href: string, label: string, icon?: string, customActive?: boolean) => {
+    const active = customActive !== undefined ? customActive : (pathname === href || pathname.startsWith(href + "/"));
     return (
       <Link
         href={href}
@@ -116,19 +118,19 @@ export default function Navbar() {
                 Heimstadt
               </span>
               <span className="hidden sm:block text-[9px] md:text-[10px] text-on-surface-variant font-semibold uppercase tracking-[0.18em] mt-0.5">
-                {language === "de" ? "Exklusive Wohnvermittlung" : "Premium Housing"}
+                {t("navSubtitle")}
               </span>
             </div>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            {navLink("/suche", t("search"), "search")}
-            {navLink("/blogs", t("blogs"), "rate_review")}
-            {navLink("/suche?wishlist=true", t("wishlist"), "favorite")}
+            {navLink("/suche", t("search"), "search", pathname === "/suche" && !isWishlist)}
+            {navLink("/blogs", t("blogs"), "rate_review", pathname === "/blogs" || pathname.startsWith("/blogs/"))}
+            {navLink("/suche?wishlist=true", t("wishlist"), "favorite", pathname === "/suche" && isWishlist)}
             <Link
-              href={profile ? "/dashboard/landlord" : "/auth/login?role=landlord"}
+              href={user ? "/dashboard/landlord" : "/auth/login/landlord"}
               onClick={handleForLandlordsClick}
               className={`font-sans text-[14px] font-medium leading-5 transition-colors duration-200 pb-1 flex items-center gap-1.5 ${
-                pathname.startsWith("/dashboard/landlord")
+                pathname.startsWith("/dashboard/landlord") || pathname.startsWith("/auth/login/landlord") || pathname.startsWith("/auth/register/landlord")
                   ? "text-primary font-bold border-b-2 border-primary"
                   : "text-on-surface-variant hover:text-primary"
               }`}
@@ -211,17 +213,6 @@ export default function Navbar() {
                           <span className="material-symbols-outlined text-[18px]">forum</span>
                           <span>{t("messagesSupport")}</span>
                         </Link>
-
-                        <button
-                          onClick={async () => {
-                            setDropdownOpen(false);
-                            await handleSwitchRole("tenant");
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-[14px] text-on-surface-variant hover:bg-surface-container-low hover:text-primary transition-colors flex items-center gap-2 cursor-pointer font-sans"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">swap_horiz</span>
-                          <span>{t("switchToTenant")}</span>
-                        </button>
                       </>
                     ) : (
                       <>
@@ -283,14 +274,14 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/auth/login"
+                  href="/auth/login/tenant"
                   id="btn-anmelden"
                   className="px-5 py-2 rounded-lg text-[14px] font-semibold text-primary border-2 border-primary hover:bg-surface-container-low transition-all active:scale-95 text-center"
                 >
                   {t("login")}
                 </Link>
                 <Link
-                  href="/auth/register"
+                  href="/auth/register/tenant"
                   id="btn-registrieren"
                   className="px-5 py-2 rounded-lg text-[14px] font-semibold bg-primary text-on-primary hover:opacity-90 transition-all active:scale-95 text-center"
                 >
@@ -364,8 +355,8 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown with slide-down max-height/opacity transition */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-outline-variant bg-surface shadow-lg ${
-          mobileOpen ? "max-h-[500px] opacity-100 py-6 border-t" : "max-h-0 opacity-0 py-0 border-t-0 pointer-events-none"
+        className={`md:hidden transition-all duration-300 ease-in-out border-outline-variant bg-surface shadow-lg ${
+          mobileOpen ? "max-h-[calc(100dvh-70px)] overflow-y-auto opacity-100 py-6 border-t" : "max-h-0 overflow-hidden opacity-0 py-0 border-t-0 pointer-events-none"
         }`}
       >
         <div className="px-5 space-y-3 flex flex-col">
@@ -407,7 +398,7 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href={profile ? "/dashboard/landlord" : "/auth/login?role=landlord"}
+            href={profile ? "/dashboard/landlord" : "/auth/login/landlord"}
             onClick={handleForLandlordsClick}
             className={`px-4 py-3 rounded-xl text-[14px] font-medium transition-all flex items-center gap-2 ${
               pathname.startsWith("/dashboard/landlord")
@@ -470,15 +461,6 @@ export default function Navbar() {
                     >
                       {t("messagesSupport")}
                     </Link>
-                    <button
-                      onClick={async () => {
-                        setMobileOpen(false);
-                        await handleSwitchRole("tenant");
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-medium text-on-surface-variant hover:bg-surface-container-low cursor-pointer font-sans"
-                    >
-                      {t("switchToTenant")}
-                    </button>
                   </>
                 ) : (
                   <>
@@ -527,13 +509,13 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/auth/login"
+                  href="/auth/login/tenant"
                   className="w-full py-3 rounded-xl text-[14px] font-semibold text-primary border-2 border-primary hover:bg-surface-container-low transition-all text-center"
                 >
                   {t("login")}
                 </Link>
                 <Link
-                  href="/auth/register"
+                  href="/auth/register/tenant"
                   className="w-full py-3 rounded-xl text-[14px] font-semibold bg-primary text-on-primary hover:opacity-90 transition-all text-center"
                 >
                   {t("register")}

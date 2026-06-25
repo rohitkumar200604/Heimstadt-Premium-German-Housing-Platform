@@ -12,10 +12,11 @@ import { getDisplayPhoto } from "@/utils/get-display-photo";
 import { normalizeCityName } from "@/utils/translations";
 
 function promiseTimeout<T>(promise: any, ms: number): Promise<T> {
+  const finalMs = Math.max(ms, 20000); // Safe minimum of 20 seconds for cold starts / slow DB instances
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error("Database query timed out"));
-    }, ms);
+    }, finalMs);
 
     Promise.resolve(promise)
       .then((res) => {
@@ -140,7 +141,7 @@ function LandlordDashboardContent() {
       setPropertiesList([
         {
           id: "berlin-studio",
-          title: language === "de" ? "Helles Studio-Apartment nahe Alexanderplatz" : "Bright Studio Apartment near Alexanderplatz",
+          title: t("landlordDash_brightStudioApartmentNearAlexa"),
           city: "Berlin", street: "Karl-Liebknecht-Str. 12", zip: "10178",
           rooms: 1, size_sqm: 38, rent_cold: 720, rent_utilities: 80, rent_heating: 70,
           pets_allowed: true, furnished: false,
@@ -353,9 +354,7 @@ function LandlordDashboardContent() {
       // 5. Show custom success popup if we just cancelled the premium plan
       if (isPro) {
         alert(
-          language === "de"
-            ? "Ihr Premium-Abonnement wurde erfolgreich gekündigt."
-            : "Your premium subscription has been successfully cancelled."
+          t("landlordDash_yourPremiumSubscriptionHasBeen")
         );
       }
     } catch (err) {
@@ -397,9 +396,7 @@ function LandlordDashboardContent() {
 
       setLandlordProfile(updatedLp);
       setSuccessMsg(
-        language === "de"
-          ? "Vermieter-Details erfolgreich gespeichert!"
-          : "Landlord details successfully saved!"
+        t("landlordDash_landlordDetailsSuccessfullySav")
       );
       
       await refreshProfile();
@@ -452,9 +449,7 @@ function LandlordDashboardContent() {
             id: "mock-sup-1",
             sender_id: "mock-support-agent-id",
             recipient_id: user.id,
-            body: language === "de" 
-              ? "Hallo! Wie kann ich Ihnen bei dieser Immobilie helfen?" 
-              : "Hello! How can I help you with this property?",
+            body: t("landlordDash_helloHowCanIHelpYouWithThisPro"),
             sent_at: new Date(Date.now() - 3600000).toISOString()
           }
         ];
@@ -515,9 +510,7 @@ function LandlordDashboardContent() {
             id: `mock-reply-${Date.now()}`,
             sender_id: supportRecipientId,
             recipient_id: user.id,
-            body: language === "de"
-              ? "Vielen Dank für Ihre Nachricht. Ein Mitarbeiter wird sich in Kürze darum kümmern."
-              : "Thank you for your message. An employee will look into this shortly.",
+            body: t("landlordDash_thankYouForYourMessageAnEmploy"),
             sent_at: new Date().toISOString()
           };
           setSupportMessages((prev) => {
@@ -611,18 +604,14 @@ function LandlordDashboardContent() {
         id: "mock-inq-1",
         sender_id: "mock-tenant-id",
         recipient_id: "mock-support-agent-id",
-        body: language === "de"
-          ? "Guten Tag, ich interessiere mich sehr für das Helle Studio-Apartment. Sind Haustiere wirklich erlaubt?"
-          : "Hello, I am very interested in the Bright Studio Apartment. Are pets really allowed?",
+        body: t("landlordDash_helloIAmVeryInterestedInTheBri"),
         sent_at: new Date(Date.now() - 7200000).toISOString()
       },
       {
         id: "mock-inq-2",
         sender_id: "mock-support-agent-id",
         recipient_id: "mock-tenant-id",
-        body: language === "de"
-          ? "Hallo! Ja, kleine Haustiere sind nach Absprache mit dem Vermieter gestattet."
-          : "Hello! Yes, small pets are allowed upon consultation with the landlord.",
+        body: t("landlordDash_helloYesSmallPetsAreAllowedUpo"),
         sent_at: new Date(Date.now() - 3600000).toISOString()
       }
     ];
@@ -658,9 +647,7 @@ function LandlordDashboardContent() {
   }, [selectedSupportProperty]);
 
   const handleDeleteProperty = async (propertyId: string) => {
-    const confirmMsg = language === "de"
-      ? "Sind Sie sicher, dass Sie diese Immobilie löschen möchten? Alle zugehörigen Buchungsanfragen und Fotos werden unwiderruflich gelöscht."
-      : "Are you sure you want to delete this property? All associated bookings and photos will be permanently deleted.";
+    const confirmMsg = t("landlordDash_areYouSureYouWantToDeleteThisP");
     if (!window.confirm(confirmMsg)) return;
 
     try {
@@ -685,10 +672,10 @@ function LandlordDashboardContent() {
         setBookingRequests(nextBookings);
       }
       await fetchLandlordData();
-      alert(language === "de" ? "Immobilie erfolgreich gelöscht." : "Property successfully deleted.");
+      alert(t("landlordDash_propertySuccessfullyDeleted"));
     } catch (err) {
       console.error("Failed to delete property:", err);
-      alert(language === "de" ? "Fehler beim Löschen der Immobilie." : "Failed to delete property.");
+      alert(t("landlordDash_failedToDeleteProperty"));
     }
   };
 
@@ -753,7 +740,7 @@ function LandlordDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">space_dashboard</span>
-              <span>{language === "de" ? "Übersicht" : "Overview"}</span>
+              <span>{t("landlordDash_overview")}</span>
             </button>
             
             <button
@@ -765,7 +752,7 @@ function LandlordDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">account_circle</span>
-              <span>{language === "de" ? "Profil & Finanzen" : "Profile & Finance"}</span>
+              <span>{t("landlordDash_profileFinance")}</span>
             </button>
             
             <button
@@ -777,7 +764,7 @@ function LandlordDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">book_online</span>
-              <span>{language === "de" ? "Buchungsanfragen" : "Booking Requests"}</span>
+              <span>{t("landlordDash_bookingRequests")}</span>
             </button>
             
             <button
@@ -789,7 +776,7 @@ function LandlordDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">home_work</span>
-              <span>{language === "de" ? "Meine Immobilien" : "My Properties"}</span>
+              <span>{t("landlordDash_myProperties")}</span>
             </button>
 
             <button
@@ -801,7 +788,7 @@ function LandlordDashboardContent() {
               }`}
             >
               <span className="material-symbols-outlined text-[20px]">forum</span>
-              <span>{language === "de" ? "Nachrichten & Support" : "Messages & Support"}</span>
+              <span>{t("landlordDash_messagesSupport")}</span>
             </button>
 
 
@@ -822,7 +809,7 @@ function LandlordDashboardContent() {
                     </div>
                     <div>
                       <p className="text-[12px] text-on-surface-variant font-bold uppercase leading-none">
-                        {language === "de" ? "Immobilien" : "Properties"}
+                        {t("landlordDash_properties")}
                       </p>
                       <p className="text-[18px] font-bold text-primary mt-1">
                         {propertiesList.length} Listings
@@ -836,7 +823,7 @@ function LandlordDashboardContent() {
                     </div>
                     <div>
                       <p className="text-[12px] text-on-surface-variant font-bold uppercase leading-none">
-                        {language === "de" ? "Anfragen" : "Pending Requests"}
+                        {t("landlordDash_pendingRequests")}
                       </p>
                       <p className="text-[18px] font-bold text-primary mt-1">
                         {bookingRequests.filter(b => b.status === "pending").length} Pending
@@ -848,14 +835,12 @@ function LandlordDashboardContent() {
                 {/* Quick requests list - Full Width */}
                 <div className="bg-white border border-outline-variant p-6 rounded-2xl shadow-sm space-y-4">
                   <h3 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Letzte Buchungsanfragen" : "Recent Booking Requests"}
+                    {t("landlordDash_recentBookingRequests")}
                   </h3>
                   
                   {bookingRequests.length === 0 ? (
                     <div className="text-center py-8 text-on-surface-variant text-body-md">
-                      {language === "de" 
-                        ? "Sie haben momentan keine ausstehenden Buchungsanfragen." 
-                        : "You do not have any pending booking requests at the moment."}
+                      {t("landlordDash_youDoNotHaveAnyPendingBookingR")}
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -875,7 +860,7 @@ function LandlordDashboardContent() {
                                 )}
                               </h4>
                               <p className="text-[12px] text-on-surface-variant mt-0.5">
-                                {language === "de" ? "Objekt: " : "Property: "} <strong className="text-primary">{b.properties?.title}</strong>
+                                {t("landlordDash_property")} <strong className="text-primary">{b.properties?.title}</strong>
                               </p>
                             </div>
                             <div className="flex items-center gap-3 ml-auto sm:ml-0">
@@ -883,7 +868,7 @@ function LandlordDashboardContent() {
                                 href={`/buchen/${b.id}`} 
                                 className="bg-primary text-on-primary px-4 py-1.5 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm"
                               >
-                                {language === "de" ? "Prüfen" : "Review"}
+                                {t("landlordDash_review")}
                               </Link>
                             </div>
                           </div>
@@ -900,12 +885,10 @@ function LandlordDashboardContent() {
               <div className="bg-white border border-outline-variant p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
                 <div>
                   <h2 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Vermieter-Profil & Einstellungen" : "Landlord Profile & Settings"}
+                    {t("landlordDash_landlordProfileSettings")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Verwalten Sie Ihre Kontaktdaten, Ihre IBAN für den Mieteingang und Ihre Stripe-Integration für sichere Direktzahlungen."
-                      : "Manage your contact credentials, Stripe Connect accounts, and IBAN details for secure directly deposited tenant rentals."}
+                    {t("landlordDash_manageYourContactCredentialsSt")}
                   </p>
                 </div>
 
@@ -927,13 +910,13 @@ function LandlordDashboardContent() {
                   {/* Identity Category */}
                   <div className="space-y-4">
                     <h3 className="text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-1.5">
-                      {language === "de" ? "Persönliche Daten" : "Personal Details"}
+                      {t("landlordDash_personalDetails")}
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Vollständiger Name" : "Full Name"}
+                          {t("landlordDash_fullName")}
                         </label>
                         <input
                           type="text"
@@ -946,7 +929,7 @@ function LandlordDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Telefonnummer" : "Phone Number"}
+                          {t("landlordDash_phoneNumber")}
                         </label>
                         <input
                           type="tel"
@@ -963,7 +946,7 @@ function LandlordDashboardContent() {
                   {/* Stripe and Finance Details */}
                   <div className="space-y-4 pt-4">
                     <h3 className="text-label-md font-bold text-primary uppercase border-b border-outline-variant pb-1.5">
-                      {language === "de" ? "Finanzen & Auszahlungen" : "Payouts & Stripe Connect"}
+                      {t("landlordDash_payoutsStripeConnect")}
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -982,7 +965,7 @@ function LandlordDashboardContent() {
 
                       <div className="space-y-1">
                         <label className="block text-label-sm text-on-surface font-semibold">
-                          {language === "de" ? "Letzte 4 Ziffern der IBAN" : "Last 4 Digits of IBAN"}
+                          {t("landlordDash_last4DigitsOfIban")}
                         </label>
                         <input
                           type="text"
@@ -1005,7 +988,7 @@ function LandlordDashboardContent() {
                       {savingProfile && (
                         <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                       )}
-                      {language === "de" ? "Details speichern" : "Save Details"}
+                      {t("landlordDash_saveDetails")}
                     </button>
                   </div>
                 </form>
@@ -1017,20 +1000,16 @@ function LandlordDashboardContent() {
               <div className="bg-white border border-outline-variant p-6 md:p-8 rounded-2xl shadow-sm space-y-6">
                 <div>
                   <h2 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Aktive Buchungsanfragen" : "Pending Booking Requests"}
+                    {t("landlordDash_pendingBookingRequests")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Verwalten Sie eingehende Anfragen von Studenten. Prüfen Sie die verifizierten Unterlagen."
-                      : "Manage incoming requests from applicants. Check verification parameters and documents."}
+                    {t("landlordDash_manageIncomingRequestsFromAppl")}
                   </p>
                 </div>
 
                 {bookingRequests.length === 0 ? (
                   <div className="text-center py-12 text-on-surface-variant text-body-md border-2 border-dashed border-outline-variant rounded-2xl">
-                    {language === "de" 
-                      ? "Sie haben momentan keine ausstehenden Buchungsanfragen." 
-                      : "You do not have any pending booking requests at the moment."}
+                    {t("landlordDash_youDoNotHaveAnyPendingBookingR")}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1058,10 +1037,10 @@ function LandlordDashboardContent() {
                               )}
                             </h4>
                             <p className="text-body-sm text-on-surface-variant mt-1">
-                              {language === "de" ? "Wohnung: " : "Property: "} <strong className="text-primary">{propertyDetails?.title || "Property"}</strong>
+                              {t("landlordDash_property")} <strong className="text-primary">{propertyDetails?.title || "Property"}</strong>
                             </p>
                             <p className="text-[12px] text-on-surface-variant font-medium mt-1">
-                              {language === "de" ? "Einkommen: " : "Monthly Income: "} {tenantDetails?.monthly_income ? formatPrice(Number(tenantDetails.monthly_income)) : "N/A"}
+                              {t("landlordDash_monthlyIncome")} {tenantDetails?.monthly_income ? formatPrice(Number(tenantDetails.monthly_income)) : "N/A"}
                             </p>
                           </div>
 
@@ -1070,7 +1049,7 @@ function LandlordDashboardContent() {
                               href={`/buchen/${b.id}`}
                               className="bg-primary text-on-primary px-5 py-3 rounded-xl text-[13px] font-bold hover:opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer text-center"
                             >
-                              {language === "de" ? "Details prüfen" : "Review Profile"}
+                              {t("landlordDash_reviewProfile")}
                             </Link>
                           </div>
                         </div>
@@ -1087,12 +1066,10 @@ function LandlordDashboardContent() {
                 <div className="flex justify-between items-center border-b border-outline-variant/60 pb-5 flex-wrap gap-4">
                   <div>
                     <h2 className="text-headline-md font-bold text-primary">
-                      {language === "de" ? "Inserierte Immobilien" : "My Listed Properties"}
+                      {t("landlordDash_myListedProperties")}
                     </h2>
                     <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                      {language === "de"
-                        ? "Hier finden Sie alle Objekte, die Sie auf Heimstadt inseriert haben."
-                        : "Browse and manage the properties you have currently listed on the Heimstadt marketplace."}
+                      {t("landlordDash_browseAndManageThePropertiesYo")}
                     </p>
                   </div>
                   <Link
@@ -1100,15 +1077,13 @@ function LandlordDashboardContent() {
                     className="bg-primary text-on-primary px-4 py-2 rounded-lg text-[12px] font-bold hover:opacity-90 active:scale-95 transition-all shadow cursor-pointer flex items-center gap-1.5"
                   >
                     <span className="material-symbols-outlined text-[16px]">add</span>
-                    {language === "de" ? "Neues Inserat" : "Add Property"}
+                    {t("landlordDash_addProperty")}
                   </Link>
                 </div>
 
                 {propertiesList.length === 0 ? (
                   <div className="text-center py-12 text-on-surface-variant text-body-md border-2 border-dashed border-outline-variant rounded-2xl">
-                    {language === "de" 
-                      ? "Sie haben momentan noch keine Immobilien inseriert." 
-                      : "You have not listed any properties yet."}
+                    {t("landlordDash_youHaveNotListedAnyPropertiesY")}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1124,7 +1099,7 @@ function LandlordDashboardContent() {
                           <div className="mt-4 flex gap-4 text-[13px] text-on-surface font-semibold">
                             <span>{p.size_sqm} m²</span>
                             <span>•</span>
-                            <span>{p.rooms} {language === "de" ? "Zimmer" : "Rooms"}</span>
+                            <span>{p.rooms} {t("landlordDash_rooms")}</span>
                           </div>
                         </div>
 
@@ -1135,25 +1110,25 @@ function LandlordDashboardContent() {
                           </div>
                           <div className="flex items-center gap-3">
                             <Link
-                              href={`/objekt/${p.id}`}
+                              href={`/objekt/${p.id}?view=landlord`}
                               className="text-primary text-[12px] font-bold hover:underline flex items-center gap-1"
                             >
                               <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-                              <span>{language === "de" ? "Ansehen" : "View"}</span>
+                              <span>{t("landlordDash_view")}</span>
                             </Link>
                             <Link
                               href={`/inserieren?id=${p.id}`}
                               className="text-[#005fb8] text-[12px] font-bold hover:underline flex items-center gap-1"
                             >
                               <span className="material-symbols-outlined text-[16px]">edit</span>
-                              <span>{language === "de" ? "Bearbeiten" : "Edit"}</span>
+                              <span>{t("landlordDash_edit")}</span>
                             </Link>
                             <button
                               onClick={() => handleDeleteProperty(p.id)}
                               className="text-error text-[12px] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                             >
                               <span className="material-symbols-outlined text-[16px]">delete</span>
-                              <span>{language === "de" ? "Löschen" : "Delete"}</span>
+                              <span>{t("landlordDash_delete")}</span>
                             </button>
                           </div>
                         </div>
@@ -1171,12 +1146,10 @@ function LandlordDashboardContent() {
                 <div>
                   <h2 className="text-headline-md font-bold text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined text-[28px] text-primary">forum</span>
-                    {language === "de" ? "Nachrichten & Support" : "Messages & Support"}
+                    {t("landlordDash_messagesSupport")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant mt-1 leading-relaxed">
-                    {language === "de"
-                      ? "Verwalten Sie Ihre Kommunikation. Sehen Sie Anfragen zu Ihren Objekten ein oder chatten Sie direkt mit dem Support-Team."
-                      : "Manage your communications. View tenant inquiries on your properties or chat directly with the support team."}
+                    {t("landlordDash_manageYourCommunicationsViewTe")}
                   </p>
                 </div>
 
@@ -1193,7 +1166,7 @@ function LandlordDashboardContent() {
                         : "text-on-surface-variant hover:text-primary"
                     }`}
                   >
-                    {language === "de" ? "Mietinteressenten-Anfragen" : "Tenant Inquiries"}
+                    {t("landlordDash_tenantInquiries")}
                   </button>
                   <button
                     onClick={() => setMessagesTab("support")}
@@ -1203,7 +1176,7 @@ function LandlordDashboardContent() {
                         : "text-on-surface-variant hover:text-primary"
                     }`}
                   >
-                    {language === "de" ? "Support kontaktieren" : "Contact Support"}
+                    {t("landlordDash_contactSupport")}
                   </button>
                 </div>
 
@@ -1217,16 +1190,16 @@ function LandlordDashboardContent() {
                           className="inline-flex items-center gap-1.5 text-on-surface-variant hover:text-primary font-bold text-[13px] transition-colors"
                         >
                           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-                          {language === "de" ? "Zurück zur Übersicht" : "Back to Overview"}
+                          {t("landlordDash_backToOverview")}
                         </button>
 
                         <div className="p-4 bg-surface-container-low border border-outline-variant/60 rounded-2xl">
                           <p className="text-[12px] text-on-surface-variant font-semibold">
-                            {language === "de" ? "Immobilie: " : "Property: "}{" "}
+                            {t("landlordDash_property")}{" "}
                             <span className="text-primary font-bold">{selectedInquiryThread.property.title}</span>
                           </p>
                           <p className="text-[12px] text-on-surface-variant font-semibold mt-1">
-                            {language === "de" ? "Mietinteressent: " : "Tenant Applicant: "}{" "}
+                            {t("landlordDash_tenantApplicant")}{" "}
                             <span className="text-primary font-bold">{selectedInquiryThread.tenant?.full_name || "Applicant"} ({selectedInquiryThread.tenant?.email})</span>
                           </p>
                         </div>
@@ -1237,7 +1210,7 @@ function LandlordDashboardContent() {
                             const isTenantSender = m.sender_id === selectedInquiryThread.tenant?.id;
                             const senderName = isTenantSender 
                               ? (selectedInquiryThread.tenant?.full_name || "Tenant")
-                              : (language === "de" ? "Support-Mitarbeiter" : "Support Agent");
+                              : (t("landlordDash_supportAgent"));
                             
                             return (
                               <div
@@ -1274,9 +1247,7 @@ function LandlordDashboardContent() {
                           </div>
                         ) : inquiryThreads.length === 0 ? (
                           <div className="text-center py-12 text-on-surface-variant text-body-md border border-dashed border-outline-variant/60 rounded-2xl bg-surface-container-low/20">
-                            {language === "de"
-                              ? "Es liegen keine Support-Anfragen zu Ihren Immobilien vor."
-                              : "No inquiry chats found for your properties."}
+                            {t("landlordDash_noInquiryChatsFoundForYourProp")}
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -1316,16 +1287,14 @@ function LandlordDashboardContent() {
                   <div className="space-y-6">
                     {propertiesList.length === 0 ? (
                       <div className="text-center py-12 text-on-surface-variant text-body-md border border-dashed border-outline-variant rounded-2xl bg-surface-container-low/20">
-                        {language === "de"
-                          ? "Inserieren Sie zuerst eine Immobilie, um den Support zu kontaktieren."
-                          : "Please list a property first to contact support regarding it."}
+                        {t("landlordDash_pleaseListAPropertyFirstToCont")}
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {/* Select Property dropdown */}
                         <div className="space-y-1">
                           <label className="block text-label-sm text-on-surface font-semibold">
-                            {language === "de" ? "Betreffende Immobilie wählen" : "Select property regarding"}
+                            {t("landlordDash_selectPropertyRegarding")}
                           </label>
                           <select
                             value={selectedSupportProperty}
@@ -1345,9 +1314,7 @@ function LandlordDashboardContent() {
                           {supportMessages.length === 0 ? (
                             <div className="self-center text-center max-w-sm py-12">
                               <p className="text-body-md text-on-surface-variant">
-                                {language === "de"
-                                  ? "Schreiben Sie dem Support-Team bezüglich dieser Immobilie. Wir melden uns umgehend."
-                                  : "Write a message to our support team regarding this property. We will get back to you shortly."}
+                                {t("landlordDash_writeAMessageToOurSupportTeamR")}
                               </p>
                             </div>
                           ) : (
@@ -1382,7 +1349,7 @@ function LandlordDashboardContent() {
                         <form onSubmit={handleSendSupportMessage} className="flex gap-3">
                           <input
                             type="text"
-                            placeholder={language === "de" ? "Nachricht eingeben..." : "Type your message..."}
+                            placeholder={t("landlordDash_typeYourMessage")}
                             value={supportInput}
                             onChange={(e) => setSupportInput(e.target.value)}
                             disabled={sendingSupport}

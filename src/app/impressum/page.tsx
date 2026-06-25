@@ -5,7 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import Footer from "@/components/layout/Footer";
 
 export default function ImpressumPage() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   return (
     <>
@@ -27,18 +27,16 @@ export default function ImpressumPage() {
                   Heimstadt
                 </span>
                 <span className="text-[12px] text-white/60 font-semibold uppercase tracking-[0.2em]">
-                  {language === "de" ? "Exklusive Wohnvermittlung" : "Premium Housing Platform"}
+                  {t("impressum_premiumHousingPlatform")}
                 </span>
               </div>
             </div>
 
             <h1 className="text-[32px] md:text-[42px] font-black text-white leading-tight">
-              {language === "de" ? "Impressum" : "Legal Notice (Impressum)"}
+              {t("impressum_legalNoticeImpressum")}
             </h1>
             <p className="mt-3 text-white/70 text-[15px] max-w-xl leading-relaxed">
-              {language === "de"
-                ? "Pflichtangaben gemäß § 5 Telemediengesetz (TMG) und § 55 Rundfunkstaatsvertrag (RStV)."
-                : "Mandatory information pursuant to § 5 German Telemedia Act (TMG) and § 55 Broadcasting Interstate Treaty (RStV)."}
+              {t("impressum_mandatoryInformationPursuantTo")}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-semibold">
@@ -60,14 +58,14 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">apartment</span>
-              {language === "de" ? "Angaben gemäß § 5 TMG" : "Information pursuant to § 5 TMG"}
+              {t("impressum_informationPursuantTo5Tmg")}
             </h2>
             <div className="space-y-1">
               <p className="text-[16px] font-black text-primary">Heimstadt Immobilien GmbH</p>
               <p className="text-[15px] text-on-surface-variant">Torstraße 142</p>
               <p className="text-[15px] text-on-surface-variant">10119 Berlin</p>
               <p className="text-[15px] text-on-surface-variant">
-                {language === "de" ? "Deutschland" : "Germany"}
+                {t("impressum_germany")}
               </p>
             </div>
           </section>
@@ -76,31 +74,31 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">contact_phone</span>
-              {language === "de" ? "Kontakt" : "Contact"}
+              {t("impressum_contact")}
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
                 {
                   icon: "phone",
-                  label: language === "de" ? "Telefon" : "Phone",
+                  label: t("impressum_phone"),
                   value: "+49 (0) 30 123 456 78",
                   href: "tel:+493012345678",
                 },
                 {
                   icon: "mail",
-                  label: language === "de" ? "E-Mail (Allgemein)" : "Email (General)",
+                  label: t("impressum_emailGeneral"),
                   value: "kontakt@heimstadt.de",
                   href: "mailto:kontakt@heimstadt.de",
                 },
                 {
                   icon: "support_agent",
-                  label: language === "de" ? "E-Mail (Support)" : "Email (Support)",
+                  label: t("impressum_emailSupport"),
                   value: "support@heimstadt.de",
                   href: "mailto:support@heimstadt.de",
                 },
                 {
                   icon: "gavel",
-                  label: language === "de" ? "E-Mail (Rechtliches)" : "Email (Legal)",
+                  label: t("impressum_emailLegal"),
                   value: "legal@heimstadt.de",
                   href: "mailto:legal@heimstadt.de",
                 },
@@ -132,7 +130,7 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">manage_accounts</span>
-              {language === "de" ? "Vertretungsberechtigte Geschäftsführer" : "Represented by Managing Directors"}
+              {t("impressum_representedByManagingDirectors")}
             </h2>
             <div className="flex flex-col sm:flex-row gap-4">
               {["Markus Weber", "Rohit Kumar"].map((name) => (
@@ -146,7 +144,7 @@ export default function ImpressumPage() {
                   <div>
                     <p className="text-[15px] font-bold text-on-surface">{name}</p>
                     <p className="text-[11px] text-on-surface-variant font-semibold uppercase tracking-wider">
-                      {language === "de" ? "Geschäftsführer" : "Managing Director"}
+                      {t("impressum_managingDirector")}
                     </p>
                   </div>
                 </div>
@@ -158,24 +156,24 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">description</span>
-              {language === "de" ? "Handelsregister & Steuernummer" : "Commercial Register & Tax"}
+              {t("impressum_commercialRegisterTax")}
             </h2>
             <div className="grid sm:grid-cols-2 gap-4">
               {[
                 {
-                  label: language === "de" ? "Registergericht" : "Register Court",
+                  label: t("impressum_registerCourt"),
                   value: "Amtsgericht Charlottenburg (Berlin)",
                 },
                 {
-                  label: language === "de" ? "Registernummer" : "Register Number",
+                  label: t("impressum_registerNumber"),
                   value: "HRB 987654 B",
                 },
                 {
-                  label: language === "de" ? "Umsatzsteuer-ID (§ 27a UStG)" : "VAT ID (§ 27a UStG)",
+                  label: t("impressum_vatId27aUstg"),
                   value: "DE 312 456 789",
                 },
                 {
-                  label: language === "de" ? "Steuernummer" : "Tax Number",
+                  label: t("impressum_taxNumber"),
                   value: "27/432/56789",
                 },
               ].map((item) => (
@@ -196,16 +194,14 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">account_balance</span>
-              {language === "de" ? "Zuständige Aufsichtsbehörde" : "Competent Supervisory Authority"}
+              {t("impressum_competentSupervisoryAuthority")}
             </h2>
             <p className="text-[15px] text-on-surface-variant leading-relaxed mb-2">
-              {language === "de"
-                ? "Heimstadt Immobilien GmbH unterliegt als Immobilienvermittler der Gewerbeaufsicht durch das:"
-                : "Heimstadt Immobilien GmbH, as a real estate intermediary, is subject to commercial supervision by:"}
+              {t("impressum_heimstadtImmobilienGmbhAsAReal")}
             </p>
             <div className="p-4 bg-surface-container-low rounded-xl border border-outline-variant/40 space-y-0.5">
               <p className="text-[15px] font-bold text-on-surface">
-                {language === "de" ? "Bezirksamt Mitte von Berlin" : "District Office of Berlin-Mitte"}
+                {t("impressum_districtOfficeOfBerlinmitte")}
               </p>
               <p className="text-[14px] text-on-surface-variant">Ordnungsamt · Gewerbeangelegenheiten</p>
               <p className="text-[14px] text-on-surface-variant">Karl-Marx-Allee 31, 10178 Berlin</p>
@@ -216,12 +212,10 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">handshake</span>
-              {language === "de" ? "Streitschlichtung (ODR)" : "Online Dispute Resolution (ODR)"}
+              {t("impressum_onlineDisputeResolutionOdr")}
             </h2>
             <p className="text-[15px] text-on-surface-variant leading-relaxed mb-4">
-              {language === "de"
-                ? "Die Europäische Kommission stellt unter folgendem Link eine Plattform zur Online-Streitbeilegung (OS) bereit:"
-                : "The European Commission provides a platform for online dispute resolution (ODR) at the following link:"}
+              {t("impressum_theEuropeanCommissionProvidesA")}
             </p>
             <a
               href="https://ec.europa.eu/consumers/odr"
@@ -233,9 +227,7 @@ export default function ImpressumPage() {
               ec.europa.eu/consumers/odr
             </a>
             <p className="text-[15px] text-on-surface-variant leading-relaxed mt-4">
-              {language === "de"
-                ? "Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen."
-                : "We are not willing or obligated to participate in dispute resolution proceedings before a consumer arbitration board."}
+              {t("impressum_weAreNotWillingOrObligatedToPa")}
             </p>
           </section>
 
@@ -243,37 +235,31 @@ export default function ImpressumPage() {
           <section className="bg-white border border-outline-variant rounded-2xl p-7 shadow-sm">
             <h2 className="text-[20px] font-black text-primary mb-5 pb-3 border-b border-outline-variant/50 flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">policy</span>
-              {language === "de" ? "Haftung für Inhalte & Links" : "Liability for Content & Links"}
+              {t("impressum_liabilityForContentLinks")}
             </h2>
             <div className="space-y-4">
               <div>
                 <h3 className="text-[15px] font-bold text-on-surface mb-2">
-                  {language === "de" ? "Haftung für Inhalte" : "Liability for Content"}
+                  {t("impressum_liabilityForContent")}
                 </h3>
                 <p className="text-[14px] text-on-surface-variant leading-relaxed">
-                  {language === "de"
-                    ? "Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen."
-                    : "As a service provider, we are responsible for our own content on these pages in accordance with § 7 para. 1 TMG and general laws. However, under §§ 8–10 TMG, we are not obligated to monitor transmitted or stored third-party information."}
+                  {t("impressum_asAServiceProviderWeAreRespons")}
                 </p>
               </div>
               <div>
                 <h3 className="text-[15px] font-bold text-on-surface mb-2">
-                  {language === "de" ? "Haftung für Links" : "Liability for Links"}
+                  {t("impressum_liabilityForLinks")}
                 </h3>
                 <p className="text-[14px] text-on-surface-variant leading-relaxed">
-                  {language === "de"
-                    ? "Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich."
-                    : "Our website contains links to external third-party websites over whose content we have no control. We therefore cannot accept any liability for these external contents. The respective provider or operator of the linked pages is always responsible for their content."}
+                  {t("impressum_ourWebsiteContainsLinksToExter")}
                 </p>
               </div>
               <div>
                 <h3 className="text-[15px] font-bold text-on-surface mb-2">
-                  {language === "de" ? "Urheberrecht" : "Copyright"}
+                  {t("impressum_copyright")}
                 </h3>
                 <p className="text-[14px] text-on-surface-variant leading-relaxed">
-                  {language === "de"
-                    ? "Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers."
-                    : "The content and works created by the site operators on these pages are subject to German copyright law. Duplication, processing, distribution, and any form of commercialization of such material beyond the scope of the copyright law require the written consent of the respective author or creator."}
+                  {t("impressum_theContentAndWorksCreatedByThe")}
                 </p>
               </div>
             </div>
@@ -286,12 +272,10 @@ export default function ImpressumPage() {
             </span>
             <div>
               <p className="text-[14px] font-bold text-primary mb-1">
-                {language === "de" ? "Rechtliche Anfragen?" : "Legal enquiries?"}
+                {t("impressum_legalEnquiries")}
               </p>
               <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                {language === "de"
-                  ? "Für rechtliche Anfragen und Abmahnungen wenden Sie sich bitte ausschließlich schriftlich an: "
-                  : "For legal enquiries and cease-and-desist notices, please contact us exclusively in writing at: "}
+                {t("impressum_forLegalEnquiriesAndCeaseandde")}
                 <a
                   href="mailto:legal@heimstadt.de"
                   className="text-primary font-semibold hover:underline"

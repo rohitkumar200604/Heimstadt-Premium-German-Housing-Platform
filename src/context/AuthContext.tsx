@@ -38,10 +38,11 @@ interface AuthContextProps {
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 function promiseTimeout<T>(promise: any, ms: number): Promise<T> {
+  const finalMs = Math.max(ms, 20000); // Safe minimum of 20 seconds for cold starts / slow DB instances
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error("Database query timed out"));
-    }, ms);
+    }, finalMs);
 
     Promise.resolve(promise)
       .then((res) => {

@@ -64,7 +64,7 @@ const sections = [
 ];
 
 export default function DatenschutzPage() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   return (
     <>
@@ -86,23 +86,21 @@ export default function DatenschutzPage() {
                   Heimstadt
                 </span>
                 <span className="text-[12px] text-white/60 font-semibold uppercase tracking-[0.2em]">
-                  {language === "de" ? "Exklusive Wohnvermittlung" : "Premium Housing Platform"}
+                  {t("datenschutz_premiumHousingPlatform")}
                 </span>
               </div>
             </div>
 
             <h1 className="text-[32px] md:text-[42px] font-black text-white leading-tight">
-              {language === "de" ? "Datenschutzerklärung" : "Privacy Policy (GDPR)"}
+              {t("datenschutz_privacyPolicyGdpr")}
             </h1>
             <p className="mt-3 text-white/70 text-[15px] max-w-xl leading-relaxed">
-              {language === "de"
-                ? "Ihre Privatsphäre ist uns wichtig. Hier erfahren Sie, wie wir Ihre Daten verarbeiten und schützen."
-                : "Your privacy matters to us. Learn how we process and protect your personal data."}
+              {t("datenschutz_yourPrivacyMattersToUsLearnHow")}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-semibold">
                 <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                {language === "de" ? "Zuletzt aktualisiert: 21. Juni 2026" : "Last updated: June 21, 2026"}
+                {t("datenschutz_lastUpdatedJune212026")}
               </span>
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-semibold">
                 <span className="material-symbols-outlined text-[14px]">shield</span>
@@ -110,7 +108,7 @@ export default function DatenschutzPage() {
               </span>
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-semibold">
                 <span className="material-symbols-outlined text-[14px]">lock</span>
-                {language === "de" ? "Server in Deutschland" : "Servers in Germany"}
+                {t("datenschutz_serversInGermany")}
               </span>
             </div>
           </div>
@@ -121,7 +119,7 @@ export default function DatenschutzPage() {
           <div className="bg-white border border-outline-variant rounded-2xl p-6 mb-10 shadow-sm">
             <h2 className="text-[13px] font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">format_list_bulleted</span>
-              {language === "de" ? "Inhaltsverzeichnis" : "Table of Contents"}
+              {t("datenschutz_tableOfContents")}
             </h2>
             <ol className="space-y-2">
               {sections.map((s) => (
@@ -170,14 +168,10 @@ export default function DatenschutzPage() {
             </span>
             <div>
               <p className="text-[14px] font-bold text-primary mb-1">
-                {language === "de"
-                  ? "Fragen zum Datenschutz?"
-                  : "Questions about data privacy?"}
+                {t("datenschutz_questionsAboutDataPrivacy")}
               </p>
               <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                {language === "de"
-                  ? "Unser Datenschutzbeauftragter steht Ihnen jederzeit zur Verfügung: "
-                  : "Our Data Protection Officer is available at any time: "}
+                {t("datenschutz_ourDataProtectionOfficerIsAvai")}
                 <a
                   href="mailto:dpo@heimstadt.de"
                   className="text-primary font-semibold hover:underline"

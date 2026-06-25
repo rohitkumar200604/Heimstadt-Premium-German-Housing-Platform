@@ -179,7 +179,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
       }
     } catch (err: any) {
       console.error("Error uploading document:", err);
-      alert(language === "de" ? `Upload-Fehler: ${err.message}` : `Upload error: ${err.message}`);
+      alert(`${t("uploadError")}: ${err.message}`);
     } finally {
       setUploadingDoc(null);
     }
@@ -209,7 +209,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
       }
     } catch (err: any) {
       console.error("Error removing document:", err);
-      alert(language === "de" ? `Lösch-Fehler: ${err.message}` : `Remove error: ${err.message}`);
+      alert(`${t("removeError")}: ${err.message}`);
     }
   };
 
@@ -254,7 +254,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
       }
     } catch (err: any) {
       console.error("Error submitting for review:", err);
-      alert(language === "de" ? `Fehler beim Einreichen: ${err.message}` : `Submission error: ${err.message}`);
+      alert(`${t("submissionError")}: ${err.message}`);
     } finally {
       setSubmittingReview(false);
     }
@@ -274,7 +274,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
         if (error) throw error;
         await loadBookingData();
       }
-      alert(language === "de" ? `Buchungsstatus aktualisiert auf: ${newStatus}` : `Booking status updated to: ${newStatus}`);
+      alert(`${t("bookingStatusUpdated")}: ${newStatus}`);
     } catch (err: any) {
       console.error("Error updating booking status:", err);
       alert(`Error: ${err.message}`);
@@ -313,7 +313,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
         await loadBookingData();
       }
 
-      alert(language === "de" ? "Zahlung erfolgreich! Mietkaution wird treuhänderisch verwaltet." : "Payment successful! The deposit is now safely escrowed.");
+      alert(t("paymentSuccessful"));
     } catch (err: any) {
       console.error("Error processing payment:", err);
       alert(`Payment Error: ${err.message}`);
@@ -358,11 +358,11 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
   // Pipeline phases
   // Pipeline phases
   const pipeline = [
-    { key: "pending", labelDe: "Dokumente ausstehend", labelEn: "Docs Pending" },
-    { key: "docs_review", labelDe: "Dokumentenprüfung", labelEn: "Docs Under Review" },
-    { key: "approved", labelDe: "Freigegeben zur Zahlung", labelEn: "Approved for Deposit" },
-    { key: "deposit_paid", labelDe: "Kaution hinterlegt", labelEn: "Deposit Escrowed" },
-    { key: "confirmed", labelDe: "Mietvertrag Bestätigt", labelEn: "Contract Confirmed" },
+    { key: "pending", label: t("pipePending") },
+    { key: "docs_review", label: t("pipeDocsReview") },
+    { key: "approved", label: t("pipeApproved") },
+    { key: "deposit_paid", label: t("pipeDepositPaid") },
+    { key: "confirmed", label: t("pipeConfirmed") },
   ];
 
   const currentPhaseIndex = pipeline.findIndex(p => p.key === booking?.status) !== -1
@@ -378,7 +378,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <span className="text-[12px] text-secondary font-bold uppercase tracking-wider block">
-                {language === "de" ? "Bewerbungspipeline" : "Application Status"}
+                {t("applicationStatus")}
               </span>
               <h1 className="text-headline-md font-bold text-primary mt-1">
                 {property?.title || "Apartment"}
@@ -390,7 +390,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
 
             <div className="flex items-center gap-2 bg-secondary-container/40 px-3 py-1.5 rounded-full text-secondary text-label-md font-bold">
               <span className="material-symbols-outlined text-[18px]">info</span>
-              {language === "de" ? `Status: ${booking?.status.toUpperCase()}` : `Status: ${booking?.status.toUpperCase()}`}
+              {t("status")}: {booking?.status.toUpperCase()}
             </div>
           </div>
 
@@ -428,7 +428,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                         isCurrent ? "text-primary font-bold" : "text-on-surface-variant"
                       }`}
                     >
-                      {language === "de" ? phase.labelDe : phase.labelEn}
+                      {phase.label}
                     </span>
                   </div>
                 );
@@ -450,17 +450,15 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                 </div>
                 <div className="max-w-md space-y-2">
                   <h2 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Dokumente werden überprüft" : "We are checking your documents"}
+                    {t("checkingDocuments")}
                   </h2>
                   <p className="text-body-md text-on-surface-variant leading-relaxed">
-                    {language === "de"
-                      ? "Ihre Unterlagen wurden erfolgreich eingereicht. Wir überprüfen diese nun auf Richtigkeit. Sie werden benachrichtigt, sobald die Prüfung abgeschlossen ist."
-                      : "Your documents have been successfully submitted. We are currently verifying your credentials. You will be notified as soon as the review is complete."}
+                    {t("checkingDocumentsDesc")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 bg-yellow-50 text-yellow-800 px-4 py-2 rounded-full font-bold text-[13px] border border-yellow-200">
                   <span className="material-symbols-outlined text-[18px]">hourglass_empty</span>
-                  {language === "de" ? "Status: Ausstehend" : "Status: Pending"}
+                  {t("statusPending")}
                 </div>
               </div>
             ) : (
@@ -470,9 +468,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                   {t("verifyTitle")}
                 </h2>
                 <p className="text-body-sm text-on-surface-variant leading-relaxed">
-                  {language === "de" 
-                    ? "Bitte laden Sie die erforderlichen Dokumente hoch, um das Sicherheitsüberprüfungsverfahren zu starten. Nach dem vollständigen Upload berechnet unsere künstliche Intelligenz den Match Score für den Vermieter." 
-                    : "Please upload the required documents to initiate the background checks. Once all files are uploaded, our AI will score the application suitability for the landlord."}
+                  {t("verifyDocumentsDesc")}
                 </p>
 
                 <div className="space-y-4">
@@ -496,11 +492,11 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                             <p className="text-label-md font-bold text-primary">{label}</p>
                             {optional ? (
                               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant border border-outline-variant/60">
-                                {language === "de" ? "Optional" : "Optional"}
+                                {t("optional").charAt(0).toUpperCase() + t("optional").slice(1)}
                               </span>
                             ) : (
                               <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                                {language === "de" ? "Pflicht" : "Required"}
+                                {t("required").charAt(0).toUpperCase() + t("required").slice(1)}
                               </span>
                             )}
                           </div>
@@ -511,7 +507,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                                 {fileName}
                               </>
                             ) : (
-                              language === "de" ? "Kein Dokument hochgeladen" : "No document uploaded"
+                              t("noDocumentUploaded")
                             )}
                           </p>
                         </div>
@@ -549,7 +545,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                                     ...
                                   </span>
                                 ) : (
-                                  hasDoc ? (language === "de" ? "Ersetzen" : "Replace") : (language === "de" ? "Hochladen" : "Upload")
+                                  hasDoc ? t("replace") : t("upload")
                                 )}
                               </label>
 
@@ -557,10 +553,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                                 <button
                                   onClick={() => handleDocRemove(type)}
                                   className="px-3 py-2 rounded-xl text-[12px] font-bold border border-error text-error hover:bg-error/5 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
-                                  title={language === "de" ? "Dokument entfernen" : "Remove document"}
+                                  title={t("removeDocument")}
                                 >
                                   <span className="material-symbols-outlined text-[14px]">delete</span>
-                                  <span>{language === "de" ? "Löschen" : "Remove"}</span>
+                                  <span>{t("delete")}</span>
                                 </button>
                               )}
                             </div>
@@ -582,10 +578,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                       {submittingReview ? (
                         <span className="flex items-center gap-2">
                           <span className="animate-spin rounded-full h-4 w-4 border-2 border-on-primary border-t-transparent" />
-                          {language === "de" ? "Reiche Unterlagen ein..." : "Submitting Documents..."}
+                          {t("submittingDocs")}
                         </span>
                       ) : (
-                        language === "de" ? "Unterlagen zur Überprüfung einreichen" : "Submit Documents for Review"
+                        t("submitDocsForReview")
                       )}
                     </button>
                   </div>
@@ -598,24 +594,18 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                 <div className="flex justify-between items-center flex-wrap gap-4 border-b border-outline-variant pb-4">
                   <h2 className="text-headline-sm font-bold text-primary flex items-center gap-3">
                     <span className="material-symbols-outlined text-[28px]">rate_review</span>
-                    {language === "de" ? "Bewerbung überprüfen" : "Review Application"}
+                    {t("reviewApplication")}
                   </h2>
                 </div>
 
                 <div className="space-y-4">
                   <p className="text-body-sm text-on-surface-variant leading-relaxed">
                     {booking?.status === "docs_review" ? (
-                      language === "de" 
-                        ? "Bitte prüfen Sie die hochgeladenen Dokumente des Bewerbers auf der linken Seite und treffen Sie eine Entscheidung über diese Bewerbung."
-                        : "Please review the uploaded documents of the applicant on the left and make a decision on this application."
+                      t("reviewApplicationDesc")
                     ) : booking?.status === "approved" || booking?.status === "deposit_paid" || booking?.status === "confirmed" ? (
-                      language === "de"
-                        ? "Sie haben diese Bewerbung erfolgreich freigegeben."
-                        : "You have successfully approved this application."
+                      t("applicationApproved")
                     ) : (
-                      language === "de"
-                        ? "Diese Bewerbung wurde abgelehnt."
-                        : "This application has been rejected."
+                      t("applicationRejected")
                     )}
                   </p>
                 </div>
@@ -628,14 +618,14 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                       disabled={updatingStatus !== null}
                       className="px-6 py-3.5 rounded-2xl font-bold border border-red-200 text-red-700 hover:bg-red-50 active:scale-98 transition-all text-label-md cursor-pointer"
                     >
-                      {language === "de" ? "Ablehnen" : "Reject Application"}
+                      {t("rejectApplication")}
                     </button>
                     <button
                       onClick={() => updateBookingStatus("approved")}
                       disabled={updatingStatus !== null}
                       className="bg-primary text-on-primary px-6 py-3.5 rounded-2xl font-bold hover:opacity-95 active:scale-98 transition-all shadow text-label-md cursor-pointer"
                     >
-                      {language === "de" ? "Bewerbung freigeben" : "Approve Application"}
+                      {t("approveApplication")}
                     </button>
                   </div>
                 )}
@@ -676,10 +666,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
               <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex justify-between items-center">
                 <div>
                   <span className="text-[11px] text-on-surface-variant font-bold uppercase tracking-wider block">
-                    {language === "de" ? "Mietkaution" : "Deposit Escrow"}
+                    {t("depositEscrow")}
                   </span>
                   <span className="text-[11px] text-primary font-bold">
-                    ({depositMonths} {language === "de" ? "Monatsmieten" : "Months Rent"})
+                    ({depositMonths} {t("monthsRent")})
                   </span>
                 </div>
                 <span className="text-headline-sm font-black text-primary">
@@ -696,26 +686,20 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                 <div className="space-y-4">
                   {booking?.status === "pending" && (
                     <div className="p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-2xl text-[12px] font-medium leading-relaxed">
-                      {language === "de" 
-                        ? "Um fortzufahren, laden Sie bitte Ihre Dokumente auf der linken Seite hoch und senden Sie diese zur Überprüfung ein." 
-                        : "To proceed, please upload your verification documents on the left and submit them for review."}
+                      {t("proceedDocsDesc")}
                     </div>
                   )}
 
                   {booking?.status === "docs_review" && (
                     <div className="p-4 bg-primary/10 text-primary border border-primary/20 rounded-2xl text-[12px] font-medium leading-relaxed">
-                      {language === "de" 
-                        ? "Ihre Unterlagen werden aktuell überprüft. Sobald der Vermieter die Bewerbung freigibt, können Sie die Kaution bezahlen." 
-                        : "Your documents are currently under review. You will be able to pay the deposit once the landlord approves the application."}
+                      {t("docsUnderReviewDesc")}
                     </div>
                   )}
 
                   {booking?.status === "approved" && (
                     <form onSubmit={handleEscrowPayment} className="space-y-4">
                       <div className="p-4 bg-green-50 text-green-800 border border-green-200 rounded-2xl text-[12px] font-medium leading-relaxed">
-                        {language === "de" 
-                          ? "Ihre Bewerbung wurde freigegeben! Bitte hinterlegen Sie die Mietkaution, um das Apartment fest zu buchen." 
-                          : "Your application is approved! Please escrow the rent deposit to lock in your apartment booking."}
+                        {t("appApprovedEscrowDesc")}
                       </div>
 
                       {/* Mock Credit Card Elements */}
@@ -782,12 +766,12 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                         {isPaying ? (
                           <>
                             <span className="animate-spin rounded-full h-4 w-4 border-2 border-on-primary border-t-transparent" />
-                            {language === "de" ? "Verarbeite Kaution..." : "Processing Payment..."}
+                            {t("processingPayment")}
                           </>
                         ) : (
                           <>
                             <span className="material-symbols-outlined text-[20px]">lock</span>
-                            {language === "de" ? "Kaution hinterlegen (Escrow)" : "Escrow Rent Deposit"}
+                            {t("escrowRentDeposit")}
                           </>
                         )}
                       </button>
@@ -798,11 +782,9 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                     <div className="w-full bg-green-50 border border-green-200 p-5 rounded-2xl flex flex-col items-center text-center gap-3 text-green-800">
                       <span className="material-symbols-outlined text-[40px] text-green-600" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                       <div>
-                        <p className="font-black text-label-lg">{language === "de" ? "Kaution hinterlegt" : "Deposit Escrowed"}</p>
+                        <p className="font-black text-label-lg">{t("depositEscrowed")}</p>
                         <p className="text-[12px] mt-1 text-green-700/80 leading-relaxed">
-                          {language === "de" 
-                            ? "Ihre Kaution wird sicher auf unserem Treuhandkonto verwaltet. Der Vermieter prüft nun die Zahlung und finalisiert den Mietvertrag." 
-                            : "Your deposit is safely held in our escrow account. The landlord will confirm the receipt and finalize the lease."}
+                          {t("depositEscrowedDesc")}
                         </p>
                       </div>
                     </div>
@@ -812,11 +794,9 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                     <div className="w-full bg-primary-fixed/20 border border-primary/20 p-5 rounded-2xl flex flex-col items-center text-center gap-3 text-primary">
                       <span className="material-symbols-outlined text-[40px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                       <div>
-                        <p className="font-black text-label-lg">{language === "de" ? "Mietvertrag Bestätigt" : "Lease Confirmed"}</p>
+                        <p className="font-black text-label-lg">{t("leaseConfirmed")}</p>
                         <p className="text-[12px] mt-1 text-on-surface-variant leading-relaxed">
-                          {language === "de" 
-                            ? "Herzlichen Glückwunsch! Die Buchung ist vollständig bestätigt. Ihre Reiseunterlagen und der Schlüsselübergabeplan werden Ihnen zugesandt." 
-                            : "Congratulations! The booking is fully confirmed. Move-in documents and keys handover details are sent to your email."}
+                          {t("leaseConfirmedDesc")}
                         </p>
                       </div>
                     </div>
@@ -824,7 +804,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
 
                   {booking?.status === "cancelled" && (
                     <div className="p-4 bg-red-50 text-red-800 border border-red-200 rounded-2xl text-[12px] font-medium text-center">
-                      {language === "de" ? "Diese Buchungsanfrage wurde abgelehnt." : "This booking application was rejected."}
+                      {t("bookingRejectedDesc")}
                     </div>
                   )}
                 </div>
@@ -835,34 +815,26 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                 <div className="space-y-4">
                   {booking?.status === "pending" && (
                     <div className="p-4 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded-2xl text-[12px] font-medium text-center">
-                      {language === "de" 
-                        ? "Warte darauf, dass der Mieter seine Dokumente hochlädt." 
-                        : "Waiting for the tenant to upload documents."}
+                      {t("waitingTenantDocs")}
                     </div>
                   )}
 
                   {booking?.status === "docs_review" && (
                     <div className="p-4 bg-primary/10 text-primary border border-primary/20 rounded-2xl text-[12px] font-medium text-center">
-                      {language === "de" 
-                        ? "Dokumente eingereicht. Bitte überprüfen Sie die Eignungsanalyse links und entscheiden Sie über die Bewerbung." 
-                        : "Documents submitted. Please review the suitability screening on the left to approve/reject."}
+                      {t("docsSubmittedReviewDesc")}
                     </div>
                   )}
 
                   {booking?.status === "approved" && (
                     <div className="p-4 bg-green-50 text-green-800 border border-green-200 rounded-2xl text-[12px] font-medium text-center">
-                      {language === "de" 
-                        ? "Freigegeben. Warte darauf, dass der Mieter die Kaution per Stripe hinterlegt." 
-                        : "Approved. Waiting for the tenant to escrow the deposit via Stripe."}
+                      {t("approvedWaitingDeposit")}
                     </div>
                   )}
 
                   {booking?.status === "deposit_paid" && (
                     <div className="space-y-4">
                       <div className="p-4 bg-green-50 text-green-800 border border-green-200 rounded-2xl text-[12px] font-medium leading-relaxed text-center">
-                        {language === "de" 
-                          ? "Der Mieter hat die Kaution hinterlegt! Sie können den Mietvertrag nun final bestätigen." 
-                          : "The tenant has paid the deposit! You can now confirm the booking and lease contract."}
+                        {t("tenantPaidDepositDesc")}
                       </div>
 
                       <button
@@ -875,7 +847,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                         ) : (
                           <>
                             <span className="material-symbols-outlined text-[20px]">assignment_turned_in</span>
-                            {language === "de" ? "Mietvertrag bestätigen" : "Confirm Lease Contract"}
+                            {t("confirmLeaseContract")}
                           </>
                         )}
                       </button>
@@ -886,11 +858,9 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
                     <div className="w-full bg-primary-fixed/20 border border-primary/20 p-5 rounded-2xl flex flex-col items-center text-center gap-3 text-primary">
                       <span className="material-symbols-outlined text-[40px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>
                       <div>
-                        <p className="font-black text-label-lg">{language === "de" ? "Buchung Bestätigt" : "Booking Confirmed"}</p>
+                        <p className="font-black text-label-lg">{t("bookingConfirmed")}</p>
                         <p className="text-[12px] mt-1 text-on-surface-variant leading-relaxed font-medium">
-                          {language === "de" 
-                            ? "Der Mietvertrag ist bestätigt und aktiv. Die Kaution wird treuhänderisch verwaltet und nach dem Einzug ausgezahlt." 
-                            : "The lease contract is confirmed and active. The deposit is escrowed and will be paid out post move-in."}
+                          {t("leaseConfirmedActiveDesc")}
                         </p>
                       </div>
                     </div>
@@ -898,7 +868,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ bookin
 
                   {booking?.status === "cancelled" && (
                     <div className="p-4 bg-red-50 text-red-800 border border-red-200 rounded-2xl text-[12px] font-medium text-center">
-                      {language === "de" ? "Diese Bewerbung wurde abgelehnt." : "This application has been rejected."}
+                      {t("applicationRejected")}
                     </div>
                   )}
                 </div>

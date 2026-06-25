@@ -12,7 +12,7 @@ function SelectRolePageContent() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect");
   const { user, profile, loading, refreshProfile } = useAuth();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   const [selectedRole, setSelectedRole] = useState<"tenant" | "landlord" | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
@@ -69,9 +69,7 @@ function SelectRolePageContent() {
     e.preventDefault();
     if (!selectedRole) {
       setErrorMsg(
-        language === "de"
-          ? "Bitte wählen Sie eine Rolle aus, um fortzufahren."
-          : "Please select a role to continue."
+        t("selectRole_pleaseSelectARoleToContinue")
       );
       return;
     }
@@ -110,9 +108,7 @@ function SelectRolePageContent() {
       }
 
       setSuccessMsg(
-        language === "de"
-          ? "Einrichtung abgeschlossen! Sie werden weitergeleitet..."
-          : "Setup completed! Redirecting..."
+        t("selectRole_setupCompletedRedirecting")
       );
 
       // Refresh authentication profile state in context
@@ -154,12 +150,10 @@ function SelectRolePageContent() {
               Onboarding
             </span>
             <h1 className="text-display-lg-mobile md:text-headline-lg font-bold text-primary mt-4">
-              {language === "de" ? "Wählen Sie Ihre Rolle" : "Select Your Role"}
+              {t("selectRole_selectYourRole")}
             </h1>
             <p className="text-on-surface-variant text-body-md mt-2 max-w-md mx-auto">
-              {language === "de"
-                ? "Um Ihre Einrichtung abzuschließen, teilen Sie uns bitte mit, wie Sie Heimstadt nutzen möchten."
-                : "To finalize your registration, please let us know how you plan to use Heimstadt."}
+              {t("selectRole_toFinalizeYourRegistrationPlea")}
             </p>
           </div>
 
@@ -196,12 +190,10 @@ function SelectRolePageContent() {
                 </div>
                 <div>
                   <h3 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Ich bin Mieter" : "I am a Tenant"}
+                    {t("selectRole_iAmATenant")}
                   </h3>
                   <p className="text-[12px] text-on-surface-variant leading-relaxed mt-2">
-                    {language === "de"
-                      ? "Ich suche nach einer Premium-Wohnung in Berlin, München oder Hamburg."
-                      : "I am searching for a premium flat to rent in Berlin, Munich, or Hamburg."}
+                    {t("selectRole_iAmSearchingForAPremiumFlatToR")}
                   </p>
                 </div>
               </button>
@@ -223,12 +215,10 @@ function SelectRolePageContent() {
                 </div>
                 <div>
                   <h3 className="text-headline-md font-bold text-primary">
-                    {language === "de" ? "Ich bin Vermieter" : "I am a Landlord"}
+                    {t("selectRole_iAmALandlord")}
                   </h3>
                   <p className="text-[12px] text-on-surface-variant leading-relaxed mt-2">
-                    {language === "de"
-                      ? "Ich möchte meine Immobilien inserieren und vertrauenswürdige Mieter finden."
-                      : "I want to list my real estate properties and discover trusted students."}
+                    {t("selectRole_iWantToListMyRealEstatePropert")}
                   </p>
                 </div>
               </button>
@@ -242,7 +232,7 @@ function SelectRolePageContent() {
               {loadingSubmit && (
                 <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
               )}
-              <span>{language === "de" ? "Registrierung abschließen" : "Complete Registration"}</span>
+              <span>{t("selectRole_completeRegistration")}</span>
               <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
             </button>
           </form>

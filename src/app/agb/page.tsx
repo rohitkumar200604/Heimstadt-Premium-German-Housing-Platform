@@ -64,7 +64,7 @@ const sections = [
 ];
 
 export default function AGBPage() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
 
   return (
     <>
@@ -86,29 +86,25 @@ export default function AGBPage() {
                   Heimstadt
                 </span>
                 <span className="text-[12px] text-white/60 font-semibold uppercase tracking-[0.2em]">
-                  {language === "de" ? "Exklusive Wohnvermittlung" : "Premium Housing Platform"}
+                  {t("agb_premiumHousingPlatform")}
                 </span>
               </div>
             </div>
 
             <h1 className="text-[32px] md:text-[42px] font-black text-white leading-tight">
-              {language === "de"
-                ? "Allgemeine Geschäftsbedingungen"
-                : "Terms of Service (AGB)"}
+              {t("agb_termsOfServiceAgb")}
             </h1>
             <p className="mt-3 text-white/70 text-[15px] max-w-xl leading-relaxed">
-              {language === "de"
-                ? "Bitte lesen Sie diese Bedingungen sorgfältig durch, bevor Sie unsere Dienste nutzen."
-                : "Please read these terms carefully before using our services."}
+              {t("agb_pleaseReadTheseTermsCarefullyB")}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-semibold">
                 <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                {language === "de" ? "Zuletzt aktualisiert: 21. Juni 2026" : "Last updated: June 21, 2026"}
+                {t("agb_lastUpdatedJune212026")}
               </span>
               <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-semibold">
                 <span className="material-symbols-outlined text-[14px]">gavel</span>
-                {language === "de" ? "Deutsches Recht" : "German Law"}
+                {t("agb_germanLaw")}
               </span>
             </div>
           </div>
@@ -119,7 +115,7 @@ export default function AGBPage() {
           <div className="bg-white border border-outline-variant rounded-2xl p-6 mb-10 shadow-sm">
             <h2 className="text-[13px] font-black text-primary uppercase tracking-widest mb-4 flex items-center gap-2">
               <span className="material-symbols-outlined text-[18px]">format_list_bulleted</span>
-              {language === "de" ? "Inhaltsverzeichnis" : "Table of Contents"}
+              {t("agb_tableOfContents")}
             </h2>
             <ol className="space-y-2">
               {sections.map((s) => (
@@ -168,21 +164,17 @@ export default function AGBPage() {
             </span>
             <div>
               <p className="text-[14px] font-bold text-primary mb-1">
-                {language === "de" ? "Fragen zu unseren AGB?" : "Questions about our Terms?"}
+                {t("agb_questionsAboutOurTerms")}
               </p>
               <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                {language === "de"
-                  ? "Wenn Sie Fragen zu diesen Allgemeinen Geschäftsbedingungen haben, kontaktieren Sie uns bitte unter "
-                  : "If you have questions about these Terms of Service, please contact us at "}
+                {t("agb_ifYouHaveQuestionsAboutTheseTe")}
                 <a
                   href="mailto:legal@heimstadt.de"
                   className="text-primary font-semibold hover:underline"
                 >
                   legal@heimstadt.de
                 </a>
-                {language === "de"
-                  ? " oder schreiben Sie an: Heimstadt Immobilien GmbH, Torstraße 142, 10119 Berlin."
-                  : " or write to: Heimstadt Immobilien GmbH, Torstraße 142, 10119 Berlin."}
+                {t("agb_OrWriteToHeimstadtImmobilienGm")}
               </p>
             </div>
           </div>
